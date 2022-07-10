@@ -1,0 +1,51 @@
+project_name: etop
+
+release:
+  github:
+    owner: xixiliguo
+    name: etop
+  name_template: "{{.Tag}}"
+
+changelog:
+  skip: true
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser
+
+archives:
+  - replacements:
+      amd64: x86_64
+      arm64: aarch64
+
+nfpms:
+  - file_name_template: "{{ .ConventionalFileName }}"
+    maintainer: xixiliguo <wangbo.red@gmail.com>
+    description: |-
+      system monitor for linux, written in golang
+    license: MIT
+    formats:
+      - rpm
+    contents:
+      - src: rpm/etop.service
+        dst: /usr/lib/systemd/system/etop.service
+
+      - dst: /var/log/etop/etop.log
+        type: ghost
+    scripts:
+      postinstall: "rpm/postinstall.sh"
+      preremove: "rpm/preremove.sh"
+
+checksum:
+  name_template: "SHA256SUMS"
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ incpatch .Version }}_{{ .ShortCommit}}"

@@ -1,0 +1,9 @@
+[Unit]
+Description=etop system monitor for linux system
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/etop record
+
+[Install]
+WantedBy=multi-user.target
