@@ -149,7 +149,7 @@ func (sysv *SystemView) DrawMEMInfo() {
 			1,
 			tview.NewTableCell(sysv.Source.MEM.GetRenderValue(item)).
 				SetExpansion(0).
-				SetAlign(tview.AlignLeft))
+				SetAlign(tview.AlignRight))
 	}
 
 }

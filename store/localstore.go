@@ -9,18 +9,21 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/klauspost/compress/zstd"
 	"github.com/prometheus/procfs"
 	"github.com/prometheus/procfs/blockdevice"
+	"github.com/xixiliguo/etop/util"
 	"golang.org/x/sys/unix"
 )
 
 var (
-	DefaultPath = "/var/log/etop"
-	EOUTOFRANGE = errors.New("already out of data range")
+	DefaultPath                   = "/var/log/etop"
+	FreeSpaceForFileSystem uint64 = 500 * (1 << 20) //500MB
+	EOUTOFRANGE                   = errors.New("already out of data range")
 )
 
 type SystemSample struct {
@@ -358,6 +361,7 @@ func (local *LocalStore) SetDestFile(fileName string) error {
 
 func (local *LocalStore) WriteLoop(interval time.Duration) error {
 	local.Log.Printf("start to write sample every %s to %s", interval.String(), local.Data.Name())
+	isSkip := 0
 	for {
 		start := time.Now()
 		if dstFile := "etop_" + start.Format("20060102"); dstFile > local.DataName {
@@ -371,9 +375,28 @@ func (local *LocalStore) WriteLoop(interval time.Duration) error {
 			return err
 		}
 		s.CurrTime = time.Now().Unix()
-		if err := local.WriteSample(s); err != nil {
+
+		statInfo := syscall.Statfs_t{}
+		if err := syscall.Statfs(local.Path, &statInfo); err != nil {
 			return err
 		}
+		if statInfo.Bavail*uint64(statInfo.Bsize) > FreeSpaceForFileSystem {
+			if isSkip != 0 {
+				local.Log.Printf("resume to write sample (%d skipped)", isSkip)
+				isSkip = 0
+			}
+			if err := local.WriteSample(s); err != nil {
+				return err
+			}
+		} else {
+			if isSkip == 0 {
+				local.Log.Printf("filesystem free space %s below %s, write sample skipped",
+					util.GetHumanSize(statInfo.Bavail*uint64(statInfo.Bsize)),
+					util.GetHumanSize(FreeSpaceForFileSystem))
+			}
+			isSkip++
+		}
+
 		collectDuration := time.Now().Sub(start)
 		if collectDuration > 500*time.Millisecond {
 			local.Log.Printf("write sample take %s (larger than 500 ms)", collectDuration.String())

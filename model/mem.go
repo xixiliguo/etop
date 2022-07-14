@@ -151,13 +151,13 @@ func (m *MEM) GetRenderValue(field string) string {
 	case "CmaFree":
 		return fmt.Sprintf("%d KB", m.CmaFree)
 	case "HugePagesTotal":
-		return fmt.Sprintf("%d KB", m.HugePagesTotal)
+		return fmt.Sprintf("%d", m.HugePagesTotal)
 	case "HugePagesFree":
-		return fmt.Sprintf("%d KB", m.HugePagesFree)
+		return fmt.Sprintf("%d", m.HugePagesFree)
 	case "HugePagesRsvd":
-		return fmt.Sprintf("%d KB", m.HugePagesRsvd)
+		return fmt.Sprintf("%d", m.HugePagesRsvd)
 	case "HugePagesSurp":
-		return fmt.Sprintf("%d KB", m.HugePagesSurp)
+		return fmt.Sprintf("%d", m.HugePagesSurp)
 	case "Hugepagesize":
 		return fmt.Sprintf("%d KB", m.Hugepagesize)
 	case "DirectMap4k":
@@ -173,53 +173,60 @@ func (m *MEM) GetRenderValue(field string) string {
 func (m *MEM) Collect(prev, curr *store.Sample) {
 
 	*m = MEM{
-		MemTotal:          *curr.MemTotal,
-		MemFree:           *curr.MemFree,
-		MemAvailable:      *curr.MemAvailable,
-		Buffers:           *curr.Buffers,
-		Cached:            *curr.Cached,
-		SwapCached:        *curr.SwapCached,
-		Active:            *curr.Active,
-		Inactive:          *curr.Inactive,
-		ActiveAnon:        *curr.ActiveAnon,
-		InactiveAnon:      *curr.InactiveAnon,
-		ActiveFile:        *curr.ActiveFile,
-		InactiveFile:      *curr.InactiveFile,
-		Unevictable:       *curr.Unevictable,
-		Mlocked:           *curr.Mlocked,
-		SwapTotal:         *curr.SwapTotal,
-		SwapFree:          *curr.SwapFree,
-		Dirty:             *curr.Dirty,
-		Writeback:         *curr.Writeback,
-		AnonPages:         *curr.AnonPages,
-		Mapped:            *curr.Mapped,
-		Shmem:             *curr.Shmem,
-		Slab:              *curr.Slab,
-		SReclaimable:      *curr.SReclaimable,
-		SUnreclaim:        *curr.SUnreclaim,
-		KernelStack:       *curr.KernelStack,
-		PageTables:        *curr.PageTables,
-		NFSUnstable:       *curr.NFSUnstable,
-		Bounce:            *curr.Bounce,
-		WritebackTmp:      *curr.WritebackTmp,
-		CommitLimit:       *curr.CommitLimit,
-		CommittedAS:       *curr.CommittedAS,
-		VmallocTotal:      *curr.VmallocTotal,
-		VmallocUsed:       *curr.VmallocUsed,
-		VmallocChunk:      *curr.VmallocChunk,
-		HardwareCorrupted: *curr.HardwareCorrupted,
-		AnonHugePages:     *curr.AnonHugePages,
-		ShmemHugePages:    *curr.ShmemHugePages,
-		ShmemPmdMapped:    *curr.ShmemPmdMapped,
-		CmaTotal:          *curr.CmaTotal,
-		CmaFree:           *curr.CmaFree,
-		HugePagesTotal:    *curr.HugePagesTotal,
-		HugePagesFree:     *curr.HugePagesFree,
-		HugePagesRsvd:     *curr.HugePagesRsvd,
-		HugePagesSurp:     *curr.HugePagesSurp,
-		Hugepagesize:      *curr.Hugepagesize,
-		DirectMap4k:       *curr.DirectMap4k,
-		DirectMap2M:       *curr.DirectMap2M,
+		MemTotal:          getValueOrDefault(curr.MemTotal),
+		MemFree:           getValueOrDefault(curr.MemFree),
+		MemAvailable:      getValueOrDefault(curr.MemAvailable),
+		Buffers:           getValueOrDefault(curr.Buffers),
+		Cached:            getValueOrDefault(curr.Cached),
+		SwapCached:        getValueOrDefault(curr.SwapCached),
+		Active:            getValueOrDefault(curr.Active),
+		Inactive:          getValueOrDefault(curr.Inactive),
+		ActiveAnon:        getValueOrDefault(curr.ActiveAnon),
+		InactiveAnon:      getValueOrDefault(curr.InactiveAnon),
+		ActiveFile:        getValueOrDefault(curr.ActiveFile),
+		InactiveFile:      getValueOrDefault(curr.InactiveFile),
+		Unevictable:       getValueOrDefault(curr.Unevictable),
+		Mlocked:           getValueOrDefault(curr.Mlocked),
+		SwapTotal:         getValueOrDefault(curr.SwapTotal),
+		SwapFree:          getValueOrDefault(curr.SwapFree),
+		Dirty:             getValueOrDefault(curr.Dirty),
+		Writeback:         getValueOrDefault(curr.Writeback),
+		AnonPages:         getValueOrDefault(curr.AnonPages),
+		Mapped:            getValueOrDefault(curr.Mapped),
+		Shmem:             getValueOrDefault(curr.Shmem),
+		Slab:              getValueOrDefault(curr.Slab),
+		SReclaimable:      getValueOrDefault(curr.SReclaimable),
+		SUnreclaim:        getValueOrDefault(curr.SUnreclaim),
+		KernelStack:       getValueOrDefault(curr.KernelStack),
+		PageTables:        getValueOrDefault(curr.PageTables),
+		NFSUnstable:       getValueOrDefault(curr.NFSUnstable),
+		Bounce:            getValueOrDefault(curr.Bounce),
+		WritebackTmp:      getValueOrDefault(curr.WritebackTmp),
+		CommitLimit:       getValueOrDefault(curr.CommitLimit),
+		CommittedAS:       getValueOrDefault(curr.CommittedAS),
+		VmallocTotal:      getValueOrDefault(curr.VmallocTotal),
+		VmallocUsed:       getValueOrDefault(curr.VmallocUsed),
+		VmallocChunk:      getValueOrDefault(curr.VmallocChunk),
+		HardwareCorrupted: getValueOrDefault(curr.HardwareCorrupted),
+		AnonHugePages:     getValueOrDefault(curr.AnonHugePages),
+		ShmemHugePages:    getValueOrDefault(curr.ShmemHugePages),
+		ShmemPmdMapped:    getValueOrDefault(curr.ShmemPmdMapped),
+		CmaTotal:          getValueOrDefault(curr.CmaTotal),
+		CmaFree:           getValueOrDefault(curr.CmaFree),
+		HugePagesTotal:    getValueOrDefault(curr.HugePagesTotal),
+		HugePagesFree:     getValueOrDefault(curr.HugePagesFree),
+		HugePagesRsvd:     getValueOrDefault(curr.HugePagesRsvd),
+		HugePagesSurp:     getValueOrDefault(curr.HugePagesSurp),
+		Hugepagesize:      getValueOrDefault(curr.Hugepagesize),
+		DirectMap4k:       getValueOrDefault(curr.DirectMap4k),
+		DirectMap2M:       getValueOrDefault(curr.DirectMap2M),
 	}
 
+}
+
+func getValueOrDefault(m *uint64) uint64 {
+	if m == nil {
+		return 0
+	}
+	return *m
 }
