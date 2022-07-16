@@ -10,6 +10,11 @@ import (
 	"github.com/xixiliguo/etop/store"
 )
 
+const (
+	LIVE = iota
+	REPORT
+)
+
 type TUI struct {
 	*tview.Application
 	pages   *tview.Pages
@@ -21,6 +26,7 @@ type TUI struct {
 	detail  *tview.Pages
 	search  *InputDialog
 	log     *log.Logger
+	mode    int
 	sm      *model.System
 }
 
@@ -90,28 +96,34 @@ func NewTUI(log *log.Logger) *TUI {
 			return event
 		}
 		if event.Rune() == 't' {
-			if err := t.sm.CollectNext(); err != nil {
-				t.log.Printf("%s", err)
-				return nil
+			if t.mode == REPORT {
+				if err := t.sm.CollectNext(); err != nil {
+					t.log.Printf("%s", err)
+					return nil
+				}
+				t.header.Update(t.sm)
+				t.basic.Update(t.sm)
+				t.process.SetSource(t.sm.ProcessList)
+				t.system.SetSource(t.sm)
 			}
-			t.header.Update(t.sm)
-			t.basic.Update(t.sm)
-			t.process.SetSource(t.sm.ProcessList)
-			t.system.SetSource(t.sm)
 			return nil
 		} else if event.Rune() == 'T' {
-			if err := t.sm.CollectPrev(); err != nil {
-				t.log.Printf("%s", err)
-				return nil
+			if t.mode == REPORT {
+				if err := t.sm.CollectPrev(); err != nil {
+					t.log.Printf("%s", err)
+					return nil
+				}
+				t.header.Update(t.sm)
+				t.basic.Update(t.sm)
+				t.process.SetSource(t.sm.ProcessList)
+				t.system.SetSource(t.sm)
 			}
-			t.header.Update(t.sm)
-			t.basic.Update(t.sm)
-			t.process.SetSource(t.sm.ProcessList)
-			t.system.SetSource(t.sm)
 			return nil
 		} else if event.Rune() == 'b' {
-			t.pages.ShowPage("search")
-			t.SetFocus(t.search)
+			if t.mode == REPORT {
+				t.pages.ShowPage("search")
+				t.SetFocus(t.search)
+			}
 			return nil
 		} else if event.Rune() == 'h' {
 			t.pages.ShowPage("help")
@@ -126,7 +138,7 @@ func NewTUI(log *log.Logger) *TUI {
 }
 
 func (t *TUI) Run(inputFileName string) error {
-
+	t.mode = REPORT
 	local, err := store.NewLocalStoreWithReadOnly(inputFileName, t.log)
 	if err != nil {
 		return err
@@ -150,7 +162,7 @@ func (t *TUI) Run(inputFileName string) error {
 }
 
 func (t *TUI) RunWithLive(interval time.Duration) error {
-
+	t.mode = LIVE
 	sm, err := model.NewSysModelWithLive(t.log)
 	if err != nil {
 		return err

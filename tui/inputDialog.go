@@ -18,7 +18,7 @@ func NewInputDialog() *InputDialog {
 	}
 
 	inputDialog.form.
-		SetTitle("Search sample by specific time (e.g hh:mm)      ESC to close").
+		SetTitle("Search sample (e.g [yyyy-mm-dd ]hh:mm)      ESC to close").
 		SetBorder(true).
 		SetTitleAlign(tview.AlignLeft)
 	inputDialog.form.

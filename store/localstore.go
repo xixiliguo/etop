@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"syscall"
 	"time"
 
@@ -23,7 +22,7 @@ import (
 var (
 	DefaultPath                   = "/var/log/etop"
 	FreeSpaceForFileSystem uint64 = 500 * (1 << 20) //500MB
-	EOUTOFRANGE                   = errors.New("already out of data range")
+	EOUTOFRANGE                   = errors.New("already out of sample range")
 )
 
 type SystemSample struct {
@@ -166,9 +165,7 @@ func (local *LocalStore) Close() error {
 
 func (local *LocalStore) ChangeIndex(value string) error {
 
-	f := strings.TrimPrefix(local.DataName, "etop_") + " " + value
-
-	t, err := time.ParseInLocation("20060102 15:04", f, time.Local)
+	t, err := util.ConvertToTime(value)
 	if err != nil {
 		return err
 	}
