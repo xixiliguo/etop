@@ -49,6 +49,7 @@ func NewTUI(log *log.Logger) *TUI {
 	t.detail.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyF1 {
 			t.detail.SwitchToPage("Process")
+			t.process.UpdateLayerOut()
 			return nil
 		} else if event.Key() == tcell.KeyF2 {
 			t.detail.SwitchToPage("System")
