@@ -2,12 +2,6 @@ package util
 
 import "testing"
 
-// assertEquals(t, "1kB", HumanSize(1000))
-// assertEquals(t, "1.024kB", HumanSize(1024))
-// assertEquals(t, "1MB", HumanSize(1000000))
-// assertEquals(t, "1.049MB", HumanSize(1048576))
-// assertEquals(t, "2MB", HumanSize(2*MB))
-
 func TestGetHumanSize(t *testing.T) {
 	testCases := []struct {
 		size     int
