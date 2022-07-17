@@ -301,6 +301,9 @@ func CollectSampleFromSys(s *Sample) error {
 			s.NetInfo = append(s.NetInfo, v)
 		}
 	}
+	sort.Slice(s.NetInfo, func(i, j int) bool {
+		return s.NetInfo[i].Name > s.NetInfo[j].Name
+	})
 
 	if diskStats, err := diskFS.ProcDiskstats(); err != nil {
 		return err
