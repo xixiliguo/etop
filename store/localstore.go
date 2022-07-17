@@ -302,7 +302,7 @@ func CollectSampleFromSys(s *Sample) error {
 		}
 	}
 	sort.Slice(s.NetInfo, func(i, j int) bool {
-		return s.NetInfo[i].Name > s.NetInfo[j].Name
+		return s.NetInfo[i].Name < s.NetInfo[j].Name
 	})
 
 	if diskStats, err := diskFS.ProcDiskstats(); err != nil {
