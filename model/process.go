@@ -192,8 +192,8 @@ func (procs *ProcessSlice) Collect(prev, curr *store.Sample) (processes, threads
 		p.MinFlt = sample.MinFlt
 		p.MajFlt = sample.MajFlt
 		p.VSize = sample.VSize
-		p.RSS = sample.RSS
-		p.MEMUsage = p.RSS * 100 / int(*curr.MemTotal)
+		p.RSS = sample.RSS * curr.PageSize
+		p.MEMUsage = p.RSS * 100 / 1024 / int(*curr.MemTotal)
 
 		p.RChar = sample.RChar - prevMap[sample.PID].RChar
 		p.WChar = sample.WChar - prevMap[sample.PID].WChar

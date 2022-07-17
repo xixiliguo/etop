@@ -28,6 +28,7 @@ var (
 type SystemSample struct {
 	HostName      string
 	KernelVersion string
+	PageSize      int
 	procfs.LoadAvg
 	procfs.Stat
 	procfs.Meminfo
@@ -275,6 +276,7 @@ func CollectSampleFromSys(s *Sample) error {
 	unix.Uname(&u)
 	s.HostName = string(u.Nodename[:])
 	s.KernelVersion = string(u.Release[:])
+	s.PageSize = os.Getpagesize()
 	if fs, err = procfs.NewFS("/proc"); err != nil {
 		return err
 	}
