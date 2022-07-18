@@ -60,7 +60,7 @@ func (bv *BasicView) Update(sm *model.System) {
 		}
 	}
 	bv.CPU.Clear()
-	fmt.Fprintf(bv.CPU, "%-10sUser %6d%%%5sSystem %4d%%%5sIowait %4d%%%5sIdle %6d%%%5sIRQ %7d%%%5sSoftIRQ %3d%%",
+	fmt.Fprintf(bv.CPU, "%-10sUser %6.1f%%%5sSystem %4.1f%%%5sIowait %4.1f%%%5sIdle %6.1f%%%5sIRQ %7.1f%%%5sSoftIRQ %3.1f%%",
 		"CPU", c.User, "", c.System, "", c.Iowait, "", c.Idle, "", c.IRQ, "", c.SoftIRQ)
 	bv.MEM.Clear()
 	fmt.Fprintf(bv.MEM, "%-10sTotal %6s%5sFree %7s%5sAvail %6s%5sSlab %7s%5sBuffer %5s%5sCache %6s",

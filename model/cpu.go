@@ -9,16 +9,16 @@ import (
 
 type CPU struct {
 	Index     string
-	User      int
-	Nice      int
-	System    int
-	Idle      int
-	Iowait    int
-	IRQ       int
-	SoftIRQ   int
-	Steal     int
-	Guest     int
-	GuestNice int
+	User      float64
+	Nice      float64
+	System    float64
+	Idle      float64
+	Iowait    float64
+	IRQ       float64
+	SoftIRQ   float64
+	Steal     float64
+	Guest     float64
+	GuestNice float64
 }
 
 func (c *CPU) GetRenderValue(field string) string {
@@ -26,25 +26,25 @@ func (c *CPU) GetRenderValue(field string) string {
 	case "Index":
 		return fmt.Sprintf("%s", c.Index)
 	case "User":
-		return fmt.Sprintf("%d%%", c.User)
+		return fmt.Sprintf("%.1f%%", c.User)
 	case "Nice":
-		return fmt.Sprintf("%d%%", c.Nice)
+		return fmt.Sprintf("%.1f%%", c.Nice)
 	case "System":
-		return fmt.Sprintf("%d%%", c.System)
+		return fmt.Sprintf("%.1f%%", c.System)
 	case "Idle":
-		return fmt.Sprintf("%d%%", c.Idle)
+		return fmt.Sprintf("%.1f%%", c.Idle)
 	case "Iowait":
-		return fmt.Sprintf("%d%%", c.Iowait)
+		return fmt.Sprintf("%.1f%%", c.Iowait)
 	case "IRQ":
-		return fmt.Sprintf("%d%%", c.IRQ)
+		return fmt.Sprintf("%.1f%%", c.IRQ)
 	case "SoftIRQ":
-		return fmt.Sprintf("%d%%", c.SoftIRQ)
+		return fmt.Sprintf("%.1f%%", c.SoftIRQ)
 	case "Steal":
-		return fmt.Sprintf("%d%%", c.Steal)
+		return fmt.Sprintf("%.1f%%", c.Steal)
 	case "Guest":
-		return fmt.Sprintf("%d%%", c.Guest)
+		return fmt.Sprintf("%.1f%%", c.Guest)
 	case "GuestNice":
-		return fmt.Sprintf("%d%%", c.GuestNice)
+		return fmt.Sprintf("%.1f%%", c.GuestNice)
 	}
 	return ""
 }
@@ -95,15 +95,15 @@ func calcCpuUsage(prev, curr procfs.CPUStat) CPU {
 	guestNice := curr.GuestNice - prev.GuestNice
 
 	total := user + nice + system + idle + iowait + irq + softIRQ + steal + guest + guestNice
-	c.User = int(user * 100 / total)
-	c.Nice = int(nice * 100 / total)
-	c.System = int(system * 100 / total)
-	c.Iowait = int(iowait * 100 / total)
-	c.IRQ = int(irq * 100 / total)
-	c.SoftIRQ = int(softIRQ * 100 / total)
-	c.Steal = int(steal * 100 / total)
-	c.Guest = int(guest * 100 / total)
-	c.GuestNice = int(guestNice * 100 / total)
+	c.User = user * 100 / total
+	c.Nice = nice * 100 / total
+	c.System = system * 100 / total
+	c.Iowait = iowait * 100 / total
+	c.IRQ = irq * 100 / total
+	c.SoftIRQ = softIRQ * 100 / total
+	c.Steal = steal * 100 / total
+	c.Guest = guest * 100 / total
+	c.GuestNice = guestNice * 100 / total
 	c.Idle = 100 - c.User - c.Nice - c.System - c.Iowait - c.IRQ - c.SoftIRQ - c.Steal - c.Guest - c.GuestNice
 
 	return c
