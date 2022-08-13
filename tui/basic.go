@@ -3,52 +3,55 @@ package tui
 import (
 	"fmt"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/xixiliguo/etop/model"
 	"github.com/xixiliguo/etop/util"
 )
 
-type BasicView struct {
-	*tview.Flex
-	PRC  *tview.TextView
-	CPL  *tview.TextView
-	CPU  *tview.TextView
-	MEM  *tview.TextView
-	DISK *tview.TextView
-	NET  *tview.TextView
+type Basic struct {
+	*tview.Box
+	layout *tview.Flex
+	prc    *tview.TextView
+	cpl    *tview.TextView
+	cpu    *tview.TextView
+	mem    *tview.TextView
+	disk   *tview.TextView
+	net    *tview.TextView
 }
 
-func NewBasicView() *BasicView {
+func NewBasic() *Basic {
 
-	bv := &BasicView{
-		Flex: tview.NewFlex(),
-		PRC:  tview.NewTextView(),
-		CPL:  tview.NewTextView(),
-		CPU:  tview.NewTextView(),
-		MEM:  tview.NewTextView(),
-		DISK: tview.NewTextView(),
-		NET:  tview.NewTextView(),
+	basic := &Basic{
+		Box:    tview.NewBox(),
+		layout: tview.NewFlex(),
+		prc:    tview.NewTextView(),
+		cpl:    tview.NewTextView(),
+		cpu:    tview.NewTextView(),
+		mem:    tview.NewTextView(),
+		disk:   tview.NewTextView(),
+		net:    tview.NewTextView(),
 	}
-	bv.SetBorder(true)
-	bv.SetDirection(tview.FlexRow).
-		AddItem(bv.PRC, 1, 0, false).
-		AddItem(bv.CPL, 1, 0, false).
-		AddItem(bv.CPU, 1, 0, false).
-		AddItem(bv.MEM, 1, 0, false).
-		AddItem(bv.DISK, 1, 0, false).
-		AddItem(bv.NET, 1, 0, false)
+	basic.SetBorder(true)
+	basic.layout.SetDirection(tview.FlexRow).
+		AddItem(basic.prc, 1, 0, false).
+		AddItem(basic.cpl, 1, 0, false).
+		AddItem(basic.cpu, 1, 0, false).
+		AddItem(basic.mem, 1, 0, false).
+		AddItem(basic.disk, 1, 0, false).
+		AddItem(basic.net, 1, 0, false)
 
-	return bv
+	return basic
 }
 
-func (bv *BasicView) Update(sm *model.System) {
+func (basic *Basic) Update(sm *model.System) {
 
-	bv.PRC.Clear()
-	fmt.Fprintf(bv.PRC, "%-10sProcess %4d%5sThread %5d%5sClone %4d/s",
+	basic.prc.Clear()
+	fmt.Fprintf(basic.prc, "%-10sProcess %4d%5sThread %5d%5sClone %4d/s",
 		"PRC", sm.Prcesses, "", sm.Threads, "", sm.Clones)
 
-	bv.CPL.Clear()
-	fmt.Fprintf(bv.CPL, "%-10sAvg1 %7.2f%5sAvg5 %7.2f%5sAvg15 %6.2f%5sTrun %7d%5sTslpu %6d%5sCtxsw %4d/s",
+	basic.cpl.Clear()
+	fmt.Fprintf(basic.cpl, "%-10sAvg1 %7.2f%5sAvg5 %7.2f%5sAvg15 %6.2f%5sTrun %7d%5sTslpu %6d%5sCtxsw %4d/s",
 		"CPL", sm.Curr.Load1, "", sm.Curr.Load5, "", sm.Curr.Load15, "", sm.Curr.ProcessesRunning, "",
 		sm.Curr.ProcessesBlocked, "",
 		sm.ContextSwitch)
@@ -59,11 +62,11 @@ func (bv *BasicView) Update(sm *model.System) {
 			c = sm.CPUs[i]
 		}
 	}
-	bv.CPU.Clear()
-	fmt.Fprintf(bv.CPU, "%-10sUser %6.1f%%%5sSystem %4.1f%%%5sIowait %4.1f%%%5sIdle %6.1f%%%5sIRQ %7.1f%%%5sSoftIRQ %3.1f%%",
+	basic.cpu.Clear()
+	fmt.Fprintf(basic.cpu, "%-10sUser %6.1f%%%5sSystem %4.1f%%%5sIowait %4.1f%%%5sIdle %6.1f%%%5sIRQ %7.1f%%%5sSoftIRQ %3.1f%%",
 		"CPU", c.User, "", c.System, "", c.Iowait, "", c.Idle, "", c.IRQ, "", c.SoftIRQ)
-	bv.MEM.Clear()
-	fmt.Fprintf(bv.MEM, "%-10sTotal %6s%5sFree %7s%5sAvail %6s%5sSlab %7s%5sBuffer %5s%5sCache %6s",
+	basic.mem.Clear()
+	fmt.Fprintf(basic.mem, "%-10sTotal %6s%5sFree %7s%5sAvail %6s%5sSlab %7s%5sBuffer %5s%5sCache %6s",
 		"MEM", sm.MEM.GetRenderValue("Total"), "",
 		sm.MEM.GetRenderValue("Free"), "",
 		sm.MEM.GetRenderValue("Avail"), "",
@@ -71,16 +74,32 @@ func (bv *BasicView) Update(sm *model.System) {
 		sm.MEM.GetRenderValue("Buffer"), "",
 		sm.MEM.GetRenderValue("Cache"))
 
-	bv.DISK.Clear()
-	fmt.Fprintf(bv.DISK, "%-10s", "DSK")
+	basic.disk.Clear()
+	fmt.Fprintf(basic.disk, "%-10s", "DSK")
 	for _, d := range sm.Disks {
-		fmt.Fprintf(bv.DISK, "%-7s%7s|%-7s ", d.GetRenderValue("Disk"), d.GetRenderValue("R/s"), d.GetRenderValue("W/s"))
+		fmt.Fprintf(basic.disk, "%-7s%7s|%-7s ", d.GetRenderValue("Disk"), d.GetRenderValue("R/s"), d.GetRenderValue("W/s"))
 	}
 
-	bv.NET.Clear()
-	fmt.Fprintf(bv.NET, "%-10s", "NET")
+	basic.net.Clear()
+	fmt.Fprintf(basic.net, "%-10s", "NET")
 	for _, d := range sm.Nets {
-		fmt.Fprintf(bv.NET, "%-7s%7s|%-7s ", d.GetRenderValue("Name"), d.GetRenderValue("R/s"), d.GetRenderValue("T/s"))
+		fmt.Fprintf(basic.net, "%-7s%7s|%-7s ", d.GetRenderValue("Name"), d.GetRenderValue("R/s"), d.GetRenderValue("T/s"))
 	}
 
+}
+
+func (basic *Basic) HasFocus() bool {
+	return basic.layout.HasFocus()
+}
+
+func (basic *Basic) Focus(delegate func(p tview.Primitive)) {
+	delegate(basic.layout)
+}
+
+func (basic *Basic) Draw(screen tcell.Screen) {
+	basic.Box.DrawForSubclass(screen, basic)
+	x, y, width, height := basic.Box.GetInnerRect()
+
+	basic.layout.SetRect(x, y, width, height)
+	basic.layout.Draw(screen)
 }

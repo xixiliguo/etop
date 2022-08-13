@@ -8,93 +8,93 @@ import (
 	"github.com/xixiliguo/etop/model"
 )
 
-type SystemView struct {
-	Tui *tview.Application
-	*tview.Flex
-	Header    *tview.TextView
-	Content   *tview.Pages
-	CPUTable  *tview.Table
-	MEMTable  *tview.Table
-	DiskTable *tview.Table
-	NetTable  *tview.Table
-	Source    *model.System
+type System struct {
+	*tview.Box
+	layout  *tview.Flex
+	header  *tview.TextView
+	content *tview.Pages
+	cpu     *tview.Table
+	mem     *tview.Table
+	disk    *tview.Table
+	net     *tview.Table
+	source  *model.System
 }
 
-func NewSystemView(tui *tview.Application) *SystemView {
+func NewSystem() *System {
 
-	sysv := &SystemView{
-		Tui:       tui,
-		Flex:      tview.NewFlex(),
-		Header:    tview.NewTextView(),
-		Content:   tview.NewPages(),
-		CPUTable:  tview.NewTable().SetFixed(1, 1),
-		MEMTable:  tview.NewTable().SetFixed(1, 1),
-		DiskTable: tview.NewTable().SetFixed(1, 1),
-		NetTable:  tview.NewTable().SetFixed(1, 1),
+	system := &System{
+		Box:     tview.NewBox(),
+		layout:  tview.NewFlex(),
+		header:  tview.NewTextView(),
+		content: tview.NewPages(),
+		cpu:     tview.NewTable().SetFixed(1, 1),
+		mem:     tview.NewTable().SetFixed(1, 1),
+		disk:    tview.NewTable().SetFixed(1, 1),
+		net:     tview.NewTable().SetFixed(1, 1),
 	}
 
-	sysv.SetTitle("System").SetBorder(true).SetTitleAlign(tview.AlignLeft)
+	system.SetTitle("System").SetBorder(true).SetTitleAlign(tview.AlignLeft)
 
-	sysv.Content.
-		AddPage("CPU", sysv.CPUTable, true, true).
-		AddPage("MEM", sysv.MEMTable, true, false).
-		AddPage("DISK", sysv.DiskTable, true, false).
-		AddPage("NET", sysv.NetTable, true, false)
+	system.content.
+		AddPage("CPU", system.cpu, true, true).
+		AddPage("MEM", system.mem, true, false).
+		AddPage("DISK", system.disk, true, false).
+		AddPage("NET", system.net, true, false)
 
-	sysv.SetDirection(tview.FlexRow).
-		AddItem(sysv.Header, 1, 0, false).
-		AddItem(sysv.Content, 0, 1, true)
+	system.layout.SetDirection(tview.FlexRow).
+		AddItem(system.header, 1, 0, false).
+		AddItem(system.content, 0, 1, true)
 
-	fmt.Fprintf(sysv.Header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
+	fmt.Fprintf(system.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
 		"c", "CPU",
 		"m", "MEM",
 		"d", "DISK",
 		"n", "NET")
-	sysv.Header.SetRegions(true).Highlight("c")
+	system.header.SetRegions(true).Highlight("c")
 
-	sysv.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	system.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 
 		if event.Rune() == 'c' {
-			sysv.Header.Highlight("c")
-			sysv.Content.SwitchToPage("CPU")
+			system.header.Highlight("c")
+			system.content.SwitchToPage("CPU")
 			return nil
 		}
 
 		if event.Rune() == 'm' {
-			sysv.Header.Highlight("m")
-			sysv.Content.SwitchToPage("MEM")
+			system.header.Highlight("m")
+			system.content.SwitchToPage("MEM")
 			return nil
 		}
 
 		if event.Rune() == 'd' {
-			sysv.Header.Highlight("d")
-			sysv.Content.SwitchToPage("DISK")
+			system.header.Highlight("d")
+			system.content.SwitchToPage("DISK")
 			return nil
 		}
 
 		if event.Rune() == 'n' {
-			sysv.Header.Highlight("n")
-			sysv.Content.SwitchToPage("NET")
+			system.header.Highlight("n")
+			system.content.SwitchToPage("NET")
 			return nil
 		}
 
 		return event
 	})
 
-	return sysv
+	return system
 }
 
-func (sysv *SystemView) SetSource(source *model.System) {
-	sysv.Source = source
-	sysv.DrawCPUInfo()
-	sysv.DrawMEMInfo()
-	sysv.DrawDiskInfo()
-	sysv.DrawNetInfo()
+func (system *System) SetSource(source *model.System) {
+	system.source = source
+	system.DrawCPUInfo()
+	system.DrawMEMInfo()
+	system.DrawDiskInfo()
+	system.DrawNetInfo()
 }
 
-func (sysv *SystemView) DrawCPUInfo() {
-	sysv.CPUTable.Clear()
-	sysv.CPUTable.SetOffset(0, 0)
+func (system *System) DrawCPUInfo() {
+	system.cpu.Clear()
+	system.cpu.SetOffset(0, 0)
 
 	visbleCols := []string{"Index", "User", "Nice",
 		"System", "Idle", "Iowait", "IRQ",
@@ -104,12 +104,12 @@ func (sysv *SystemView) DrawCPUInfo() {
 		if col == "Index" {
 			col = ""
 		}
-		sysv.CPUTable.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
+		system.cpu.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
-	for r := 0; r < len(sysv.Source.CPUs); r++ {
-		c := sysv.Source.CPUs[r]
+	for r := 0; r < len(system.source.CPUs); r++ {
+		c := system.source.CPUs[r]
 		for i, col := range visbleCols {
-			sysv.CPUTable.SetCell(r+1,
+			system.cpu.SetCell(r+1,
 				i,
 				tview.NewTableCell(c.GetRenderValue(col)).
 					SetExpansion(1).
@@ -118,9 +118,9 @@ func (sysv *SystemView) DrawCPUInfo() {
 	}
 }
 
-func (sysv *SystemView) DrawMEMInfo() {
-	sysv.MEMTable.Clear()
-	sysv.MEMTable.SetOffset(0, 0)
+func (system *System) DrawMEMInfo() {
+	system.mem.Clear()
+	system.mem.SetOffset(0, 0)
 
 	items := []string{"MemTotal", "MemFree", "MemAvailable",
 		"Buffers", "Cached", "SwapCached", "Active",
@@ -136,27 +136,27 @@ func (sysv *SystemView) DrawMEMInfo() {
 		"DirectMap4k", "DirectMap2M", "DirectMap1G",
 	}
 	for i, v := range []string{"Field", "Value"} {
-		sysv.MEMTable.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorBlue))
+		system.mem.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorBlue))
 	}
 
 	for i, item := range items {
-		sysv.MEMTable.SetCell(i+1,
+		system.mem.SetCell(i+1,
 			0,
 			tview.NewTableCell(item).
 				SetExpansion(0).
 				SetAlign(tview.AlignLeft))
-		sysv.MEMTable.SetCell(i+1,
+		system.mem.SetCell(i+1,
 			1,
-			tview.NewTableCell(sysv.Source.MEM.GetRenderValue(item)).
+			tview.NewTableCell(system.source.MEM.GetRenderValue(item)).
 				SetExpansion(0).
 				SetAlign(tview.AlignRight))
 	}
 
 }
 
-func (sysv *SystemView) DrawDiskInfo() {
-	sysv.DiskTable.Clear()
-	sysv.DiskTable.SetOffset(0, 0)
+func (system *System) DrawDiskInfo() {
+	system.disk.Clear()
+	system.disk.SetOffset(0, 0)
 
 	visbleCols := []string{
 		"Disk", "Busy",
@@ -167,12 +167,12 @@ func (sysv *SystemView) DrawDiskInfo() {
 
 	for i, col := range visbleCols {
 
-		sysv.DiskTable.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
+		system.disk.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
-	for r := 0; r < len(sysv.Source.Disks); r++ {
-		c := sysv.Source.Disks[r]
+	for r := 0; r < len(system.source.Disks); r++ {
+		c := system.source.Disks[r]
 		for i, col := range visbleCols {
-			sysv.DiskTable.SetCell(r+1,
+			system.disk.SetCell(r+1,
 				i,
 				tview.NewTableCell(c.GetRenderValue(col)).
 					SetExpansion(1).
@@ -182,9 +182,9 @@ func (sysv *SystemView) DrawDiskInfo() {
 
 }
 
-func (sysv *SystemView) DrawNetInfo() {
-	sysv.NetTable.Clear()
-	sysv.NetTable.SetOffset(0, 0)
+func (system *System) DrawNetInfo() {
+	system.net.Clear()
+	system.net.SetOffset(0, 0)
 
 	visbleCols := []string{
 		"Name",
@@ -196,12 +196,12 @@ func (sysv *SystemView) DrawNetInfo() {
 
 	for i, col := range visbleCols {
 
-		sysv.NetTable.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
+		system.net.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
-	for r := 0; r < len(sysv.Source.Nets); r++ {
-		c := sysv.Source.Nets[r]
+	for r := 0; r < len(system.source.Nets); r++ {
+		c := system.source.Nets[r]
 		for i, col := range visbleCols {
-			sysv.NetTable.SetCell(r+1,
+			system.net.SetCell(r+1,
 				i,
 				tview.NewTableCell(c.GetRenderValue(col)).
 					SetExpansion(1).
@@ -209,4 +209,20 @@ func (sysv *SystemView) DrawNetInfo() {
 		}
 	}
 
+}
+
+func (system *System) HasFocus() bool {
+	return system.layout.HasFocus()
+}
+
+func (system *System) Focus(delegate func(p tview.Primitive)) {
+	delegate(system.layout)
+}
+
+func (system *System) Draw(screen tcell.Screen) {
+	system.Box.DrawForSubclass(screen, system)
+	x, y, width, height := system.Box.GetInnerRect()
+
+	system.layout.SetRect(x, y, width, height)
+	system.layout.Draw(screen)
 }
