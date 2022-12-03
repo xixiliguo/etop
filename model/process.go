@@ -161,7 +161,7 @@ func (procs *ProcessSlice) Collect(prev, curr *store.Sample) (processes, threads
 
 	*procs = (*procs)[:0]
 
-	interval := curr.CurrTime - prev.CurrTime
+	interval := curr.TimeStamp - prev.TimeStamp
 	prevMap := make(map[int]store.ProcSample)
 	for i := 0; i < len(prev.ProcSamples); i++ {
 		s := prev.ProcSamples[i]

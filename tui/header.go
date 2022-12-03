@@ -28,10 +28,10 @@ func NewHeader() *Header {
 func (header *Header) Update(sm *model.System) {
 	header.text.Clear()
 	fmt.Fprintf(header.text, "%s    Elapsed: %4ds    %s    Uptime: %s    %s\n",
-		time.Unix(sm.Curr.CurrTime, 0),
-		sm.Curr.CurrTime-sm.Prev.CurrTime,
+		time.Unix(sm.Curr.TimeStamp, 0),
+		sm.Curr.TimeStamp-sm.Prev.TimeStamp,
 		sm.Curr.HostName,
-		time.Duration(sm.Curr.CurrTime-int64(sm.Curr.BootTime))*time.Second,
+		time.Duration(sm.Curr.TimeStamp-int64(sm.Curr.BootTime))*time.Second,
 		version.Version)
 }
 

@@ -62,7 +62,7 @@ func (disks *DiskSlice) Collect(prev, curr *store.Sample) {
 
 		new := curr.DiskStats[i]
 		old := prevMap[new.DeviceName]
-		interval := uint64(curr.CurrTime) - uint64(prev.CurrTime)
+		interval := uint64(curr.TimeStamp) - uint64(prev.TimeStamp)
 		d := Disk{
 			DeviceName:      new.DeviceName,
 			ReadIOs:         new.ReadIOs - old.ReadIOs,

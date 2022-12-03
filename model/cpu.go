@@ -104,7 +104,7 @@ func calcCpuUsage(prev, curr procfs.CPUStat) CPU {
 	c.Steal = steal * 100 / total
 	c.Guest = guest * 100 / total
 	c.GuestNice = guestNice * 100 / total
-	c.Idle = 100 - c.User - c.Nice - c.System - c.Iowait - c.IRQ - c.SoftIRQ - c.Steal - c.Guest - c.GuestNice
+	c.Idle = idle * 100 / total
 
 	return c
 }

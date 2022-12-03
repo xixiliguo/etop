@@ -204,7 +204,6 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 
 func (process *Process) SetSource(s []model.Process) {
 	process.source = s
-	process.setVisibleColumns(GENERALLAYOUT, GENERALDEFAULTORDER)
 	process.update()
 }
 

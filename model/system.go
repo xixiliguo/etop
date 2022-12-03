@@ -31,7 +31,9 @@ func NewSysModel(s *store.LocalStore, log *log.Logger) (*System, error) {
 		MEM:         MEM{},
 		ProcessList: []Process{},
 	}
-	if err := p.CollectNext(); err != nil {
+	now := time.Now()
+	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	if err := p.CollectSampleByTime(t.Unix()); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -54,61 +56,47 @@ func (s *System) CollectLiveSample() error {
 	if err := store.CollectSampleFromSys(&s.Curr); err != nil {
 		return err
 	}
-	s.Curr.CurrTime = time.Now().Unix()
 	s.CollectField()
 	return nil
 }
 
 func (s *System) CollectNext() error {
-
-	if err := s.CollectSampleByStep(0, &s.Prev); err != nil {
+	next := store.Sample{}
+	if err := s.Store.NextSample(1, &next); err != nil {
 		return err
 	}
-	if err := s.CollectSampleByStep(1, &s.Curr); err != nil {
-		return err
-	}
+	s.Prev = s.Curr
+	s.Curr = next
 	s.CollectField()
 	return nil
 }
 
 func (s *System) CollectPrev() error {
 
-	if err := s.CollectSampleByStep(-2, &s.Prev); err != nil {
+	if err := s.Store.NextSample(-2, &s.Prev); err != nil {
 		return err
 	}
 
-	if err := s.CollectSampleByStep(1, &s.Curr); err != nil {
-		return err
-	}
-	s.CollectField()
-	return nil
-}
-
-func (s *System) CollectSampleByTime(value string) error {
-
-	if err := s.Store.ChangeIndex(value); err != nil {
-		return err
-	}
-	if err := s.CollectSampleByStep(-1, &s.Prev); err != nil {
-		return err
-	}
-
-	if err := s.CollectSampleByStep(1, &s.Curr); err != nil {
+	if err := s.Store.NextSample(1, &s.Curr); err != nil {
 		return err
 	}
 	s.CollectField()
 	return nil
 }
 
-func (s *System) CollectSampleByStep(step int, sample *store.Sample) error {
+func (s *System) CollectSampleByTime(timeStamp int64) error {
 
-	if err := s.Store.AdjustIndex(step); err != nil {
+	if err := s.Store.JumpSampleByTimeStamp(timeStamp, &s.Curr); err != nil {
+		return err
+	}
+	if err := s.Store.NextSample(-1, &s.Prev); err != nil {
 		return err
 	}
 
-	if err := s.Store.ReadSample(sample); err != nil {
+	if err := s.Store.NextSample(1, &s.Curr); err != nil {
 		return err
 	}
+	s.CollectField()
 	return nil
 }
 
@@ -119,7 +107,7 @@ func (s *System) CollectField() {
 	s.Disks.Collect(&s.Prev, &s.Curr)
 	s.Nets.Collect(&s.Prev, &s.Curr)
 	s.Prcesses, s.Threads = s.ProcessList.Collect(&s.Prev, &s.Curr)
-	s.Clones = (s.Curr.ProcessCreated - s.Prev.ProcessCreated) / uint64(s.Curr.CurrTime-s.Prev.CurrTime)
-	s.ContextSwitch = (s.Curr.ContextSwitches - s.Prev.ContextSwitches) / uint64(s.Curr.CurrTime-s.Prev.CurrTime)
+	s.Clones = (s.Curr.ProcessCreated - s.Prev.ProcessCreated) / uint64(s.Curr.TimeStamp-s.Prev.TimeStamp)
+	s.ContextSwitch = (s.Curr.ContextSwitches - s.Prev.ContextSwitches) / uint64(s.Curr.TimeStamp-s.Prev.TimeStamp)
 
 }

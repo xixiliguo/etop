@@ -4,12 +4,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/xixiliguo/etop/store"
 	"github.com/xixiliguo/etop/tui"
+	"github.com/xixiliguo/etop/util"
 	"github.com/xixiliguo/etop/version"
+)
+
+var (
+	FreeSpaceForFileSystem uint64 = 500 * (1 << 20) //500MB
 )
 
 var logger *log.Logger
@@ -38,19 +44,62 @@ func main() {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					internal := c.Int("interval")
-					if internal <= 0 {
-						fmt.Printf("interval shoud great than 0, but get %d\n", internal)
+					intervalInt := c.Int("interval")
+					if intervalInt <= 0 {
+						fmt.Printf("interval shoud great than 0, but get %d\n", intervalInt)
 						os.Exit(1)
 					}
-					local, err := store.NewLocalStore(c.String("path"), logger)
+					local, err := store.NewLocalStore(
+						store.WithSetDefault(c.String("path"), logger),
+						store.WithWriteOnly(),
+					)
 					if err != nil {
 						return err
 					}
-					if err := local.WriteLoop(time.Duration(internal) * time.Second); err != nil {
-						return err
+					// if err := local.WriteLoop(time.Duration(internal) * time.Second); err != nil {
+					// 	return err
+					// }
+					interval := time.Duration(intervalInt) * time.Second
+					logger.Printf("start to write sample every %s to %s", interval.String(), local.Data.Name())
+					isSkip := 0
+					for {
+						start := time.Now()
+						s := store.Sample{}
+						if err := local.CollectSample(&s); err != nil {
+							return err
+						}
+
+						statInfo := syscall.Statfs_t{}
+						if err := syscall.Statfs(local.Path, &statInfo); err != nil {
+							return err
+						}
+						if statInfo.Bavail*uint64(statInfo.Bsize) > FreeSpaceForFileSystem {
+							if isSkip != 0 {
+								logger.Printf("resume to write sample (%d skipped)", isSkip)
+								isSkip = 0
+							}
+							if err := local.WriteSample(&s); err != nil {
+								return err
+							}
+						} else {
+							if isSkip == 0 {
+								logger.Printf("filesystem free space %s below %s, write sample skipped",
+									util.GetHumanSize(statInfo.Bavail*uint64(statInfo.Bsize)),
+									util.GetHumanSize(FreeSpaceForFileSystem))
+							}
+							isSkip++
+						}
+
+						collectDuration := time.Now().Sub(start)
+						if collectDuration > 500*time.Millisecond {
+							logger.Printf("write sample take %s (larger than 500 ms)", collectDuration.String())
+						}
+						sleepDuration := time.Duration(1 * time.Second)
+						if interval-collectDuration > 1*time.Second {
+							sleepDuration = interval - collectDuration
+						}
+						time.Sleep(sleepDuration)
 					}
-					return nil
 				},
 			},
 			{

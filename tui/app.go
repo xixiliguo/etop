@@ -8,6 +8,7 @@ import (
 	"github.com/rivo/tview"
 	"github.com/xixiliguo/etop/model"
 	"github.com/xixiliguo/etop/store"
+	"github.com/xixiliguo/etop/util"
 )
 
 const (
@@ -62,7 +63,12 @@ func NewTUI(log *log.Logger) *TUI {
 
 	tui.search.form.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
-			if err := tui.sm.CollectSampleByTime(tui.search.form.GetText()); err != nil {
+			timeStamp, err := util.ConvertToTime(tui.search.form.GetText())
+			if err != nil {
+				tui.log.Printf("%s", err)
+				return
+			}
+			if err := tui.sm.CollectSampleByTime(timeStamp); err != nil {
 				tui.log.Printf("%s", err)
 				return
 			}
@@ -140,11 +146,13 @@ func NewTUI(log *log.Logger) *TUI {
 
 func (tui *TUI) Run(inputFileName string) error {
 	tui.mode = REPORT
-	local, err := store.NewLocalStoreWithReadOnly(inputFileName, tui.log)
+
+	local, err := store.NewLocalStore(
+		store.WithSetDefault("", tui.log),
+	)
 	if err != nil {
 		return err
 	}
-
 	sm, err := model.NewSysModel(local, tui.log)
 	if err != nil {
 		return err

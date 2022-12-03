@@ -4,25 +4,25 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
-	"syscall"
+	"strings"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/klauspost/compress/zstd"
 	"github.com/prometheus/procfs"
 	"github.com/prometheus/procfs/blockdevice"
-	"github.com/xixiliguo/etop/util"
 	"golang.org/x/sys/unix"
 )
 
 var (
-	DefaultPath                   = "/var/log/etop"
-	FreeSpaceForFileSystem uint64 = 500 * (1 << 20) //500MB
-	EOUTOFRANGE                   = errors.New("already out of sample range")
+	DefaultPath   = "/var/log/etop"
+	ErrOutOfRange = errors.New("data is out of range")
 )
 
 type SystemSample struct {
@@ -32,7 +32,7 @@ type SystemSample struct {
 	procfs.LoadAvg
 	procfs.Stat
 	procfs.Meminfo
-	NetInfo   []procfs.NetDevLine
+	NetStats  []procfs.NetDevLine
 	DiskStats []blockdevice.Diskstats
 }
 
@@ -41,227 +41,313 @@ type ProcSample struct {
 	procfs.ProcIO
 }
 
+// Sample represent all system info and process info.
 type Sample struct {
-	CurrTime int64
-	SystemSample
-	ProcSamples []ProcSample
+	TimeStamp    int64        // unix time when sample was generated
+	SystemSample              // system information
+	ProcSamples  []ProcSample // process information
 }
 
-type Store interface {
-	AdjustIndex(step int) error
-	ReadSample(s *Sample) error
-	ChangeIndex(value string) error
-}
+func (s *Sample) Marshal() ([]byte, error) {
 
-type LocalStore struct {
-	Path            string
-	DataName        string
-	Data            *os.File
-	Log             *log.Logger
-	NextIndexOffset int
-	DataOffset      int
-	readOnly        bool
-	idxs            []Index
-	curIdx          int
-	dec             *zstd.Decoder
-	enc             *zstd.Encoder
-}
-
-func NewLocalStore(path string, log *log.Logger) (*LocalStore, error) {
-	if path == "" {
-		path = DefaultPath
-	}
-	if _, err := os.Stat(path); err != nil {
-		err := os.Mkdir(path, 0750)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	flags := os.O_APPEND | os.O_CREATE | os.O_WRONLY
-
-	dataName := fmt.Sprintf("etop_%s", time.Now().Format("20060102"))
-
-	data, err := os.OpenFile(filepath.Join(path, dataName), flags, 0644)
+	b, err := cbor.Marshal(s)
 	if err != nil {
 		return nil, err
 	}
-	initOffset := 0
-	if info, err := data.Stat(); err == nil {
-		initOffset = int(info.Size())
-	} else {
-		return nil, err
-	}
-
-	dec, _ := zstd.NewReader(nil)
 	enc, _ := zstd.NewWriter(nil)
-	localStore := &LocalStore{
-		Path:            path,
-		DataName:        dataName,
-		Data:            data,
-		Log:             log,
-		NextIndexOffset: initOffset,
-		readOnly:        false,
-		dec:             dec,
-		enc:             enc,
-	}
-	return localStore, nil
+	return enc.EncodeAll(b, make([]byte, 0, len(b))), nil
 }
 
-func NewLocalStoreWithReadOnly(fileName string, log *log.Logger) (*LocalStore, error) {
+func (s *Sample) Unmarshal(b []byte) error {
 
-	path := DefaultPath
-	dataName := fileName
-	if filepath.IsAbs(fileName) {
-		path, dataName = filepath.Split(fileName)
-	}
-	if dataName == "" {
-		dataName = fmt.Sprintf("etop_%s", time.Now().Format("20060102"))
-	}
-
-	f, err := os.OpenFile(filepath.Join(path, dataName), os.O_RDONLY, 0644)
+	dec, _ := zstd.NewReader(nil)
+	uncompressed, err := dec.DecodeAll(b, make([]byte, 0, len(b)))
 	if err != nil {
-		return nil, err
-	}
-	dec, _ := zstd.NewReader(nil)
-	enc, _ := zstd.NewWriter(nil)
-	localStore := &LocalStore{
-		Path:     path,
-		Data:     f,
-		DataName: dataName,
-		Log:      log,
-		readOnly: true,
-		idxs:     []Index{},
-		curIdx:   0,
-		dec:      dec,
-		enc:      enc,
+		return err
 	}
 
-	return localStore, nil
+	if err = cbor.Unmarshal(uncompressed, s); err != nil {
+		return nil
+	}
+	return nil
 }
 
+// Index represent short info for one sample, so that speed up to find
+// specifed sample.
 type Index struct {
-	Time   int64
-	Offset int
-	Len    int
+	TimeStamp int64 // unix time when sample was generated
+	Offset    int64 // offset of file where sample is exist
+	Len       int64 // length of one sample
 }
 
 func (idx *Index) Marshal() []byte {
 	b := make([]byte, 24)
-	binary.LittleEndian.PutUint64(b[0:], uint64(idx.Time))
+	binary.LittleEndian.PutUint64(b[0:], uint64(idx.TimeStamp))
 	binary.LittleEndian.PutUint64(b[8:], uint64(idx.Offset))
 	binary.LittleEndian.PutUint64(b[16:], uint64(idx.Len))
 	return b[:]
 }
 
 func (idx *Index) Unmarshal(b []byte) {
-	idx.Time = int64(binary.LittleEndian.Uint64(b[0:]))
-	idx.Offset = int(binary.LittleEndian.Uint64(b[8:]))
-	idx.Len = int(binary.LittleEndian.Uint64(b[16:]))
+	idx.TimeStamp = int64(binary.LittleEndian.Uint64(b[0:]))
+	idx.Offset = int64(binary.LittleEndian.Uint64(b[8:]))
+	idx.Len = int64(binary.LittleEndian.Uint64(b[16:]))
+}
+
+// Store is interface which operate file/network which include sample data.
+type Store interface {
+	// if step is positive , advance the corresponding number of steps
+	// otherwise back, then get sample
+	NextSample(step int, sample *Sample) error
+	// Get sample which collect at timestamp
+	JumpSampleByTimeStamp(timestamp int64, sample *Sample) error
+}
+
+type Option func(*LocalStore) error
+
+func WithSetDefault(path string, log *log.Logger) Option {
+	return func(local *LocalStore) error {
+		if path == "" {
+			path = DefaultPath
+		}
+		local.Path = path
+		local.Log = log
+		return nil
+	}
+}
+
+func WithWriteOnly() Option {
+	return func(local *LocalStore) error {
+		local.writeOnly = true
+		return nil
+	}
+}
+
+// LocalStore represent local store, which consist of index and data files.
+// All files was stored into Path (default: /var/log/etop).
+// file format: index_{suffix}, data_{suffix}  suffix: yyyymmdd
+// It should work either readonly mode or writeonly mode.
+type LocalStore struct {
+	Path       string   // path which index and data file is stored
+	Index      *os.File // current active index file
+	Data       *os.File // current active data file
+	Log        *log.Logger
+	DataOffset int64 // file offset which next sample was written to
+	writeOnly  bool
+	idxs       []Index // all indexs from Path
+	suffix     string
+	curIdx     int
+}
+
+func NewLocalStore(opts ...Option) (*LocalStore, error) {
+	local := &LocalStore{}
+	for _, opt := range opts {
+		if err := opt(local); err != nil {
+			return nil, err
+		}
+	}
+
+	if local.writeOnly == true {
+		suffix := time.Now().Format("20060102")
+		if err := local.openFile(suffix, true); err != nil {
+			return nil, err
+		}
+
+		if info, err := local.Data.Stat(); err == nil {
+			local.DataOffset = info.Size()
+		} else {
+			return nil, err
+		}
+		return local, nil
+	}
+
+	// readonly mode
+	if idxs, err := getIndexFrames(local.Path); err != nil {
+		return local, err
+	} else {
+		local.idxs = idxs
+	}
+
+	return local, nil
+}
+
+// getIndexFrames walk path and get data from all index file
+// if no any data, return ErrNoIndexFile
+func getIndexFrames(path string) ([]Index, error) {
+
+	idxFiles := []string{}
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "index_") {
+			idxFiles = append(idxFiles, d.Name())
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	idxs := []Index{}
+	for _, file := range idxFiles {
+
+		if f, err := os.Open(filepath.Join(path, file)); err == nil {
+			buf := make([]byte, 24)
+			for {
+				n, err := f.Read(buf)
+				if err == io.EOF {
+					break
+				}
+				if err != nil || n != 24 {
+					return nil, err
+				}
+				index := Index{}
+				index.Unmarshal(buf)
+				idxs = append(idxs, index)
+			}
+
+		} else {
+			return nil, err
+		}
+	}
+	sort.Slice(idxs, func(i, j int) bool {
+		return idxs[i].TimeStamp < idxs[j].TimeStamp
+	})
+	return idxs, nil
+}
+
+func (local *LocalStore) openFile(suffix string, writeonly bool) (err error) {
+
+	flags := os.O_RDONLY
+	if writeonly == true {
+		flags = os.O_APPEND | os.O_CREATE | os.O_WRONLY
+	}
+
+	idxPath := filepath.Join(local.Path, fmt.Sprintf("index_%s", suffix))
+	if local.Index, err = os.OpenFile(idxPath, flags, 0644); err != nil {
+		return err
+	}
+
+	dataPath := filepath.Join(local.Path, fmt.Sprintf("data_%s", suffix))
+	if local.Data, err = os.OpenFile(dataPath, flags, 0644); err != nil {
+		local.Index.Close()
+		return err
+	}
+	return nil
+}
+
+func (local *LocalStore) changeFile(suffix string, writeOnly bool) error {
+
+	local.Index.Close()
+	local.Data.Close()
+	return local.openFile(suffix, writeOnly)
 }
 
 func (local *LocalStore) Close() error {
+	if err := local.Index.Close(); err != nil {
+		return err
+	}
 	return local.Data.Close()
 }
 
-func (local *LocalStore) ChangeIndex(value string) error {
+func (local *LocalStore) NextSample(step int, sample *Sample) error {
+	target := local.curIdx + step
+	if target < 0 {
+		return ErrOutOfRange
+	}
+	if target >= len(local.idxs) {
+		// try to read file again and check if have new data available
+		if idxs, err := getIndexFrames(local.Path); err != nil {
+			return err
+		} else {
+			local.idxs = idxs
+			if target >= len(local.idxs) {
+				return ErrOutOfRange
+			}
+		}
+	}
 
-	t, err := util.ConvertToTime(value)
+	suffix := time.Unix(local.idxs[target].TimeStamp, 0).Format("20060102")
+
+	if suffix != local.suffix {
+		if err := local.changeFile(suffix, false); err != nil {
+			return err
+		}
+	}
+
+	if err := local.getSample(target, sample); err != nil {
+		return err
+	}
+
+	local.curIdx = target
+	return nil
+}
+
+// JumpSampleByTimeStamp get sample by specific timestamp (unix time)
+// if no, search the nearest one.
+// ignore 1st sample for better handle corner case.
+func (local *LocalStore) JumpSampleByTimeStamp(timestamp int64, sample *Sample) error {
+
+	target := sort.Search(len(local.idxs), func(i int) bool {
+		return local.idxs[i].TimeStamp >= timestamp
+	})
+
+	if target >= len(local.idxs) {
+		// try to read file again and check if have new data available
+		if idxs, err := getIndexFrames(local.Path); err != nil {
+			return err
+		} else {
+			local.idxs = idxs
+			target = sort.Search(len(local.idxs), func(i int) bool {
+				return local.idxs[i].TimeStamp >= timestamp
+			})
+		}
+	}
+	if len(local.idxs) == 0 || len(local.idxs) == 1 {
+		return ErrOutOfRange
+	}
+	if target >= len(local.idxs) {
+		target = len(local.idxs) - 1
+	}
+	if target == 0 {
+		target = 1
+	}
+
+	suffix := time.Unix(local.idxs[target].TimeStamp, 0).Format("20060102")
+
+	if suffix != local.suffix {
+		if err := local.changeFile(suffix, false); err != nil {
+			return err
+		}
+	}
+
+	if err := local.getSample(target, sample); err != nil {
+		return err
+	}
+
+	local.curIdx = target
+	return nil
+}
+
+func (local *LocalStore) getSample(target int, sample *Sample) error {
+	idx := local.idxs[target]
+	buff := make([]byte, idx.Len)
+	n, err := local.Data.ReadAt(buff, idx.Offset)
 	if err != nil {
 		return err
 	}
 
-	secs := t.Unix()
-	if secs < local.idxs[1].Time {
-		return EOUTOFRANGE
+	if n != int(idx.Len) {
+		return fmt.Errorf("got %d bytes, but want %d\n", n, idx.Len)
 	}
 
-	if secs > local.idxs[len(local.idxs)-1].Time {
-		for {
-			end, err := local.tryExpandIndex()
-			if err != nil {
-				return err
-			}
-			if secs < local.idxs[len(local.idxs)-1].Time {
-				break
-			}
-			if end == true {
-				return EOUTOFRANGE
-			}
-		}
+	if err := sample.Unmarshal(buff); err != nil {
+		return err
 	}
-
-	n := sort.Search(len(local.idxs), func(i int) bool {
-		return local.idxs[i].Time >= secs
-	})
-
-	if n == len(local.idxs) {
-		return fmt.Errorf("maybe bug")
-	}
-
-	local.curIdx = n
-
 	return nil
 }
 
-func (local *LocalStore) AdjustIndex(step int) error {
-	// local.Log.Printf("adjust %d step, %v", step, local.idxs)
-	newIdx := local.curIdx + step
-	if newIdx < 0 {
-		return EOUTOFRANGE
-	}
-
-	if newIdx >= len(local.idxs) {
-		for {
-			end, err := local.tryExpandIndex()
-			if err != nil {
-				return err
-			}
-			if newIdx < len(local.idxs) {
-				break
-			}
-			if end == true {
-				return EOUTOFRANGE
-			}
-		}
-	}
-	local.curIdx = newIdx
-	return nil
-}
-
-func (local *LocalStore) tryExpandIndex() (end bool, err error) {
-	info, err := local.Data.Stat()
-	if err != nil {
-		return false, err
-	}
-	nextIdx := 0
-	if len(local.idxs) != 0 {
-		lastIdx := local.idxs[len(local.idxs)-1]
-		nextIdx = lastIdx.Offset + lastIdx.Len
-	}
-
-	i := 0
-	for ; int64(nextIdx) < info.Size() && i < 3600; i++ {
-		local.Data.Seek(int64(nextIdx), os.SEEK_SET)
-		var meta [24]byte
-		var idx Index
-		n, err := local.Data.Read(meta[:])
-		if err != nil {
-			return false, err
-		}
-		if n != 24 {
-			return false, fmt.Errorf("expect 24, but get %d", n)
-		}
-		idx.Unmarshal(meta[:])
-		local.idxs = append(local.idxs, idx)
-		nextIdx = idx.Offset + idx.Len
-	}
-	if int64(nextIdx) < info.Size() {
-		return false, nil
-	}
-	return true, nil
-}
-func (local *LocalStore) CollectSampleFromSys(s *Sample) error {
+func (local *LocalStore) CollectSample(s *Sample) error {
 	return CollectSampleFromSys(s)
 }
 
@@ -272,6 +358,7 @@ func CollectSampleFromSys(s *Sample) error {
 		diskFS blockdevice.FS
 		err    error
 	)
+	s.TimeStamp = time.Now().Unix()
 	u := unix.Utsname{}
 	unix.Uname(&u)
 	s.HostName = string(u.Nodename[:])
@@ -300,11 +387,11 @@ func CollectSampleFromSys(s *Sample) error {
 
 	if netDev, err := fs.NetDev(); err == nil {
 		for _, v := range netDev {
-			s.NetInfo = append(s.NetInfo, v)
+			s.NetStats = append(s.NetStats, v)
 		}
 	}
-	sort.Slice(s.NetInfo, func(i, j int) bool {
-		return s.NetInfo[i].Name < s.NetInfo[j].Name
+	sort.Slice(s.NetStats, func(i, j int) bool {
+		return s.NetStats[i].Name < s.NetStats[j].Name
 	})
 
 	if diskStats, err := diskFS.ProcDiskstats(); err != nil {
@@ -341,132 +428,35 @@ func CollectSampleFromSys(s *Sample) error {
 	return nil
 }
 
-func (local *LocalStore) SetDestFile(fileName string) error {
-	data, err := os.OpenFile(filepath.Join(local.Path, fileName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	initOffset := 0
-	if info, err := data.Stat(); err == nil {
-		initOffset = int(info.Size())
-	} else {
-		return err
-	}
-	if err := local.Data.Close(); err != nil {
-		return err
-	}
-	local.DataName = fileName
-	local.Data = data
-	local.NextIndexOffset = initOffset
-	return nil
-}
-
-func (local *LocalStore) WriteLoop(interval time.Duration) error {
-	local.Log.Printf("start to write sample every %s to %s", interval.String(), local.Data.Name())
-	isSkip := 0
-	for {
-		start := time.Now()
-		if dstFile := "etop_" + start.Format("20060102"); dstFile > local.DataName {
-			local.Log.Printf("change sample file from %s to %s", local.DataName, dstFile)
-			if err := local.SetDestFile(dstFile); err != nil {
-				return err
-			}
-		}
-		s := &Sample{}
-		if err := local.CollectSampleFromSys(s); err != nil {
-			return err
-		}
-		s.CurrTime = time.Now().Unix()
-
-		statInfo := syscall.Statfs_t{}
-		if err := syscall.Statfs(local.Path, &statInfo); err != nil {
-			return err
-		}
-		if statInfo.Bavail*uint64(statInfo.Bsize) > FreeSpaceForFileSystem {
-			if isSkip != 0 {
-				local.Log.Printf("resume to write sample (%d skipped)", isSkip)
-				isSkip = 0
-			}
-			if err := local.WriteSample(s); err != nil {
-				return err
-			}
-		} else {
-			if isSkip == 0 {
-				local.Log.Printf("filesystem free space %s below %s, write sample skipped",
-					util.GetHumanSize(statInfo.Bavail*uint64(statInfo.Bsize)),
-					util.GetHumanSize(FreeSpaceForFileSystem))
-			}
-			isSkip++
-		}
-
-		collectDuration := time.Now().Sub(start)
-		if collectDuration > 500*time.Millisecond {
-			local.Log.Printf("write sample take %s (larger than 500 ms)", collectDuration.String())
-		}
-		sleepDuration := time.Duration(1 * time.Second)
-		if interval-collectDuration > 1*time.Second {
-			sleepDuration = interval - collectDuration
-		}
-		time.Sleep(sleepDuration)
-	}
-}
-
 func (local *LocalStore) WriteSample(s *Sample) error {
 
-	b, err := cbor.Marshal(s)
-	if err != nil {
+	var err error
+	suffix := time.Unix(s.TimeStamp, 0).Format("20060102")
+	if suffix != local.suffix {
+		if err = local.changeFile(suffix, true); err != nil {
+			return err
+		}
+	}
+	compressed := []byte{}
+	if compressed, err = s.Marshal(); err != nil {
 		return err
 	}
-	compressed := local.enc.EncodeAll(b, make([]byte, 0, len(b)))
 
 	idx := Index{
-		Time:   s.CurrTime,
-		Offset: local.NextIndexOffset + 24,
-		Len:    len(compressed),
+		TimeStamp: s.TimeStamp,
+		Offset:    local.DataOffset,
+		Len:       int64(len(compressed)),
 	}
-
-	iovs := make([][]byte, 2)
-	iovs[0] = idx.Marshal()
-	iovs[1] = compressed
-
-	n, err := unix.Writev(int(local.Data.Fd()), iovs)
+	_, err = local.Index.Write(idx.Marshal())
+	if err != nil {
+		return err
+	}
+	_, err = local.Data.Write(compressed)
 
 	if err != nil {
 		return err
 	}
-	if n != 24+len(compressed) {
-		return fmt.Errorf("want to write %d bytes, but get %d", 24+len(compressed), n)
-	}
 
-	local.NextIndexOffset += n
-	return nil
-}
-
-func (local *LocalStore) ReadSample(s *Sample) error {
-
-	idx := local.idxs[local.curIdx]
-
-	data := make([]byte, idx.Len)
-	_, err := local.Data.Seek(int64(idx.Offset), os.SEEK_SET)
-	if err != nil {
-		return err
-	}
-	n, err := local.Data.Read(data)
-	if err != nil {
-		return err
-	}
-	if n != idx.Len {
-		return fmt.Errorf("read sample, want %d bytes, but get %d", idx.Len, n)
-	}
-
-	uncompressed, err := local.dec.DecodeAll(data, make([]byte, 0, len(data)))
-	if err != nil {
-		return err
-	}
-
-	err = cbor.Unmarshal(uncompressed, s)
-	if err != nil {
-		return err
-	}
+	local.DataOffset += int64(len(compressed))
 	return nil
 }

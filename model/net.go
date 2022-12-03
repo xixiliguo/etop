@@ -85,14 +85,14 @@ type NetSlice []Net
 func (nets *NetSlice) Collect(prev, curr *store.Sample) {
 	*nets = (*nets)[:0]
 	prevMap := make(map[string]procfs.NetDevLine)
-	for i := 0; i < len(prev.NetInfo); i++ {
-		prevMap[prev.NetInfo[i].Name] = prev.NetInfo[i]
+	for i := 0; i < len(prev.NetStats); i++ {
+		prevMap[prev.NetStats[i].Name] = prev.NetStats[i]
 	}
-	for i := 0; i < len(curr.NetInfo); i++ {
+	for i := 0; i < len(curr.NetStats); i++ {
 
-		new := curr.NetInfo[i]
+		new := curr.NetStats[i]
 		old := prevMap[new.Name]
-		interval := uint64(curr.CurrTime) - uint64(prev.CurrTime)
+		interval := uint64(curr.TimeStamp) - uint64(prev.TimeStamp)
 
 		n := Net{
 			Name:         new.Name,
