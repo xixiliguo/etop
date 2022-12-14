@@ -111,7 +111,7 @@ func (system *System) DrawCPUInfo() {
 		for i, col := range visbleCols {
 			system.cpu.SetCell(r+1,
 				i,
-				tview.NewTableCell(c.GetRenderValue(col)).
+				tview.NewTableCell(c.GetRenderValue(system.source.Config["cpu"], col)).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}
@@ -147,7 +147,7 @@ func (system *System) DrawMEMInfo() {
 				SetAlign(tview.AlignLeft))
 		system.mem.SetCell(i+1,
 			1,
-			tview.NewTableCell(system.source.MEM.GetRenderValue(item)).
+			tview.NewTableCell(system.source.MEM.GetRenderValue(system.source.Config["memory"], item)).
 				SetExpansion(0).
 				SetAlign(tview.AlignRight))
 	}

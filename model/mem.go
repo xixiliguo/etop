@@ -1,11 +1,14 @@
 package model
 
 import (
-	"fmt"
+	"encoding/json"
+	"strings"
+	"time"
 
 	"github.com/xixiliguo/etop/store"
-	"github.com/xixiliguo/etop/util"
 )
+
+var DefaultMEMFields = []string{"Total", "Free", "Avail"}
 
 type MEM struct {
 	MemTotal          uint64
@@ -58,116 +61,117 @@ type MEM struct {
 	DirectMap1G       uint64
 }
 
-func (m *MEM) GetRenderValue(field string) string {
+func (m *MEM) GetRenderValue(config RenderConfig, field string) string {
+	s := config[field].Render(m.MemTotal)
 	switch field {
 	case "Total":
-		return fmt.Sprintf("%s", util.GetHumanSize(m.MemTotal*1024))
+		s = config[field].Render(m.MemTotal * 1024)
 	case "Free":
-		return fmt.Sprintf("%s", util.GetHumanSize(m.MemFree*1024))
+		s = config[field].Render(m.MemFree * 1024)
 	case "Avail":
-		return fmt.Sprintf("%s", util.GetHumanSize(m.MemAvailable*1024))
+		s = config[field].Render(m.MemAvailable * 1024)
 	case "Buffer":
-		return fmt.Sprintf("%s", util.GetHumanSize(m.Buffers*1024))
+		s = config[field].Render(m.Buffers * 1024)
 	case "Cache":
-		return fmt.Sprintf("%s", util.GetHumanSize(m.Cached*1024))
+		s = config[field].Render(m.Cached * 1024)
 	case "MemTotal":
-		return fmt.Sprintf("%d KB", m.MemTotal)
+		s = config[field].Render(m.MemTotal)
 	case "MemFree":
-		return fmt.Sprintf("%d KB", m.MemFree)
+		s = config[field].Render(m.MemFree)
 	case "MemAvailable":
-		return fmt.Sprintf("%d KB", m.MemAvailable)
+		s = config[field].Render(m.MemAvailable)
 	case "Buffers":
-		return fmt.Sprintf("%d KB", m.Buffers)
+		s = config[field].Render(m.Buffers)
 	case "Cached":
-		return fmt.Sprintf("%d KB", m.Cached)
+		s = config[field].Render(m.Cached)
 	case "SwapCached":
-		return fmt.Sprintf("%d KB", m.SwapCached)
+		s = config[field].Render(m.SwapCached)
 	case "Active":
-		return fmt.Sprintf("%d KB", m.Active)
+		s = config[field].Render(m.Active)
 	case "Inactive":
-		return fmt.Sprintf("%d KB", m.Inactive)
+		s = config[field].Render(m.Inactive)
 	case "ActiveAnon":
-		return fmt.Sprintf("%d KB", m.ActiveAnon)
+		s = config[field].Render(m.ActiveAnon)
 	case "InactiveAnon":
-		return fmt.Sprintf("%d KB", m.InactiveAnon)
+		s = config[field].Render(m.InactiveAnon)
 	case "ActiveFile":
-		return fmt.Sprintf("%d KB", m.ActiveFile)
+		s = config[field].Render(m.ActiveFile)
 	case "InactiveFile":
-		return fmt.Sprintf("%d KB", m.InactiveFile)
+		s = config[field].Render(m.InactiveFile)
 	case "Unevictable":
-		return fmt.Sprintf("%d KB", m.Unevictable)
+		s = config[field].Render(m.Unevictable)
 	case "Mlocked":
-		return fmt.Sprintf("%d KB", m.Mlocked)
+		s = config[field].Render(m.Mlocked)
 	case "SwapTotal":
-		return fmt.Sprintf("%d KB", m.SwapTotal)
+		s = config[field].Render(m.SwapTotal)
 	case "SwapFree":
-		return fmt.Sprintf("%d KB", m.SwapFree)
+		s = config[field].Render(m.SwapFree)
 	case "Dirty":
-		return fmt.Sprintf("%d KB", m.Dirty)
+		s = config[field].Render(m.Dirty)
 	case "Writeback":
-		return fmt.Sprintf("%d KB", m.Writeback)
+		s = config[field].Render(m.Writeback)
 	case "AnonPages":
-		return fmt.Sprintf("%d KB", m.AnonPages)
+		s = config[field].Render(m.AnonPages)
 	case "Mapped":
-		return fmt.Sprintf("%d KB", m.Mapped)
+		s = config[field].Render(m.Mapped)
 	case "Shmem":
-		return fmt.Sprintf("%d KB", m.Shmem)
+		s = config[field].Render(m.Shmem)
 	case "Slab":
-		return fmt.Sprintf("%d KB", m.Slab)
+		s = config[field].Render(m.Slab)
 	case "SReclaimable":
-		return fmt.Sprintf("%d KB", m.SReclaimable)
+		s = config[field].Render(m.SReclaimable)
 	case "SUnreclaim":
-		return fmt.Sprintf("%d KB", m.SUnreclaim)
+		s = config[field].Render(m.SUnreclaim)
 	case "KernelStack":
-		return fmt.Sprintf("%d KB", m.KernelStack)
+		s = config[field].Render(m.KernelStack)
 	case "PageTables":
-		return fmt.Sprintf("%d KB", m.PageTables)
+		s = config[field].Render(m.PageTables)
 	case "NFSUnstable":
-		return fmt.Sprintf("%d KB", m.NFSUnstable)
+		s = config[field].Render(m.NFSUnstable)
 	case "Bounce":
-		return fmt.Sprintf("%d KB", m.Bounce)
+		s = config[field].Render(m.Bounce)
 	case "WritebackTmp":
-		return fmt.Sprintf("%d KB", m.WritebackTmp)
+		s = config[field].Render(m.WritebackTmp)
 	case "CommitLimit":
-		return fmt.Sprintf("%d KB", m.CommitLimit)
+		s = config[field].Render(m.CommitLimit)
 	case "CommittedAS":
-		return fmt.Sprintf("%d KB", m.CommittedAS)
+		s = config[field].Render(m.CommittedAS)
 	case "VmallocTotal":
-		return fmt.Sprintf("%d KB", m.VmallocTotal)
+		s = config[field].Render(m.VmallocTotal)
 	case "VmallocUsed":
-		return fmt.Sprintf("%d KB", m.VmallocUsed)
+		s = config[field].Render(m.VmallocUsed)
 	case "VmallocChunk":
-		return fmt.Sprintf("%d KB", m.VmallocChunk)
+		s = config[field].Render(m.VmallocChunk)
 	case "HardwareCorrupted":
-		return fmt.Sprintf("%d KB", m.HardwareCorrupted)
+		s = config[field].Render(m.HardwareCorrupted)
 	case "AnonHugePages":
-		return fmt.Sprintf("%d KB", m.AnonHugePages)
+		s = config[field].Render(m.AnonHugePages)
 	case "ShmemHugePages":
-		return fmt.Sprintf("%d KB", m.ShmemHugePages)
+		s = config[field].Render(m.ShmemHugePages)
 	case "ShmemPmdMapped":
-		return fmt.Sprintf("%d KB", m.ShmemPmdMapped)
+		s = config[field].Render(m.ShmemPmdMapped)
 	case "CmaTotal":
-		return fmt.Sprintf("%d KB", m.CmaTotal)
+		s = config[field].Render(m.CmaTotal)
 	case "CmaFree":
-		return fmt.Sprintf("%d KB", m.CmaFree)
+		s = config[field].Render(m.CmaFree)
 	case "HugePagesTotal":
-		return fmt.Sprintf("%d", m.HugePagesTotal)
+		s = config[field].Render(m.HugePagesTotal)
 	case "HugePagesFree":
-		return fmt.Sprintf("%d", m.HugePagesFree)
+		s = config[field].Render(m.HugePagesFree)
 	case "HugePagesRsvd":
-		return fmt.Sprintf("%d", m.HugePagesRsvd)
+		s = config[field].Render(m.HugePagesRsvd)
 	case "HugePagesSurp":
-		return fmt.Sprintf("%d", m.HugePagesSurp)
+		s = config[field].Render(m.HugePagesSurp)
 	case "Hugepagesize":
-		return fmt.Sprintf("%d KB", m.Hugepagesize)
+		s = config[field].Render(m.Hugepagesize)
 	case "DirectMap4k":
-		return fmt.Sprintf("%d KB", m.DirectMap4k)
+		s = config[field].Render(m.DirectMap4k)
 	case "DirectMap2M":
-		return fmt.Sprintf("%d KB", m.DirectMap2M)
+		s = config[field].Render(m.DirectMap2M)
 	case "DirectMap1G":
-		return fmt.Sprintf("%d KB", m.DirectMap1G)
+		s = config[field].Render(m.DirectMap1G)
 	}
-	return ""
+	return s
 }
 
 func (m *MEM) Collect(prev, curr *store.Sample) {
@@ -229,4 +233,47 @@ func getValueOrDefault(m *uint64) uint64 {
 		return 0
 	}
 	return *m
+}
+
+func (m *MEM) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
+
+	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
+	switch opt.Format {
+	case "text":
+		config.SetFixWidth(true)
+		row := strings.Builder{}
+		row.WriteString(dateTime)
+		for _, f := range opt.Fields {
+			renderValue := m.GetRenderValue(config, f)
+			if f == opt.SelectField && opt.Filter != nil {
+				if opt.Filter.MatchString(renderValue) == false {
+					continue
+				}
+			}
+			row.WriteString(" ")
+			row.WriteString(renderValue)
+		}
+		row.WriteString("\n")
+		opt.Output.WriteString(row.String())
+
+	case "json":
+		t := []any{}
+
+		row := make(map[string]string)
+		row["Timestamp"] = dateTime
+		for _, f := range opt.Fields {
+			renderValue := m.GetRenderValue(config, f)
+			if f == opt.SelectField && opt.Filter != nil {
+				if opt.Filter.MatchString(renderValue) == false {
+					continue
+				}
+			}
+			row[config[f].Name] = renderValue
+		}
+		t = append(t, row)
+
+		b, _ := json.Marshal(t)
+		opt.Output.Write(b)
+	}
+
 }

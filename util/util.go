@@ -9,13 +9,14 @@ import (
 var unitMap = []string{"B", "KB", "MB", "GB", "TB", "PB"}
 
 func GetHumanSize[T int | uint64](size T) string {
+	fsize := float64(size)
 	i := 0
 	unitsLimit := len(unitMap) - 1
-	for size >= 1024 && i < unitsLimit {
-		size = size / 1024
+	for fsize >= 1024 && i < unitsLimit {
+		fsize = fsize / 1024
 		i++
 	}
-	return fmt.Sprintf("%d%s", size, unitMap[i])
+	return fmt.Sprintf("%.1f %s", fsize, unitMap[i])
 }
 
 func ConvertToTime(s string) (timeStamp int64, err error) {

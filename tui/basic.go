@@ -6,7 +6,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/xixiliguo/etop/model"
-	"github.com/xixiliguo/etop/util"
 )
 
 type Basic struct {
@@ -67,12 +66,12 @@ func (basic *Basic) Update(sm *model.System) {
 		"CPU", c.User, "", c.System, "", c.Iowait, "", c.Idle, "", c.IRQ, "", c.SoftIRQ)
 	basic.mem.Clear()
 	fmt.Fprintf(basic.mem, "%-10sTotal %6s%5sFree %7s%5sAvail %6s%5sSlab %7s%5sBuffer %5s%5sCache %6s",
-		"MEM", sm.MEM.GetRenderValue("Total"), "",
-		sm.MEM.GetRenderValue("Free"), "",
-		sm.MEM.GetRenderValue("Avail"), "",
-		util.GetHumanSize(sm.MEM.Slab*1024), "",
-		sm.MEM.GetRenderValue("Buffer"), "",
-		sm.MEM.GetRenderValue("Cache"))
+		"MEM", sm.MEM.GetRenderValue(sm.Config["memory"], "Total"), "",
+		sm.MEM.GetRenderValue(sm.Config["memory"], "Free"), "",
+		sm.MEM.GetRenderValue(sm.Config["memory"], "Avail"), "",
+		sm.MEM.GetRenderValue(sm.Config["memory"], "HSlab"), "",
+		sm.MEM.GetRenderValue(sm.Config["memory"], "Buffer"), "",
+		sm.MEM.GetRenderValue(sm.Config["memory"], "Cache"))
 
 	basic.disk.Clear()
 	fmt.Fprintf(basic.disk, "%-10s", "DSK")
