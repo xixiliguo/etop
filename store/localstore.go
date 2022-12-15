@@ -32,8 +32,8 @@ type SystemSample struct {
 	procfs.LoadAvg
 	procfs.Stat
 	procfs.Meminfo
-	NetStats  []procfs.NetDevLine
-	DiskStats []blockdevice.Diskstats
+	NetDevStats map[string]procfs.NetDevLine
+	DiskStats   map[string]blockdevice.Diskstats
 }
 
 type ProcSample struct {
@@ -43,9 +43,21 @@ type ProcSample struct {
 
 // Sample represent all system info and process info.
 type Sample struct {
-	TimeStamp    int64        // unix time when sample was generated
-	SystemSample              // system information
-	ProcSamples  []ProcSample // process information
+	TimeStamp    int64              // unix time when sample was generated
+	SystemSample                    // system information
+	ProcSamples  map[int]ProcSample // process information
+}
+
+func NewSample() Sample {
+	s := Sample{
+		TimeStamp: 0,
+		SystemSample: SystemSample{
+			NetDevStats: make(map[string]procfs.NetDevLine),
+			DiskStats:   make(map[string]blockdevice.Diskstats),
+		},
+		ProcSamples: map[int]ProcSample{},
+	}
+	return s
 }
 
 func (s *Sample) Marshal() ([]byte, error) {
@@ -377,22 +389,19 @@ func CollectSampleFromSys(s *Sample) error {
 		s.LoadAvg = *avg
 	}
 
-	if s.SystemSample.Stat, err = fs.Stat(); err != nil {
+	if s.Stat, err = fs.Stat(); err != nil {
 		return err
 	}
 
-	if s.SystemSample.Meminfo, err = fs.Meminfo(); err != nil {
+	if s.Meminfo, err = fs.Meminfo(); err != nil {
 		return err
 	}
 
 	if netDev, err := fs.NetDev(); err == nil {
 		for _, v := range netDev {
-			s.NetStats = append(s.NetStats, v)
+			s.NetDevStats[v.Name] = v
 		}
 	}
-	sort.Slice(s.NetStats, func(i, j int) bool {
-		return s.NetStats[i].Name < s.NetStats[j].Name
-	})
 
 	if diskStats, err := diskFS.ProcDiskstats(); err != nil {
 		return err
@@ -407,7 +416,7 @@ func CollectSampleFromSys(s *Sample) error {
 		}
 		for _, diskStat := range diskStats {
 			if deviceNames[diskStat.DeviceName] {
-				s.SystemSample.DiskStats = append(s.SystemSample.DiskStats, diskStat)
+				s.DiskStats[diskStat.DeviceName] = diskStat
 			}
 		}
 	}
@@ -423,7 +432,7 @@ func CollectSampleFromSys(s *Sample) error {
 		if p.ProcIO, err = proc.IO(); err != nil {
 			continue
 		}
-		s.ProcSamples = append(s.ProcSamples, p)
+		s.ProcSamples[p.PID] = p
 	}
 	return nil
 }

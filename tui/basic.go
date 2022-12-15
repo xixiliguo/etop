@@ -43,7 +43,7 @@ func NewBasic() *Basic {
 	return basic
 }
 
-func (basic *Basic) Update(sm *model.System) {
+func (basic *Basic) Update(sm *model.Model) {
 
 	basic.prc.Clear()
 	fmt.Fprintf(basic.prc, "%-10sProcess %4d%5sThread %5d%5sClone %4d/s",

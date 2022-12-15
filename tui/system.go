@@ -17,7 +17,7 @@ type System struct {
 	mem     *tview.Table
 	disk    *tview.Table
 	net     *tview.Table
-	source  *model.System
+	source  *model.Model
 }
 
 func NewSystem() *System {
@@ -84,7 +84,7 @@ func NewSystem() *System {
 	return system
 }
 
-func (system *System) SetSource(source *model.System) {
+func (system *System) SetSource(source *model.Model) {
 	system.source = source
 	system.DrawCPUInfo()
 	system.DrawMEMInfo()
@@ -169,12 +169,12 @@ func (system *System) DrawDiskInfo() {
 
 		system.disk.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
-	for r := 0; r < len(system.source.Disks); r++ {
-		c := system.source.Disks[r]
+	r := 0
+	for _, disk := range system.source.Disks {
 		for i, col := range visbleCols {
 			system.disk.SetCell(r+1,
 				i,
-				tview.NewTableCell(c.GetRenderValue(col)).
+				tview.NewTableCell(disk.GetRenderValue(col)).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}
@@ -198,12 +198,12 @@ func (system *System) DrawNetInfo() {
 
 		system.net.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
-	for r := 0; r < len(system.source.Nets); r++ {
-		c := system.source.Nets[r]
+	r := 0
+	for _, net := range system.source.Nets {
 		for i, col := range visbleCols {
 			system.net.SetCell(r+1,
 				i,
-				tview.NewTableCell(c.GetRenderValue(col)).
+				tview.NewTableCell(net.GetRenderValue(col)).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}

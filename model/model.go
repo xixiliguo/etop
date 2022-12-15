@@ -10,7 +10,7 @@ import (
 	"github.com/xixiliguo/etop/store"
 )
 
-type System struct {
+type Model struct {
 	Config        map[string]RenderConfig
 	Store         store.Store
 	log           *log.Logger
@@ -22,19 +22,23 @@ type System struct {
 	ContextSwitch uint64
 	CPUs          CPUSlice
 	MEM
-	Disks       DiskSlice
-	Nets        NetSlice
-	ProcessList ProcessSlice
+	Disks       DiskMap
+	Nets        NetDevMap
+	ProcessList ProcessMap
 }
 
-func NewSysModel(s *store.LocalStore, log *log.Logger) (*System, error) {
-	p := &System{
+func NewSysModel(s *store.LocalStore, log *log.Logger) (*Model, error) {
+	p := &Model{
 		Config:      DefaultRenderConfig,
 		Store:       s,
 		log:         log,
+		Prev:        store.NewSample(),
+		Curr:        store.NewSample(),
 		CPUs:        []CPU{},
 		MEM:         MEM{},
-		ProcessList: []Process{},
+		Disks:       make(DiskMap),
+		Nets:        make(NetDevMap),
+		ProcessList: make(ProcessMap),
 	}
 	now := time.Now()
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
@@ -44,21 +48,25 @@ func NewSysModel(s *store.LocalStore, log *log.Logger) (*System, error) {
 	return p, nil
 }
 
-func NewSysModelWithLive(log *log.Logger) (*System, error) {
-	p := &System{
+func NewSysModelWithLive(log *log.Logger) (*Model, error) {
+	p := &Model{
 		Config:      DefaultRenderConfig,
 		log:         log,
+		Prev:        store.NewSample(),
+		Curr:        store.NewSample(),
 		CPUs:        []CPU{},
 		MEM:         MEM{},
-		ProcessList: []Process{},
+		Disks:       make(DiskMap),
+		Nets:        make(NetDevMap),
+		ProcessList: make(ProcessMap),
 	}
 	return p, nil
 }
 
-func (s *System) CollectLiveSample() error {
+func (s *Model) CollectLiveSample() error {
 
 	s.Prev = s.Curr
-	s.Curr = store.Sample{}
+	s.Curr = store.NewSample()
 	if err := store.CollectSampleFromSys(&s.Curr); err != nil {
 		return err
 	}
@@ -66,8 +74,8 @@ func (s *System) CollectLiveSample() error {
 	return nil
 }
 
-func (s *System) CollectNext() error {
-	next := store.Sample{}
+func (s *Model) CollectNext() error {
+	next := store.NewSample()
 	if err := s.Store.NextSample(1, &next); err != nil {
 		return err
 	}
@@ -82,7 +90,7 @@ func (s *System) CollectNext() error {
 	return nil
 }
 
-func (s *System) CollectPrev() error {
+func (s *Model) CollectPrev() error {
 
 	if err := s.Store.NextSample(-2, &s.Prev); err != nil {
 		return err
@@ -100,7 +108,7 @@ func (s *System) CollectPrev() error {
 	return nil
 }
 
-func (s *System) CollectSampleByTime(timeStamp int64) error {
+func (s *Model) CollectSampleByTime(timeStamp int64) error {
 
 	if err := s.Store.JumpSampleByTimeStamp(timeStamp, &s.Curr); err != nil {
 		return err
@@ -121,7 +129,7 @@ func (s *System) CollectSampleByTime(timeStamp int64) error {
 	return nil
 }
 
-func (s *System) CollectField() {
+func (s *Model) CollectField() {
 
 	s.CPUs.Collect(&s.Prev, &s.Curr)
 	s.MEM.Collect(&s.Prev, &s.Curr)
@@ -147,7 +155,7 @@ type DumpOption struct {
 	RawData      bool
 }
 
-func (s *System) Dump(opt DumpOption) error {
+func (s *Model) Dump(opt DumpOption) error {
 
 	switch opt.Format {
 	case "text":
@@ -159,7 +167,7 @@ func (s *System) Dump(opt DumpOption) error {
 	}
 }
 
-func (s *System) dumpText(config RenderConfig, opt DumpOption) error {
+func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 
 	if err := s.CollectSampleByTime(opt.Begin); err != nil {
 		return err
@@ -196,7 +204,7 @@ func (s *System) dumpText(config RenderConfig, opt DumpOption) error {
 
 }
 
-func (s *System) dumpJson(config RenderConfig, opt DumpOption) error {
+func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 
 	if err := s.CollectSampleByTime(opt.Begin); err != nil {
 		return err

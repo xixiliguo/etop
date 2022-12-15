@@ -3,7 +3,6 @@ package model
 import (
 	"fmt"
 
-	"github.com/prometheus/procfs/blockdevice"
 	"github.com/xixiliguo/etop/store"
 	"github.com/xixiliguo/etop/util"
 )
@@ -28,6 +27,8 @@ type Disk struct {
 	Busy             uint64
 }
 
+type DiskMap map[string]Disk
+
 func (d *Disk) GetRenderValue(field string) string {
 	switch field {
 	case "Disk":
@@ -50,18 +51,14 @@ func (d *Disk) GetRenderValue(field string) string {
 	return ""
 }
 
-type DiskSlice []Disk
+func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
 
-func (disks *DiskSlice) Collect(prev, curr *store.Sample) {
-	*disks = (*disks)[:0]
-	prevMap := make(map[string]blockdevice.Diskstats)
-	for i := 0; i < len(prev.DiskStats); i++ {
-		prevMap[prev.DiskStats[i].DeviceName] = prev.DiskStats[i]
+	for k := range diskMap {
+		delete(diskMap, k)
 	}
-	for i := 0; i < len(curr.DiskStats); i++ {
-
-		new := curr.DiskStats[i]
-		old := prevMap[new.DeviceName]
+	for name, _ := range curr.DiskStats {
+		new := curr.DiskStats[name]
+		old := prev.DiskStats[name]
 		interval := uint64(curr.TimeStamp) - uint64(prev.TimeStamp)
 		d := Disk{
 			DeviceName:      new.DeviceName,
@@ -81,7 +78,7 @@ func (disks *DiskSlice) Collect(prev, curr *store.Sample) {
 		d.Await = float64(d.WeightedIOTicks) / float64((d.ReadIOs + d.WriteIOs))
 		d.Avio = float64(d.IOsTotalTicks) / float64((d.ReadIOs + d.WriteIOs))
 		d.Busy = d.WeightedIOTicks / 1000 * 100 / interval
-		*disks = append(*disks, d)
+		diskMap[name] = d
 	}
 
 }

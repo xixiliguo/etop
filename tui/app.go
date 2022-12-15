@@ -29,7 +29,7 @@ type TUI struct {
 	help    *Help
 	log     *log.Logger
 	mode    int
-	sm      *model.System
+	sm      *model.Model
 }
 
 func NewTUI(log *log.Logger) *TUI {

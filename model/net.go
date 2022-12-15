@@ -3,12 +3,11 @@ package model
 import (
 	"fmt"
 
-	"github.com/prometheus/procfs"
 	"github.com/xixiliguo/etop/store"
 	"github.com/xixiliguo/etop/util"
 )
 
-type Net struct {
+type NetDev struct {
 	Name            string
 	RxBytes         uint64
 	RxPackets       uint64
@@ -32,7 +31,9 @@ type Net struct {
 	TxPacketsPerSec uint64
 }
 
-func (n *Net) GetRenderValue(field string) string {
+type NetDevMap map[string]NetDev
+
+func (n *NetDev) GetRenderValue(field string) string {
 	switch field {
 	case "Name":
 		return fmt.Sprintf("%s", n.Name)
@@ -80,21 +81,15 @@ func (n *Net) GetRenderValue(field string) string {
 	return ""
 }
 
-type NetSlice []Net
-
-func (nets *NetSlice) Collect(prev, curr *store.Sample) {
-	*nets = (*nets)[:0]
-	prevMap := make(map[string]procfs.NetDevLine)
-	for i := 0; i < len(prev.NetStats); i++ {
-		prevMap[prev.NetStats[i].Name] = prev.NetStats[i]
+func (netMap NetDevMap) Collect(prev, curr *store.Sample) {
+	for k := range netMap {
+		delete(netMap, k)
 	}
-	for i := 0; i < len(curr.NetStats); i++ {
-
-		new := curr.NetStats[i]
-		old := prevMap[new.Name]
+	for name := range curr.NetDevStats {
+		new := curr.NetDevStats[name]
+		old := prev.NetDevStats[name]
 		interval := uint64(curr.TimeStamp) - uint64(prev.TimeStamp)
-
-		n := Net{
+		n := NetDev{
 			Name:         new.Name,
 			RxBytes:      new.RxBytes - old.RxBytes,
 			RxPackets:    new.RxPackets - old.RxPackets,
@@ -117,8 +112,6 @@ func (nets *NetSlice) Collect(prev, curr *store.Sample) {
 		n.RxPacketsPerSec = n.RxPackets / interval
 		n.TxBytesPerSec = n.TxBytes / interval
 		n.TxPacketsPerSec = n.TxPackets / interval
-
-		*nets = append(*nets, n)
+		netMap[name] = n
 	}
-
 }

@@ -35,7 +35,7 @@ type Process struct {
 	searchText     string
 	visibleColumns []string
 	defaultOrder   string
-	source         []model.Process
+	source         model.ProcessMap
 }
 
 func NewProcess() *Process {
@@ -202,7 +202,7 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 	})
 }
 
-func (process *Process) SetSource(s []model.Process) {
+func (process *Process) SetSource(s model.ProcessMap) {
 	process.source = s
 	process.update()
 }
@@ -237,7 +237,9 @@ func (process *Process) update() {
 			}
 		}
 	} else {
-		visbleData = append(visbleData, process.source...)
+		for _, p := range process.source {
+			visbleData = append(visbleData, p)
+		}
 	}
 
 	if process.sortField != "" {

@@ -155,24 +155,22 @@ type sortFunc func(i, j Process) bool
 
 //go:generate go run sort.go
 
-type ProcessSlice []Process
+type ProcessMap map[int]Process
 
-func (procs *ProcessSlice) Collect(prev, curr *store.Sample) (processes, threads int) {
+func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threads int) {
 
-	*procs = (*procs)[:0]
+	for k := range processMap {
+		delete(processMap, k)
+	}
 
 	interval := curr.TimeStamp - prev.TimeStamp
-	prevMap := make(map[int]store.ProcSample)
-	for i := 0; i < len(prev.ProcSamples); i++ {
-		s := prev.ProcSamples[i]
-		prevMap[s.PID] = s
-	}
+
 	totalIO := uint64(0)
 
-	for i := 0; i < len(curr.ProcSamples); i++ {
+	for pid := range curr.ProcSamples {
 
 		bootTime := curr.SystemSample.BootTime
-		sample := curr.ProcSamples[i]
+		sample := curr.ProcSamples[pid]
 		p := Process{
 			PID:        sample.PID,
 			Comm:       sample.Comm,
@@ -183,8 +181,8 @@ func (procs *ProcessSlice) Collect(prev, curr *store.Sample) (processes, threads
 		}
 
 		// get cpu info
-		p.UTime = float64((sample.UTime - prevMap[sample.PID].UTime)) / userHZ
-		p.STime = float64((sample.STime - prevMap[sample.PID].STime)) / userHZ
+		p.UTime = float64((sample.UTime - prev.ProcSamples[pid].UTime)) / userHZ
+		p.STime = float64((sample.STime - prev.ProcSamples[pid].STime)) / userHZ
 		p.Priority = sample.Priority
 		p.Nice = sample.Nice
 		p.CPUUsage = int((p.UTime + p.STime) * 100 / float64(interval))
@@ -195,24 +193,27 @@ func (procs *ProcessSlice) Collect(prev, curr *store.Sample) (processes, threads
 		p.RSS = sample.RSS * curr.PageSize
 		p.MEMUsage = p.RSS * 100 / 1024 / int(*curr.MemTotal)
 
-		p.RChar = sample.RChar - prevMap[sample.PID].RChar
-		p.WChar = sample.WChar - prevMap[sample.PID].WChar
-		p.SyscR = sample.SyscR - prevMap[sample.PID].SyscR
-		p.SyscW = sample.SyscW - prevMap[sample.PID].SyscW
-		p.ReadBytes = sample.ReadBytes - prevMap[sample.PID].ReadBytes
-		p.WriteBytes = sample.WriteBytes - prevMap[sample.PID].WriteBytes
-		p.CancelledWriteBytes = sample.CancelledWriteBytes - prevMap[sample.PID].CancelledWriteBytes
+		p.RChar = sample.RChar - prev.ProcSamples[pid].RChar
+		p.WChar = sample.WChar - prev.ProcSamples[pid].WChar
+		p.SyscR = sample.SyscR - prev.ProcSamples[pid].SyscR
+		p.SyscW = sample.SyscW - prev.ProcSamples[pid].SyscW
+		p.ReadBytes = sample.ReadBytes - prev.ProcSamples[pid].ReadBytes
+		p.WriteBytes = sample.WriteBytes - prev.ProcSamples[pid].WriteBytes
+		p.CancelledWriteBytes = sample.CancelledWriteBytes - prev.ProcSamples[pid].CancelledWriteBytes
 		p.ReadBytesPerSec = p.ReadBytes / uint64(interval)
 		p.WriteBytesPerSec = p.WriteBytes / uint64(interval)
-		totalIO += p.ReadBytes + p.WriteBytes
 
+		processMap[pid] = p
+
+		totalIO += p.ReadBytes + p.WriteBytes
 		processes += 1
 		threads += p.NumThreads
-		*procs = append(*procs, p)
+
 	}
 	if totalIO != 0 {
-		for idx, proc := range *procs {
-			(*procs)[idx].DiskUage = int((proc.ReadBytes + proc.WriteBytes) * 100 / totalIO)
+		for pid, proc := range processMap {
+			proc.DiskUage = int((proc.ReadBytes + proc.WriteBytes) * 100 / totalIO)
+			processMap[pid] = proc
 		}
 	}
 

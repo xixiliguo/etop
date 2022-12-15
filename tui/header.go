@@ -25,7 +25,7 @@ func NewHeader() *Header {
 	return header
 }
 
-func (header *Header) Update(sm *model.System) {
+func (header *Header) Update(sm *model.Model) {
 	header.text.Clear()
 	fmt.Fprintf(header.text, "%s    Elapsed: %4ds    %s    Uptime: %s    %s\n",
 		time.Unix(sm.Curr.TimeStamp, 0),

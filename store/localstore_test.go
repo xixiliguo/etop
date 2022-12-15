@@ -54,10 +54,10 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{},
 				Stat:          procfs.Stat{},
 				Meminfo:       procfs.Meminfo{},
-				NetStats:      []procfs.NetDevLine{},
-				DiskStats:     []blockdevice.Diskstats{},
+				NetDevStats:   make(map[string]procfs.NetDevLine),
+				DiskStats:     make(map[string]blockdevice.Diskstats),
 			},
-			ProcSamples: []ProcSample{},
+			ProcSamples: make(map[int]ProcSample),
 		},
 		{
 			TimeStamp: 1,
@@ -72,8 +72,8 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 					MemFree:      &m2,
 					MemAvailable: &m3,
 				},
-				NetStats:  nil,
-				DiskStats: []blockdevice.Diskstats{},
+				NetDevStats: nil,
+				DiskStats:   make(map[string]blockdevice.Diskstats),
 			},
 			ProcSamples: nil,
 		},
@@ -86,26 +86,24 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{},
 				Stat:          procfs.Stat{},
 				Meminfo:       procfs.Meminfo{},
-				NetStats:      []procfs.NetDevLine{},
-				DiskStats:     []blockdevice.Diskstats{},
+				NetDevStats:   make(map[string]procfs.NetDevLine),
+				DiskStats:     make(map[string]blockdevice.Diskstats),
 			},
-			ProcSamples: []ProcSample{
-				{
-					ProcStat: procfs.ProcStat{
-						PID:   0,
-						Comm:  "",
-						State: "",
-						PPID:  0,
-					},
+			ProcSamples: map[int]ProcSample{
+				0: {ProcStat: procfs.ProcStat{
+					PID:   0,
+					Comm:  "",
+					State: "",
+					PPID:  0,
+				},
 					ProcIO: procfs.ProcIO{},
 				},
-				{
-					ProcStat: procfs.ProcStat{
-						PID:   1,
-						Comm:  "test",
-						State: "Sleeping",
-						PPID:  0,
-					},
+				1: {ProcStat: procfs.ProcStat{
+					PID:   1,
+					Comm:  "test",
+					State: "Sleeping",
+					PPID:  0,
+				},
 					ProcIO: procfs.ProcIO{},
 				},
 			},
@@ -131,7 +129,7 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 }
 
 func BenchmarkSampleMarshal(b *testing.B) {
-	testCase := Sample{}
+	testCase := NewSample()
 	if err := CollectSampleFromSys(&testCase); err != nil {
 		b.Fatalf("collect sample: %s", err)
 	}
@@ -207,25 +205,26 @@ func TestNextSample(t *testing.T) {
 	}
 	defer readStore.Close()
 
-	s := &Sample{}
-	d := &Sample{}
-	noExist := &Sample{}
+	s := NewSample()
 
-	if err := readStore.NextSample(0, d); err != ErrOutOfRange {
+	d := NewSample()
+	noExist := NewSample()
+
+	if err := readStore.NextSample(0, &d); err != ErrOutOfRange {
 		t.Fatalf("read sample: %s\n", err)
 	}
 
-	if err := writeStore.CollectSample(s); err != nil {
+	if err := writeStore.CollectSample(&s); err != nil {
 		t.Fatalf("collect sample: %s\n", err)
 	}
-	if err := writeStore.WriteSample(s); err != nil {
+	if err := writeStore.WriteSample(&s); err != nil {
 		t.Fatalf("write sample: %s\n", err)
 	}
 
 	writeStore.Index.Sync()
 	writeStore.Data.Sync()
 
-	if err := readStore.NextSample(0, d); err != nil {
+	if err := readStore.NextSample(0, &d); err != nil {
 		t.Fatalf("read sample: %s\n", err)
 	}
 	opts := []cmp.Option{
@@ -235,14 +234,14 @@ func TestNextSample(t *testing.T) {
 		t.Fatalf("data should be the same\n%s\n", cmp.Diff(s, d, opts...))
 	}
 
-	if err := readStore.NextSample(1, noExist); err != ErrOutOfRange {
+	if err := readStore.NextSample(1, &noExist); err != ErrOutOfRange {
 		t.Fatalf("read sample should fail, but got no error: %s\n", err)
 	}
-	if err := readStore.NextSample(-1, noExist); err != ErrOutOfRange {
+	if err := readStore.NextSample(-1, &noExist); err != ErrOutOfRange {
 		t.Fatalf("read sample should fail, but got no error: %s\n", err)
 	}
 
-	if err := readStore.NextSample(0, d); err != nil {
+	if err := readStore.NextSample(0, &d); err != nil {
 		t.Fatalf("read sample: %s\n", err)
 	}
 
@@ -251,13 +250,13 @@ func TestNextSample(t *testing.T) {
 	}
 
 	s.TimeStamp += 1
-	if err := writeStore.WriteSample(s); err != nil {
+	if err := writeStore.WriteSample(&s); err != nil {
 		t.Fatalf("write new sample: %s\n", err)
 	}
 	writeStore.Index.Sync()
 	writeStore.Data.Sync()
 
-	if err := readStore.NextSample(1, d); err != nil {
+	if err := readStore.NextSample(1, &d); err != nil {
 		t.Fatalf("read sample: %s\n", err)
 	}
 
@@ -285,46 +284,46 @@ func TestJumpSampleByTimeStamp(t *testing.T) {
 	}
 	defer readStore.Close()
 
-	d := &Sample{}
-	c := &Sample{}
+	d := NewSample()
+	c := NewSample()
 
-	if err := readStore.JumpSampleByTimeStamp(123, c); err != ErrOutOfRange {
+	if err := readStore.JumpSampleByTimeStamp(123, &c); err != ErrOutOfRange {
 		t.Fatalf("read sample should fail, but got: %s\n", err)
 	}
 
 	// write 1st sample
-	s := &Sample{}
-	if err := writeStore.CollectSample(s); err != nil {
+	s := NewSample()
+	if err := writeStore.CollectSample(&s); err != nil {
 		t.Fatalf("collect sample: %s\n", err)
 	}
-	if err := writeStore.WriteSample(s); err != nil {
+	if err := writeStore.WriteSample(&s); err != nil {
 		t.Fatalf("write sample: %s\n", err)
 	}
 	writeStore.Index.Sync()
 	writeStore.Data.Sync()
 
 	// shoud ignore 1st sample, because no sample can compare with it
-	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp, d); err != ErrOutOfRange {
+	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp, &d); err != ErrOutOfRange {
 		t.Fatalf("read sample should fail, but got: %s\n", err)
 	}
 
-	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp-1, d); err != ErrOutOfRange {
+	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp-1, &d); err != ErrOutOfRange {
 		t.Fatalf("read sample should fail, but got: %s\n", err)
 	}
 
-	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp+1, d); err != ErrOutOfRange {
+	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp+1, &d); err != ErrOutOfRange {
 		t.Fatalf("read sample should fail, but got: %s\n", err)
 	}
 
 	// write 2nd sample
 	s.TimeStamp += 1
-	if err := writeStore.WriteSample(s); err != nil {
+	if err := writeStore.WriteSample(&s); err != nil {
 		t.Fatalf("write sample: %s\n", err)
 	}
 	writeStore.Index.Sync()
 	writeStore.Data.Sync()
 
-	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp, d); err != nil {
+	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp, &d); err != nil {
 		t.Fatalf("read sample: %s\n", err)
 	}
 
@@ -335,7 +334,7 @@ func TestJumpSampleByTimeStamp(t *testing.T) {
 		t.Fatalf("data should be the same\n%s\n", cmp.Diff(s, d, opts...))
 	}
 
-	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp-1, d); err != nil {
+	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp-1, &d); err != nil {
 		t.Fatalf("read sample: %s\n", err)
 	}
 
@@ -343,7 +342,7 @@ func TestJumpSampleByTimeStamp(t *testing.T) {
 		t.Fatalf("data should be the same\n%s\n", cmp.Diff(s, d, opts...))
 	}
 
-	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp+1, c); err != nil {
+	if err := readStore.JumpSampleByTimeStamp(s.TimeStamp+1, &c); err != nil {
 		t.Logf("%d %+v\n", s.TimeStamp, readStore.idxs)
 		t.Fatalf("read sample: %s\n", err)
 	}
