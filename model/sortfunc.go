@@ -1,34 +1,36 @@
 package model
 
 var SortMap = map[string]sortFunc{
-	"PID":       SortByPID,
-	"COMM":      SortByComm,
-	"STATE":     SortByState,
-	"PPID":      SortByPPID,
-	"THR":       SortByNumThreads,
-	"STARTTIME": SortByStarttime,
-	"USERCPU":   SortByUTime,
-	"SYSCPU":    SortBySTime,
-	"PRI":       SortByPriority,
-	"NICE":      SortByNice,
+	"Pid":       SortByPid,
+	"Comm":      SortByComm,
+	"State":     SortByState,
+	"Ppid":      SortByPpid,
+	"Thr":       SortByNumThreads,
+	"StartTime": SortByStartTime,
+	"UserCPU":   SortByUTime,
+	"SysCPU":    SortBySTime,
+	"Pri":       SortByPriority,
+	"Nice":      SortByNice,
 	"CPU":       SortByCPUUsage,
-	"MINFLT":    SortByMinFlt,
-	"MAJFLT":    SortByMajFlt,
-	"VSIZE":     SortByVSize,
+	"Minflt":    SortByMinFlt,
+	"Majflt":    SortByMajFlt,
+	"Vsize":     SortByVSize,
 	"RSS":       SortByRSS,
 	"MEM":       SortByMEMUsage,
-	"RCHAR":     SortByRChar,
-	"WCHAR":     SortByWChar,
-	"SYSCR":     SortBySyscR,
-	"SYSCW":     SortBySyscW,
-	"READ":      SortByReadBytes,
-	"WRITE":     SortByWriteBytes,
-	"WCANCEL":   SortByCancelledWriteBytes,
-	"DISK":      SortByDiskUage,
+	"Rchar":     SortByRChar,
+	"Wchar":     SortByWChar,
+	"Syscr":     SortBySyscR,
+	"Syscw":     SortBySyscW,
+	"Read":      SortByReadBytes,
+	"Write":     SortByWriteBytes,
+	"R/s":       SortByReadBytesPerSec,
+	"W/s":       SortByWriteBytesPerSec,
+	"Wcancel":   SortByCancelledWriteBytes,
+	"Disk":      SortByDiskUage,
 }
 
-func SortByPID(i, j Process) bool {
-	return i.PID > j.PID
+func SortByPid(i, j Process) bool {
+	return i.Pid > j.Pid
 }
 
 func SortByComm(i, j Process) bool {
@@ -39,16 +41,16 @@ func SortByState(i, j Process) bool {
 	return i.State > j.State
 }
 
-func SortByPPID(i, j Process) bool {
-	return i.PPID > j.PPID
+func SortByPpid(i, j Process) bool {
+	return i.Ppid > j.Ppid
 }
 
 func SortByNumThreads(i, j Process) bool {
 	return i.NumThreads > j.NumThreads
 }
 
-func SortByStarttime(i, j Process) bool {
-	return i.Starttime > j.Starttime
+func SortByStartTime(i, j Process) bool {
+	return i.StartTime > j.StartTime
 }
 
 func SortByUTime(i, j Process) bool {
@@ -113,6 +115,14 @@ func SortByReadBytes(i, j Process) bool {
 
 func SortByWriteBytes(i, j Process) bool {
 	return i.WriteBytes > j.WriteBytes
+}
+
+func SortByReadBytesPerSec(i, j Process) bool {
+	return i.ReadBytesPerSec > j.ReadBytesPerSec
+}
+
+func SortByWriteBytesPerSec(i, j Process) bool {
+	return i.WriteBytesPerSec > j.WriteBytesPerSec
 }
 
 func SortByCancelledWriteBytes(i, j Process) bool {

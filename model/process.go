@@ -1,24 +1,28 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/xixiliguo/etop/store"
-	"github.com/xixiliguo/etop/util"
 )
 
 const (
 	userHZ = 100
 )
 
+var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "MEM", "R/s", "W/s"}
+
 type Process struct {
-	PID        int
+	Pid        int
 	Comm       string
 	State      string
-	PPID       int
+	Ppid       int
 	NumThreads int
-	Starttime  uint64
+	StartTime  uint64
 	PCPU
 	PMEM
 	PIO
@@ -29,24 +33,24 @@ type PCPU struct {
 	STime    float64
 	Priority int
 	Nice     int
-	CPUUsage int
+	CPUUsage float64
 }
 
-func (c *PCPU) GetRenderValue(field string) string {
-
+func (c *PCPU) GetRenderValue(config RenderConfig, field string) string {
+	s := fmt.Sprintf("no %s for process cpu stat", field)
 	switch field {
-	case "USERCPU":
-		return fmt.Sprintf("%.2fs", c.UTime)
-	case "SYSCPU":
-		return fmt.Sprintf("%.2fs", c.STime)
-	case "PRI":
-		return fmt.Sprintf("%d", c.Priority)
-	case "NICE":
-		return fmt.Sprintf("%d", c.Nice)
+	case "UserCPU":
+		s = config[field].Render(c.UTime)
+	case "SysCPU":
+		s = config[field].Render(c.STime)
+	case "Pri":
+		s = config[field].Render(c.Priority)
+	case "Nice":
+		s = config[field].Render(c.Nice)
 	case "CPU":
-		return fmt.Sprintf("%d%%", c.CPUUsage)
+		s = config[field].Render(c.CPUUsage)
 	}
-	return ""
+	return s
 }
 
 type PMEM struct {
@@ -57,21 +61,21 @@ type PMEM struct {
 	MEMUsage int
 }
 
-func (m *PMEM) GetRenderValue(field string) string {
+func (m *PMEM) GetRenderValue(config RenderConfig, field string) string {
+	s := fmt.Sprintf("no %s for process mem stat", field)
 	switch field {
-	case "MINFLT":
-		return fmt.Sprintf("%d", m.MinFlt)
-	case "MAJFLT":
-		return fmt.Sprintf("%d", m.MajFlt)
-	case "VSIZE":
-		return util.GetHumanSize(int(m.VSize))
+	case "Minflt":
+		s = config[field].Render(m.MinFlt)
+	case "Majflt":
+		s = config[field].Render(m.MajFlt)
+	case "Vsize":
+		s = config[field].Render(m.VSize)
 	case "RSS":
-		return util.GetHumanSize((m.RSS))
+		s = config[field].Render(m.RSS)
 	case "MEM":
-		return fmt.Sprintf("%d%%", m.MEMUsage)
-
+		s = config[field].Render(m.MEMUsage)
 	}
-	return ""
+	return s
 }
 
 type PIO struct {
@@ -81,45 +85,49 @@ type PIO struct {
 	SyscW               uint64
 	ReadBytes           uint64
 	WriteBytes          uint64
-	ReadBytesPerSec     uint64
-	WriteBytesPerSec    uint64
+	ReadBytesPerSec     float64
+	WriteBytesPerSec    float64
 	CancelledWriteBytes int64
-	DiskUage            int
+	DiskUage            float64
 }
 
-func (i *PIO) GetRenderValue(field string) string {
+func (i *PIO) GetRenderValue(config RenderConfig, field string) string {
+	s := fmt.Sprintf("no %s for process io stat", field)
+
 	switch field {
-	case "RCHAR":
-		return util.GetHumanSize(int(i.RChar))
-	case "WCHAR":
-		return util.GetHumanSize(int(i.WChar))
-	case "SYSCR":
-		return fmt.Sprintf("%d", i.SyscR)
-	case "SYSCW":
-		return fmt.Sprintf("%d", i.SyscW)
-	case "READ":
-		return util.GetHumanSize(int(i.ReadBytes))
-	case "WRITE":
-		return util.GetHumanSize(int(i.WriteBytes))
-	case "WCANCEL":
-		return util.GetHumanSize(int(i.CancelledWriteBytes))
+	case "Rchar":
+		s = config[field].Render(i.RChar)
+	case "Wchar":
+		s = config[field].Render(i.WChar)
+	case "Syscr":
+		s = config[field].Render(i.SyscR)
+	case "Syscw":
+		s = config[field].Render(i.SyscW)
+	case "Read":
+		s = config[field].Render(i.ReadBytes)
+	case "Write":
+		s = config[field].Render(i.WriteBytes)
+	case "Wcancel":
+		s = config[field].Render(i.CancelledWriteBytes)
 	case "R/s":
-		return fmt.Sprintf("%s/s", util.GetHumanSize(i.ReadBytesPerSec))
+		s = config[field].Render(i.ReadBytesPerSec)
 	case "W/s":
-		return fmt.Sprintf("%s/s", util.GetHumanSize(i.WriteBytesPerSec))
-	case "DISK":
-		return fmt.Sprintf("%d%%", i.DiskUage)
+		s = config[field].Render(i.WriteBytesPerSec)
+	case "Disk":
+		s = config[field].Render(i.DiskUage)
 	}
-	return ""
+	return s
 }
 
-func (p *Process) GetRenderValue(field string) string {
+func (p *Process) GetRenderValue(config RenderConfig, field string) string {
+
+	s := fmt.Sprintf("no %s for process stat", field)
 	switch field {
-	case "PID":
-		return fmt.Sprintf("%d", p.PID)
-	case "COMM":
-		return fmt.Sprintf("%-20.20s", p.Comm)
-	case "STATE":
+	case "Pid":
+		s = config[field].Render(p.Pid)
+	case "Comm":
+		s = config[field].Render(p.Comm)
+	case "State":
 		stodesc := map[string]string{
 			"R": "Running",
 			"S": "Sleeping",
@@ -134,21 +142,22 @@ func (p *Process) GetRenderValue(field string) string {
 			"W": "Waking",
 			"P": "Parked",
 		}
-		return fmt.Sprintf("%s", stodesc[p.State])
-	case "PPID":
-		return fmt.Sprintf("%d", p.PPID)
-	case "THR":
-		return fmt.Sprintf("%d", p.NumThreads)
-	case "STARTTIME":
-		return fmt.Sprintf("%s", time.Unix(int64(p.Starttime), 0))
-	case "USERCPU", "SYSCPU", "PRI", "NICE", "CPU":
-		return p.PCPU.GetRenderValue(field)
-	case "MINFLT", "MAJFLT", "VSIZE", "RSS", "MEM":
-		return p.PMEM.GetRenderValue(field)
-	case "RCHAR", "WCHAR", "SYSCR", "SYSCW", "READ", "WRITE", "WCANCEL", "R/s", "W/s", "DISK":
-		return p.PIO.GetRenderValue(field)
+		s = config[field].Render(stodesc[p.State])
+	case "Ppid":
+		s = config[field].Render(p.Ppid)
+	case "Thr":
+		s = config[field].Render(p.NumThreads)
+	case "StartTime":
+		startTime := time.Unix(int64(p.StartTime), 0).Format(time.RFC3339)
+		s = config[field].Render(startTime)
+	case "UserCPU", "SysCPU", "Pri", "Nice", "CPU":
+		return p.PCPU.GetRenderValue(config, field)
+	case "Minflt", "Majflt", "Vsize", "RSS", "MEM":
+		return p.PMEM.GetRenderValue(config, field)
+	case "Rchar", "Wchar", "Syscr", "Syscw", "Read", "Write", "Wcancel", "R/s", "W/s", "Disk":
+		return p.PIO.GetRenderValue(config, field)
 	}
-	return ""
+	return s
 }
 
 type sortFunc func(i, j Process) bool
@@ -170,38 +179,44 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 	for pid := range curr.ProcSamples {
 
 		bootTime := curr.SystemSample.BootTime
-		sample := curr.ProcSamples[pid]
+		new := curr.ProcSamples[pid]
+		old := prev.ProcSamples[pid]
+
+		if old.Starttime != new.Starttime {
+			old = store.ProcSample{}
+		}
+
 		p := Process{
-			PID:        sample.PID,
-			Comm:       sample.Comm,
-			State:      sample.State,
-			PPID:       sample.PPID,
-			NumThreads: sample.NumThreads,
-			Starttime:  bootTime + sample.Starttime/userHZ,
+			Pid:        new.PID,
+			Comm:       new.Comm,
+			State:      new.State,
+			Ppid:       new.PPID,
+			NumThreads: new.NumThreads,
+			StartTime:  bootTime + new.Starttime/userHZ,
 		}
 
 		// get cpu info
-		p.UTime = float64((sample.UTime - prev.ProcSamples[pid].UTime)) / userHZ
-		p.STime = float64((sample.STime - prev.ProcSamples[pid].STime)) / userHZ
-		p.Priority = sample.Priority
-		p.Nice = sample.Nice
-		p.CPUUsage = int((p.UTime + p.STime) * 100 / float64(interval))
+		p.UTime = float64(new.UTime-old.UTime) / float64(interval)
+		p.STime = float64(new.STime-old.STime) / float64(interval)
+		p.Priority = new.Priority
+		p.Nice = new.Nice
+		p.CPUUsage = p.UTime + p.STime
 
-		p.MinFlt = sample.MinFlt
-		p.MajFlt = sample.MajFlt
-		p.VSize = sample.VSize
-		p.RSS = sample.RSS * curr.PageSize
+		p.MinFlt = new.MinFlt - old.MinFlt
+		p.MajFlt = new.MajFlt - old.MajFlt
+		p.VSize = new.VSize
+		p.RSS = new.RSS * curr.PageSize
 		p.MEMUsage = p.RSS * 100 / 1024 / int(*curr.MemTotal)
 
-		p.RChar = sample.RChar - prev.ProcSamples[pid].RChar
-		p.WChar = sample.WChar - prev.ProcSamples[pid].WChar
-		p.SyscR = sample.SyscR - prev.ProcSamples[pid].SyscR
-		p.SyscW = sample.SyscW - prev.ProcSamples[pid].SyscW
-		p.ReadBytes = sample.ReadBytes - prev.ProcSamples[pid].ReadBytes
-		p.WriteBytes = sample.WriteBytes - prev.ProcSamples[pid].WriteBytes
-		p.CancelledWriteBytes = sample.CancelledWriteBytes - prev.ProcSamples[pid].CancelledWriteBytes
-		p.ReadBytesPerSec = p.ReadBytes / uint64(interval)
-		p.WriteBytesPerSec = p.WriteBytes / uint64(interval)
+		p.RChar = new.RChar - old.RChar
+		p.WChar = new.WChar - old.WChar
+		p.SyscR = new.SyscR - old.SyscR
+		p.SyscW = new.SyscW - old.SyscW
+		p.ReadBytes = new.ReadBytes - old.ReadBytes
+		p.WriteBytes = new.WriteBytes - old.WriteBytes
+		p.CancelledWriteBytes = new.CancelledWriteBytes - old.CancelledWriteBytes
+		p.ReadBytesPerSec = float64(p.ReadBytes) / float64(interval)
+		p.WriteBytesPerSec = float64(p.WriteBytes) / float64(interval)
 
 		processMap[pid] = p
 
@@ -212,10 +227,81 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 	}
 	if totalIO != 0 {
 		for pid, proc := range processMap {
-			proc.DiskUage = int((proc.ReadBytes + proc.WriteBytes) * 100 / totalIO)
+			proc.DiskUage = float64(proc.ReadBytes+proc.WriteBytes) * 100 / float64(totalIO)
 			processMap[pid] = proc
 		}
 	}
 
 	return processes, threads
+}
+
+func (processMap ProcessMap) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
+
+	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
+
+	processList := []Process{}
+	for _, p := range processMap {
+		processList = append(processList, p)
+	}
+
+	sort.SliceStable(processList, func(i, j int) bool {
+		return SortMap[opt.SortField](processList[i], processList[j])
+	})
+	if opt.AscendingOrder == true {
+		for i := 0; i < len(processList)/2; i++ {
+			processList[i], processList[len(processList)-1-i] = processList[len(processList)-1-i], processList[i]
+		}
+	}
+
+	switch opt.Format {
+	case "text":
+		config.SetFixWidth(true)
+		cnt := 0
+	looptext:
+		for _, p := range processList {
+			row := strings.Builder{}
+			row.WriteString(dateTime)
+			for _, f := range opt.Fields {
+				renderValue := p.GetRenderValue(config, f)
+				if f == opt.SelectField && opt.Filter != nil {
+					if opt.Filter.MatchString(renderValue) == false {
+						continue looptext
+					}
+				}
+				row.WriteString(" ")
+				row.WriteString(renderValue)
+			}
+			row.WriteString("\n")
+
+			opt.Output.WriteString(row.String())
+			cnt++
+			if opt.Top > 0 && opt.Top == cnt {
+				break
+			}
+		}
+	case "json":
+		t := []any{}
+		cnt := 0
+	loopjson:
+		for _, p := range processList {
+			row := make(map[string]string)
+			row["Timestamp"] = dateTime
+			for _, f := range opt.Fields {
+				renderValue := p.GetRenderValue(config, f)
+				if f == opt.SelectField && opt.Filter != nil {
+					if opt.Filter.MatchString(renderValue) == false {
+						continue loopjson
+					}
+				}
+				row[config[f].Name] = renderValue
+			}
+			t = append(t, row)
+			cnt++
+			if opt.Top > 0 && opt.Top == cnt {
+				break
+			}
+		}
+		b, _ := json.Marshal(t)
+		opt.Output.Write(b)
+	}
 }

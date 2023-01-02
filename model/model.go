@@ -5,13 +5,13 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"time"
 
 	"github.com/xixiliguo/etop/store"
 )
 
 type Model struct {
 	Config        map[string]RenderConfig
+	Mode          string
 	Store         store.Store
 	log           *log.Logger
 	Prev          store.Sample
@@ -22,43 +22,29 @@ type Model struct {
 	ContextSwitch uint64
 	CPUs          CPUSlice
 	MEM
-	Disks       DiskMap
-	Nets        NetDevMap
-	ProcessList ProcessMap
+	Disks DiskMap
+	Nets  NetDevMap
+	NetStat
+	NetProtocols NetProtocolMap
+	Softnets     SoftnetSlice
+	Processes    ProcessMap
 }
 
 func NewSysModel(s *store.LocalStore, log *log.Logger) (*Model, error) {
 	p := &Model{
-		Config:      DefaultRenderConfig,
-		Store:       s,
-		log:         log,
-		Prev:        store.NewSample(),
-		Curr:        store.NewSample(),
-		CPUs:        []CPU{},
-		MEM:         MEM{},
-		Disks:       make(DiskMap),
-		Nets:        make(NetDevMap),
-		ProcessList: make(ProcessMap),
-	}
-	now := time.Now()
-	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
-	if err := p.CollectSampleByTime(t.Unix()); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
-
-func NewSysModelWithLive(log *log.Logger) (*Model, error) {
-	p := &Model{
-		Config:      DefaultRenderConfig,
-		log:         log,
-		Prev:        store.NewSample(),
-		Curr:        store.NewSample(),
-		CPUs:        []CPU{},
-		MEM:         MEM{},
-		Disks:       make(DiskMap),
-		Nets:        make(NetDevMap),
-		ProcessList: make(ProcessMap),
+		Config:       DefaultRenderConfig,
+		Mode:         "report",
+		Store:        s,
+		log:          log,
+		Prev:         store.NewSample(),
+		Curr:         store.NewSample(),
+		CPUs:         []CPU{},
+		MEM:          MEM{},
+		Disks:        make(DiskMap),
+		Nets:         make(NetDevMap),
+		NetProtocols: make(NetProtocolMap),
+		Softnets:     []Softnet{},
+		Processes:    make(ProcessMap),
 	}
 	return p, nil
 }
@@ -135,24 +121,30 @@ func (s *Model) CollectField() {
 	s.MEM.Collect(&s.Prev, &s.Curr)
 	s.Disks.Collect(&s.Prev, &s.Curr)
 	s.Nets.Collect(&s.Prev, &s.Curr)
-	s.Prcesses, s.Threads = s.ProcessList.Collect(&s.Prev, &s.Curr)
+	s.NetStat.Collect(&s.Prev, &s.Curr)
+	s.NetProtocols.Collect(&s.Prev, &s.Curr)
+	s.Softnets.Collect(&s.Prev, &s.Curr)
+	s.Prcesses, s.Threads = s.Processes.Collect(&s.Prev, &s.Curr)
 	s.Clones = (s.Curr.ProcessCreated - s.Prev.ProcessCreated) / uint64(s.Curr.TimeStamp-s.Prev.TimeStamp)
 	s.ContextSwitch = (s.Curr.ContextSwitches - s.Prev.ContextSwitches) / uint64(s.Curr.TimeStamp-s.Prev.TimeStamp)
 
 }
 
 type DumpOption struct {
-	Begin        int64
-	End          int64
-	Module       string
-	Output       *os.File
-	Format       string
-	Fields       []string
-	SelectField  string
-	Filter       *regexp.Regexp
-	DisableTitle bool
-	RepeatTitle  int
-	RawData      bool
+	Begin          int64
+	End            int64
+	Module         string
+	Output         *os.File
+	Format         string
+	Fields         []string
+	SelectField    string
+	Filter         *regexp.Regexp
+	SortField      string
+	AscendingOrder bool
+	Top            int
+	DisableTitle   bool
+	RepeatTitle    int
+	RawData        bool
 }
 
 func (s *Model) Dump(opt DumpOption) error {
@@ -173,9 +165,13 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 		return err
 	}
 
-	title := fmt.Sprintf("%25s", "TimeStamp")
+	title := fmt.Sprintf("%-25s", "TimeStamp")
 	for _, c := range opt.Fields {
-		title += fmt.Sprintf("%*s", config[c].Width, config[c].Name)
+		width := config[c].Width
+		if len(config[c].Name) > width {
+			width = len(config[c].Name)
+		}
+		title += fmt.Sprintf(" %-*s", width, config[c].Name)
 	}
 	title += "\n"
 	if opt.DisableTitle == false {
@@ -191,6 +187,18 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 			s.CPUs.Dump(s.Curr.TimeStamp, config, opt)
 		case "memory":
 			s.MEM.Dump(s.Curr.TimeStamp, config, opt)
+		case "disk":
+			s.Disks.Dump(s.Curr.TimeStamp, config, opt)
+		case "netdev":
+			s.Nets.Dump(s.Curr.TimeStamp, config, opt)
+		case "network":
+			s.NetStat.Dump(s.Curr.TimeStamp, config, opt)
+		case "networkprotocol":
+			s.NetProtocols.Dump(s.Curr.TimeStamp, config, opt)
+		case "softnet":
+			s.Softnets.Dump(s.Curr.TimeStamp, config, opt)
+		case "process":
+			s.Processes.Dump(s.Curr.TimeStamp, config, opt)
 		}
 		if err := s.CollectNext(); err != nil {
 			if err == store.ErrOutOfRange {
@@ -223,6 +231,18 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 			s.CPUs.Dump(s.Curr.TimeStamp, config, opt)
 		case "memory":
 			s.MEM.Dump(s.Curr.TimeStamp, config, opt)
+		case "disk":
+			s.Disks.Dump(s.Curr.TimeStamp, config, opt)
+		case "netdev":
+			s.Nets.Dump(s.Curr.TimeStamp, config, opt)
+		case "network":
+			s.NetStat.Dump(s.Curr.TimeStamp, config, opt)
+		case "networkprotocol":
+			s.NetProtocols.Dump(s.Curr.TimeStamp, config, opt)
+		case "softnet":
+			s.Softnets.Dump(s.Curr.TimeStamp, config, opt)
+		case "process":
+			s.Processes.Dump(s.Curr.TimeStamp, config, opt)
 		}
 		if err := s.CollectNext(); err != nil {
 			if err == store.ErrOutOfRange {

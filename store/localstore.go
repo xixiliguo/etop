@@ -11,18 +11,21 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/klauspost/compress/zstd"
 	"github.com/prometheus/procfs"
 	"github.com/prometheus/procfs/blockdevice"
+	"github.com/xixiliguo/etop/util"
 	"golang.org/x/sys/unix"
 )
 
 var (
-	DefaultPath   = "/var/log/etop"
-	ErrOutOfRange = errors.New("data is out of range")
+	DefaultPath                     = "/var/log/etop"
+	ErrOutOfRange                   = errors.New("data is out of range")
+	MinimumFreeSpaceForStore uint64 = 500 * (1 << 20) // 500MB
 )
 
 type SystemSample struct {
@@ -34,6 +37,11 @@ type SystemSample struct {
 	procfs.Meminfo
 	NetDevStats map[string]procfs.NetDevLine
 	DiskStats   map[string]blockdevice.Diskstats
+	procfs.ProcSnmp
+	procfs.ProcSnmp6
+	procfs.ProcNetstat
+	procfs.NetProtocolStats
+	SoftNetStats []procfs.SoftnetStat
 }
 
 type ProcSample struct {
@@ -52,8 +60,9 @@ func NewSample() Sample {
 	s := Sample{
 		TimeStamp: 0,
 		SystemSample: SystemSample{
-			NetDevStats: make(map[string]procfs.NetDevLine),
-			DiskStats:   make(map[string]blockdevice.Diskstats),
+			NetDevStats:      make(map[string]procfs.NetDevLine),
+			DiskStats:        make(map[string]blockdevice.Diskstats),
+			NetProtocolStats: make(map[string]procfs.NetProtocolStatLine),
 		},
 		ProcSamples: map[int]ProcSample{},
 	}
@@ -135,6 +144,13 @@ func WithWriteOnly() Option {
 	}
 }
 
+func WithSetPath(path string) Option {
+	return func(local *LocalStore) error {
+		local.Path = path
+		return nil
+	}
+}
+
 // LocalStore represent local store, which consist of index and data files.
 // All files was stored into Path (default: /var/log/etop).
 // file format: index_{suffix}, data_{suffix}  suffix: yyyymmdd
@@ -162,12 +178,6 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 	if local.writeOnly == true {
 		suffix := time.Now().Format("20060102")
 		if err := local.openFile(suffix, true); err != nil {
-			return nil, err
-		}
-
-		if info, err := local.Data.Stat(); err == nil {
-			local.DataOffset = info.Size()
-		} else {
 			return nil, err
 		}
 		return local, nil
@@ -228,6 +238,58 @@ func getIndexFrames(path string) ([]Index, error) {
 	return idxs, nil
 }
 
+func (local *LocalStore) FileStatInfo() (result string, err error) {
+	suffixs, indexSize, dataSize, err := getIndexAndDataInfo(local.Path)
+	if err != nil {
+		return
+	}
+	result += fmt.Sprintf("%-5s: %d files %s\n", "Index", len(suffixs), util.GetHumanSize(indexSize))
+	result += fmt.Sprintf("%-5s: %d files %s\n", "Data", len(suffixs), util.GetHumanSize(dataSize))
+
+	start := time.Unix(local.idxs[0].TimeStamp, 0).Format(time.RFC3339)
+	end := time.Unix(local.idxs[len(local.idxs)-1].TimeStamp, 0).Format(time.RFC3339)
+	result += fmt.Sprintf("%d samples from %s to %s", len(local.idxs), start, end)
+	return
+}
+
+// getDataInfo walk path and get info of index file and data file
+// return suffixs array and total size
+func getIndexAndDataInfo(path string) (suffixs []string, indexSize int64, dataSize int64, err error) {
+	indexNum := 0
+	dataNum := 0
+	err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "index_") {
+			indexNum++
+			if info, err := d.Info(); err == nil {
+				indexSize += info.Size()
+			} else {
+				return err
+			}
+		}
+		if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "data_") {
+			dataNum++
+			suffixs = append(suffixs, strings.TrimLeft(d.Name(), "data_"))
+			if info, err := d.Info(); err == nil {
+				dataSize += info.Size()
+			} else {
+				return err
+			}
+		}
+		return nil
+	})
+	if indexNum != dataNum {
+		return suffixs, indexSize, dataSize,
+			fmt.Errorf("%d index files is not equal to %d data files", indexNum, dataNum)
+	}
+	sort.Slice(suffixs, func(i, j int) bool {
+		return suffixs[i] < suffixs[j]
+	})
+	return
+}
+
 func (local *LocalStore) openFile(suffix string, writeonly bool) (err error) {
 
 	flags := os.O_RDONLY
@@ -245,6 +307,15 @@ func (local *LocalStore) openFile(suffix string, writeonly bool) (err error) {
 		local.Index.Close()
 		return err
 	}
+
+	// data file may already exist and take file size as initail DataOffset
+	if info, err := local.Data.Stat(); err == nil {
+		local.DataOffset = info.Size()
+	} else {
+		return err
+	}
+
+	local.suffix = suffix
 	return nil
 }
 
@@ -397,10 +468,33 @@ func CollectSampleFromSys(s *Sample) error {
 		return err
 	}
 
-	if netDev, err := fs.NetDev(); err == nil {
-		for _, v := range netDev {
-			s.NetDevStats[v.Name] = v
-		}
+	if s.NetDevStats, err = fs.NetDev(); err != nil {
+		return err
+	}
+
+	if s.NetProtocolStats, err = fs.NetProtocols(); err != nil {
+		return err
+	}
+
+	p, _ := fs.NewProc(1)
+	if snmp, err := p.Snmp(); err != nil {
+		return err
+	} else {
+		s.ProcSnmp = snmp
+	}
+	if snmp6, err := p.Snmp6(); err != nil {
+		return err
+	} else {
+		s.ProcSnmp6 = snmp6
+	}
+	if netStat, err := p.Netstat(); err != nil {
+		return err
+	} else {
+		s.ProcNetstat = netStat
+	}
+
+	if s.SoftNetStats, err = fs.NetSoftnetStat(); err != nil {
+		return err
 	}
 
 	if diskStats, err := diskFS.ProcDiskstats(); err != nil {
@@ -440,12 +534,7 @@ func CollectSampleFromSys(s *Sample) error {
 func (local *LocalStore) WriteSample(s *Sample) error {
 
 	var err error
-	suffix := time.Unix(s.TimeStamp, 0).Format("20060102")
-	if suffix != local.suffix {
-		if err = local.changeFile(suffix, true); err != nil {
-			return err
-		}
-	}
+
 	compressed := []byte{}
 	if compressed, err = s.Marshal(); err != nil {
 		return err
@@ -468,4 +557,86 @@ func (local *LocalStore) WriteSample(s *Sample) error {
 
 	local.DataOffset += int64(len(compressed))
 	return nil
+}
+
+type WriteOption struct {
+	Interval   time.Duration
+	RetainDay  int
+	RetainSize int64
+}
+
+func (local *LocalStore) WriteLoop(opt WriteOption) error {
+
+	interval := opt.Interval
+
+	local.Log.Printf("start to write sample every %s to %s", interval.String(), local.Data.Name())
+	isSkip := 0
+	for {
+		start := time.Now()
+		s := NewSample()
+		if err := local.CollectSample(&s); err != nil {
+			return err
+		}
+
+		statInfo := syscall.Statfs_t{}
+		if err := syscall.Statfs(local.Path, &statInfo); err != nil {
+			return err
+		}
+		if statInfo.Bavail*uint64(statInfo.Bsize) > MinimumFreeSpaceForStore {
+			if isSkip != 0 {
+				local.Log.Printf("resume to write sample (%d skipped)", isSkip)
+				isSkip = 0
+			}
+
+			suffix := time.Unix(s.TimeStamp, 0).Format("20060102")
+			if suffix != local.suffix {
+				if err := local.changeFile(suffix, true); err != nil {
+					return err
+				}
+				local.Log.Printf("switch and write data into data_%s", suffix)
+				// it is time to check if clean old data or not.
+				// oldest first.
+				if suffixs, _, size, err := getIndexAndDataInfo(local.Path); err != nil {
+					return err
+				} else {
+					if len(suffixs) > 0 {
+						if len(suffixs)-1 > opt.RetainDay || size > opt.RetainSize {
+							err := os.Remove("index_" + suffixs[0])
+							if err != nil {
+								return err
+							}
+							err = os.Remove("data_" + suffixs[0])
+							if err != nil {
+								return err
+							}
+							local.Log.Printf("total historical files: %d %s",
+								len(suffixs)-1, util.GetHumanSize(size))
+							local.Log.Printf("delete oldest data_%s", suffix)
+						}
+					}
+				}
+			}
+
+			if err := local.WriteSample(&s); err != nil {
+				return err
+			}
+		} else {
+			if isSkip == 0 {
+				local.Log.Printf("filesystem free space %s below %s, write sample skipped",
+					util.GetHumanSize(statInfo.Bavail*uint64(statInfo.Bsize)),
+					util.GetHumanSize(MinimumFreeSpaceForStore))
+			}
+			isSkip++
+		}
+
+		collectDuration := time.Now().Sub(start)
+		if collectDuration > 500*time.Millisecond {
+			local.Log.Printf("write sample take %s (larger than 500 ms)", collectDuration.String())
+		}
+		sleepDuration := time.Duration(1 * time.Second)
+		if interval-collectDuration > 1*time.Second {
+			sleepDuration = interval - collectDuration
+		}
+		time.Sleep(sleepDuration)
+	}
 }

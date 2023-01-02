@@ -10,14 +10,14 @@ import (
 )
 
 var (
-	GENERALLAYOUT       = []string{"PID", "COMM", "STATE", "CPU", "MEM", "R/s", "W/s"}
+	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "MEM", "R/s", "W/s"}
 	GENERALDEFAULTORDER = "CPU"
-	CPULAYOUT           = []string{"PID", "COMM", "CPU", "USERCPU", "SYSCPU", "PRI", "NICE", "PPID", "THR", "STARTTIME"}
+	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "UserCPU", "SysCPU", "Pri", "Nice", "Ppid", "Thr", "StartTime"}
 	CPUDEFAULTORDER     = "CPU"
-	MEMLAYOUT           = []string{"PID", "COMM", "MEM", "MINFLT", "MAJFLT", "VSIZE", "RSS"}
+	MEMLAYOUT           = []string{"Pid", "Comm", "MEM", "Minflt", "Majflt", "Vsize", "RSS"}
 	MEMDEFAULTORDER     = "MEM"
-	IOLAYOUT            = []string{"PID", "COMM", "DISK", "RCHAR", "WCHAR", "SYSCR", "SYSCW", "READ", "WRITE", "WCANCEL"}
-	IODEFAULTORDER      = "DISK"
+	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "Rchar", "Wchar", "Syscr", "Syscw", "Read", "Write", "Wcancel"}
+	IODEFAULTORDER      = "Disk"
 )
 
 type Process struct {
@@ -35,7 +35,7 @@ type Process struct {
 	searchText     string
 	visibleColumns []string
 	defaultOrder   string
-	source         model.ProcessMap
+	source         *model.Model
 }
 
 func NewProcess() *Process {
@@ -76,6 +76,7 @@ func NewProcess() *Process {
 		SetTitle("Sort by").
 		SetTitleAlign(tview.AlignLeft).
 		SetBorder(true)
+	process.setSortContent(process.visibleColumns, process.defaultOrder)
 
 	process.searchView.
 		SetLabel(">  ").
@@ -202,7 +203,7 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 	})
 }
 
-func (process *Process) SetSource(s model.ProcessMap) {
+func (process *Process) SetSource(s *model.Model) {
 	process.source = s
 	process.update()
 }
@@ -230,14 +231,14 @@ func (process *Process) update() {
 
 	visbleData := []model.Process{}
 	if process.searchText != "" {
-		for _, s := range process.source {
+		for _, s := range process.source.Processes {
 			matched, _ := regexp.MatchString(process.searchText, s.Comm)
 			if matched {
 				visbleData = append(visbleData, s)
 			}
 		}
 	} else {
-		for _, p := range process.source {
+		for _, p := range process.source.Processes {
 			visbleData = append(visbleData, p)
 		}
 	}
@@ -269,7 +270,7 @@ func (process *Process) update() {
 			process.processView.SetCell(r+1,
 				i,
 				tview.NewTableCell(visbleData[r].
-					GetRenderValue(col)).
+					GetRenderValue(process.source.Config["process"], col)).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}

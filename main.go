@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"syscall"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -17,8 +16,30 @@ import (
 )
 
 var (
-	FreeSpaceForFileSystem uint64 = 500 * (1 << 20) //500MB
-	dumpFlag                      = []cli.Flag{
+	dumpFlag = []cli.Flag{
+		&cli.StringFlag{
+			Name:    "begin",
+			Aliases: []string{"b"},
+			Value:   time.Now().Format("2006-01-02") + " 00:00",
+			Usage: "`TIME` indicate start point of dump\n" +
+				"			relate value: 1h ago, 3h4m5s ago\n" +
+				"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
+				"			 ",
+			DefaultText: time.Now().Format("2006-01-02") + " 00:00",
+		},
+		&cli.StringFlag{
+			Name:        "end",
+			Aliases:     []string{"e"},
+			Value:       time.Now().Format("2006-01-02") + " 23:59",
+			Usage:       "`TIME` indicate end point of dump, same format with --begin",
+			DefaultText: time.Now().Format("2006-01-02") + " 23:59",
+		},
+		&cli.StringFlag{
+			Name:    "duration",
+			Aliases: []string{"d"},
+			Value:   "",
+			Usage:   "e.g 1h, 30m10s. if `DURATION` is specified, overrides --end value",
+		},
 		&cli.BoolFlag{
 			Name:    "disable-title",
 			Aliases: nil,
@@ -29,46 +50,64 @@ var (
 			Name:    "repeat-title",
 			Aliases: nil,
 			Value:   0,
-			Usage:   "for each N line, it will render a line of title. Only for raw format output",
+			Usage:   "for each `N` lines, it will render a line of title. only work for text format output",
 		},
 		&cli.StringSliceFlag{
 			Name:    "fields",
 			Aliases: []string{"f"},
 			Value:   nil,
-			Usage:   "indicate which fields to display",
+			Usage:   "select which `FIELD` to display",
 		},
 		&cli.StringFlag{
 			Name:    "select",
 			Aliases: []string{"s"},
 			Value:   "",
-			Usage:   "Select field for filter",
+			Usage:   "select `FIELD` for filter",
 		},
 		&cli.StringFlag{
 			Name:    "filter",
 			Aliases: []string{"F"},
 			Value:   "",
-			Usage:   "a regex and apply to --select selected field",
+			Usage:   "apply `REGEX` to filter --select field",
 		},
 		&cli.StringFlag{
 			Name:    "output",
 			Aliases: []string{"o"},
 			Value:   "",
-			Usage:   "Output destination, default to stdout",
+			Usage:   "output destination, default to stdout",
 		},
 		&cli.StringFlag{
 			Name:    "output-format",
 			Aliases: []string{"O"},
 			Value:   "text",
-			Usage:   "Output format, default to text",
+			Usage:   "output format, available value are text, json",
 		},
 		&cli.BoolFlag{
 			Name:    "raw",
 			Aliases: nil,
 			Value:   false,
-			Usage:   "Dump raw data without units or conversion",
+			Usage:   "dump raw data without units or conversion",
 		},
 	}
 )
+
+func normalizeField(module string, config model.RenderConfig, fields []string) (normalizedFields []string, err error) {
+
+	if len(fields) == 1 {
+		switch module {
+		case "network":
+			if v, ok := model.DefaultNetStatFields[fields[0]]; ok {
+				return v, nil
+			}
+		}
+	}
+	for _, f := range fields {
+		if _, ok := config[f]; !ok {
+			return nil, fmt.Errorf("%s is not available field", f)
+		}
+	}
+	return fields, nil
+}
 
 func dumpCommand(c *cli.Context, module string, fields []string) error {
 	local, err := store.NewLocalStore(
@@ -78,6 +117,29 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		return err
 	}
 	sm, err := model.NewSysModel(local, logger)
+	if err != nil {
+		return err
+	}
+
+	begin, err := util.ConvertToTime(c.String("begin"))
+	if err != nil {
+		return err
+	}
+	end := int64(0)
+	if duration := c.String("duration"); duration == "" {
+		end, err = util.ConvertToTime(c.String("end"))
+		if err != nil {
+			return err
+		}
+	} else {
+		d, err := time.ParseDuration(duration)
+		if err != nil {
+			return err
+		}
+		end = begin + int64(d/time.Second)
+	}
+
+	fields, err = normalizeField(module, sm.Config[module], fields)
 	if err != nil {
 		return err
 	}
@@ -99,17 +161,20 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		return err
 	}
 	opt := model.DumpOption{
-		Begin:        0,
-		End:          999999999999999999,
-		Module:       module,
-		Output:       output,
-		Format:       c.String("output-format"),
-		Fields:       fields,
-		SelectField:  c.String("select"),
-		Filter:       re,
-		DisableTitle: c.Bool("disable-title"),
-		RepeatTitle:  c.Int("repeat-title"),
-		RawData:      c.Bool("raw"),
+		Begin:          begin,
+		End:            end,
+		Module:         module,
+		Output:         output,
+		Format:         c.String("output-format"),
+		Fields:         fields,
+		SelectField:    c.String("select"),
+		Filter:         re,
+		SortField:      c.String("sort"),
+		AscendingOrder: c.Bool("ascending-order"),
+		Top:            c.Int("top"),
+		DisableTitle:   c.Bool("disable-title"),
+		RepeatTitle:    c.Int("repeat-title"),
+		RawData:        c.Bool("raw"),
 	}
 	return sm.Dump(opt)
 }
@@ -124,13 +189,13 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:  "record",
-				Usage: "record system data into file",
+				Usage: "Record system resource into file",
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:    "interval",
 						Aliases: []string{"i"},
 						Value:   5,
-						Usage:   "second for interval",
+						Usage:   "number of seconds between samples",
 					},
 					&cli.StringFlag{
 						Name:    "path",
@@ -138,12 +203,30 @@ func main() {
 						Value:   "/var/log/etop",
 						Usage:   "`directory` to store file",
 					},
+					&cli.IntFlag{
+						Name:  "retainday",
+						Value: 3,
+						Usage: "maximum days for retaining data file, detele oldest one if exceed `THRESHOLD`",
+					},
+					&cli.Int64Flag{
+						Name:        "retainsize",
+						Value:       20 * (1 << 30), // 20GB,
+						DefaultText: "20 GB",
+						Usage:       "size limit in bytes for retaining data file, detele oldest one if exceed `THRESHOLD`",
+					},
 				},
 				Action: func(c *cli.Context) error {
-					intervalInt := c.Int("interval")
-					if intervalInt <= 0 {
-						fmt.Printf("interval shoud great than 0, but get %d\n", intervalInt)
-						os.Exit(1)
+					intervalFlag := c.Int("interval")
+					if intervalFlag <= 0 {
+						return fmt.Errorf("interval flag shoud great than 0, but get %d\n", intervalFlag)
+					}
+					retaindayFlag := c.Int("retainday")
+					if retaindayFlag <= 0 {
+						return fmt.Errorf("retainday flag shoud great than 0, but get %d\n", retaindayFlag)
+					}
+					retainsizeFlag := c.Int64("retainsize")
+					if retainsizeFlag <= 0 {
+						return fmt.Errorf("retainday flag shoud great than 0, but get %d\n", retainsizeFlag)
 					}
 					local, err := store.NewLocalStore(
 						store.WithSetDefault(c.String("path"), logger),
@@ -152,50 +235,15 @@ func main() {
 					if err != nil {
 						return err
 					}
-					// if err := local.WriteLoop(time.Duration(internal) * time.Second); err != nil {
-					// 	return err
-					// }
-					interval := time.Duration(intervalInt) * time.Second
-					logger.Printf("start to write sample every %s to %s", interval.String(), local.Data.Name())
-					isSkip := 0
-					for {
-						start := time.Now()
-						s := store.Sample{}
-						if err := local.CollectSample(&s); err != nil {
-							return err
-						}
-
-						statInfo := syscall.Statfs_t{}
-						if err := syscall.Statfs(local.Path, &statInfo); err != nil {
-							return err
-						}
-						if statInfo.Bavail*uint64(statInfo.Bsize) > FreeSpaceForFileSystem {
-							if isSkip != 0 {
-								logger.Printf("resume to write sample (%d skipped)", isSkip)
-								isSkip = 0
-							}
-							if err := local.WriteSample(&s); err != nil {
-								return err
-							}
-						} else {
-							if isSkip == 0 {
-								logger.Printf("filesystem free space %s below %s, write sample skipped",
-									util.GetHumanSize(statInfo.Bavail*uint64(statInfo.Bsize)),
-									util.GetHumanSize(FreeSpaceForFileSystem))
-							}
-							isSkip++
-						}
-
-						collectDuration := time.Now().Sub(start)
-						if collectDuration > 500*time.Millisecond {
-							logger.Printf("write sample take %s (larger than 500 ms)", collectDuration.String())
-						}
-						sleepDuration := time.Duration(1 * time.Second)
-						if interval-collectDuration > 1*time.Second {
-							sleepDuration = interval - collectDuration
-						}
-						time.Sleep(sleepDuration)
+					opt := store.WriteOption{
+						Interval:   time.Duration(intervalFlag) * time.Second,
+						RetainDay:  retaindayFlag,
+						RetainSize: retainsizeFlag,
 					}
+					if err := local.WriteLoop(opt); err != nil {
+						return err
+					}
+					return nil
 				},
 			},
 			{
@@ -203,15 +251,46 @@ func main() {
 				Usage: "Read file (created by etop record) and display",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:    "input",
-						Aliases: []string{"i"},
-						Value:   "",
-						Usage:   "input file name",
+						Name:    "path",
+						Aliases: []string{"p"},
+						Value:   "/var/log/etop",
+						Usage:   "read data from `PATH`",
+					},
+					&cli.StringFlag{
+						Name:    "begin",
+						Aliases: []string{"b"},
+						Value:   time.Now().Format("2006-01-02") + " 00:00",
+						Usage: "`TIME` indicate start point of report\n" +
+							"			relate value: 1h ago, 3h4m5s ago\n" +
+							"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
+							"			 ",
+						DefaultText: time.Now().Format("2006-01-02") + " 00:00",
+					},
+					&cli.BoolFlag{
+						Name:    "stat",
+						Aliases: []string{"s"},
+						Value:   false,
+						Usage:   "output data statistics info instead of display",
 					},
 				},
 				Action: func(c *cli.Context) error {
+					if c.Bool("stat") == true {
+						local, err := store.NewLocalStore(
+							store.WithSetDefault("", logger),
+							store.WithSetPath(c.String("path")),
+						)
+						if err != nil {
+							return err
+						}
+						result, err := local.FileStatInfo()
+						if err != nil {
+							return err
+						}
+						fmt.Println(result)
+						return nil
+					}
 					t := tui.NewTUI(logger)
-					if err := t.Run(c.String("input")); err != nil {
+					if err := t.Run(c.String("path"), c.String("begin")); err != nil {
 						return err
 					}
 					return nil
@@ -219,13 +298,13 @@ func main() {
 			},
 			{
 				Name:  "live",
-				Usage: "live display",
+				Usage: "Live display",
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:    "interval",
 						Aliases: []string{"i"},
 						Value:   5,
-						Usage:   "second for interval",
+						Usage:   "number of seconds between samples",
 					},
 				},
 				Action: func(c *cli.Context) error {
@@ -243,30 +322,118 @@ func main() {
 			},
 			{
 				Name:  "dump",
-				Usage: "dump data",
+				Usage: "Dump data into parseable format",
 				Subcommands: []*cli.Command{
 					{
 						Name:  "cpu",
-						Usage: "dump cpu stat",
+						Usage: "Dump cpu stat",
 						Flags: dumpFlag,
 						Action: func(c *cli.Context) error {
 							fs := model.DefaultCPUFields
-							if c := c.StringSlice("fields"); len(c) != 0 {
-								fs = c
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
 							}
 							return dumpCommand(c, "cpu", fs)
 						},
 					},
 					{
 						Name:  "memory",
-						Usage: "dump memory stat",
+						Usage: "Dump memory stat",
 						Flags: dumpFlag,
 						Action: func(c *cli.Context) error {
 							fs := model.DefaultMEMFields
-							if c := c.StringSlice("fields"); len(c) != 0 {
-								fs = c
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
 							}
 							return dumpCommand(c, "memory", fs)
+						},
+					},
+					{
+						Name:  "disk",
+						Usage: "Dump disk stat",
+						Flags: dumpFlag,
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultDiskFields
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "disk", fs)
+						},
+					},
+					{
+						Name:  "netdev",
+						Usage: "Dump netdev stat",
+						Flags: dumpFlag,
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultNetDevFields
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "netdev", fs)
+						},
+					},
+					{
+						Name:  "network",
+						Usage: "Dump network snmp and ext stat",
+						Flags: dumpFlag,
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultNetStatFields["tcp"]
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "network", fs)
+						},
+					},
+					{
+						Name:  "networkprotocol",
+						Usage: "Dump networkprotocol stat",
+						Flags: dumpFlag,
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultNetProtocolFields
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "networkprotocol", fs)
+						},
+					},
+					{
+						Name:  "softnet",
+						Usage: "Dump softnet stat",
+						Flags: dumpFlag,
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultSoftnetFields
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "softnet", fs)
+						},
+					},
+					{
+						Name:  "process",
+						Usage: "Dump process stat",
+						Flags: append(dumpFlag,
+							&cli.StringFlag{
+								Name:  "sort",
+								Value: "CPU",
+								Usage: "sort `FIELD` by descending order",
+							},
+							&cli.BoolFlag{
+								Name:    "ascending-order",
+								Aliases: nil,
+								Value:   false,
+								Usage:   "sort by ascending order",
+							},
+							&cli.IntFlag{
+								Name:  "top",
+								Value: 0,
+								Usage: "show top `N` info",
+							}),
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultProcessFields
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "process", fs)
 						},
 					},
 				},

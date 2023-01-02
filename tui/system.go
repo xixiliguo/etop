@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -10,14 +11,17 @@ import (
 
 type System struct {
 	*tview.Box
-	layout  *tview.Flex
-	header  *tview.TextView
-	content *tview.Pages
-	cpu     *tview.Table
-	mem     *tview.Table
-	disk    *tview.Table
-	net     *tview.Table
-	source  *model.Model
+	layout           *tview.Flex
+	header           *tview.TextView
+	regions          []string
+	currentRegionIdx int
+	regionToPage     map[string]string
+	content          *tview.Pages
+	cpu              *tview.Table
+	mem              *tview.Table
+	disk             *tview.Table
+	net              *tview.Table
+	source           *model.Model
 }
 
 func NewSystem() *System {
@@ -45,41 +49,19 @@ func NewSystem() *System {
 		AddItem(system.header, 1, 0, false).
 		AddItem(system.content, 0, 1, true)
 
+	system.regions = []string{"c", "m", "d", "n"}
+	system.regionToPage = map[string]string{
+		"c": "CPU",
+		"m": "MEM",
+		"d": "DISK",
+		"n": "NET",
+	}
 	fmt.Fprintf(system.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
 		"c", "CPU",
 		"m", "MEM",
 		"d", "DISK",
 		"n", "NET")
 	system.header.SetRegions(true).Highlight("c")
-
-	system.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-
-		if event.Rune() == 'c' {
-			system.header.Highlight("c")
-			system.content.SwitchToPage("CPU")
-			return nil
-		}
-
-		if event.Rune() == 'm' {
-			system.header.Highlight("m")
-			system.content.SwitchToPage("MEM")
-			return nil
-		}
-
-		if event.Rune() == 'd' {
-			system.header.Highlight("d")
-			system.content.SwitchToPage("DISK")
-			return nil
-		}
-
-		if event.Rune() == 'n' {
-			system.header.Highlight("n")
-			system.content.SwitchToPage("NET")
-			return nil
-		}
-
-		return event
-	})
 
 	return system
 }
@@ -159,25 +141,34 @@ func (system *System) DrawDiskInfo() {
 	system.disk.SetOffset(0, 0)
 
 	visbleCols := []string{
-		"Disk", "Busy",
-		"Read", "R/s",
-		"Write", "W/s",
-		"Await", "Avio",
+		"Disk", "Util",
+		"Read/s", "ReadByte/s",
+		"Write/s", "WriteByte/s",
+		"AvgQueueLength", "AvgWait", "AvgIOTime",
 	}
 
 	for i, col := range visbleCols {
 
 		system.disk.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
+
+	names := make([]string, 0, len(system.source.Disks))
+	for n := range system.source.Disks {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+
 	r := 0
-	for _, disk := range system.source.Disks {
+	for _, n := range names {
+		disk := system.source.Disks[n]
 		for i, col := range visbleCols {
 			system.disk.SetCell(r+1,
 				i,
-				tview.NewTableCell(disk.GetRenderValue(col)).
+				tview.NewTableCell(disk.GetRenderValue(system.source.Config["disk"], col)).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}
+		r++
 	}
 
 }
@@ -188,25 +179,34 @@ func (system *System) DrawNetInfo() {
 
 	visbleCols := []string{
 		"Name",
-		"R/s", "Rp/s",
-		"T/s", "Tp/s",
-		"RxBytes", "RxPackets", "RxErrors", "RxDropped", "RxFIFO", "RxFrame", "RxCompressed", "RxMulticast",
-		"TxBytes", "TxPackets", "TxErrors", "TxDropped", "TxFIFO", "TxCollisions", "TxCarrier", "TxCompressed",
+		"RxByte/s", "RxPacket/s",
+		"TxByte/s", "TxPacket/s",
+		"RxErrors", "RxDropped", "RxFIFO", "RxFrame",
+		"TxErrors", "TxDropped", "TxFIFO", "TxCollisions",
 	}
 
 	for i, col := range visbleCols {
 
 		system.net.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
+
+	names := make([]string, 0, len(system.source.Nets))
+	for n := range system.source.Nets {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+
 	r := 0
-	for _, net := range system.source.Nets {
+	for _, n := range names {
+		net := system.source.Nets[n]
 		for i, col := range visbleCols {
 			system.net.SetCell(r+1,
 				i,
-				tview.NewTableCell(net.GetRenderValue(col)).
+				tview.NewTableCell(net.GetRenderValue(system.source.Config["netdev"], col)).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}
+		r++
 	}
 
 }
@@ -225,4 +225,45 @@ func (system *System) Draw(screen tcell.Screen) {
 
 	system.layout.SetRect(x, y, width, height)
 	system.layout.Draw(screen)
+}
+
+func (system *System) setRegionAndSwitchPage(region string) {
+	for i, r := range system.regions {
+		if r == region {
+			system.currentRegionIdx = i
+		}
+	}
+	system.header.Highlight(region)
+	system.content.SwitchToPage(system.regionToPage[region])
+	return
+}
+
+func (system *System) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	return system.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+
+		if k := event.Rune(); k == 'c' || k == 'm' || k == 'd' || k == 'n' {
+			s := string(k)
+			system.setRegionAndSwitchPage(s)
+			return
+		}
+
+		if event.Key() == tcell.KeyTab {
+			nextId := (system.currentRegionIdx + 1) % len(system.regions)
+			s := system.regions[nextId]
+			system.setRegionAndSwitchPage(s)
+			return
+		}
+		if event.Key() == tcell.KeyBacktab {
+			nextId := (system.currentRegionIdx - 1 + len(system.regions)) % len(system.regions)
+			s := system.regions[nextId]
+			system.setRegionAndSwitchPage(s)
+			return
+		}
+		if system.content.HasFocus() {
+			if Handler := system.content.InputHandler(); Handler != nil {
+				Handler(event, setFocus)
+				return
+			}
+		}
+	})
 }

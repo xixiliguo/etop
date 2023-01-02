@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -68,28 +69,24 @@ func (cpus *CPUSlice) Collect(prev, curr *store.Sample) {
 
 	*cpus = append(*cpus, c)
 
-	prevMap := make(map[int]procfs.CPUStat)
-	for i, v := range prev.CPU {
-		prevMap[i] = v
+	indexs := []int64{}
+	for i := range curr.CPU {
+		indexs = append(indexs, i)
 	}
+	sort.Slice(indexs, func(i, j int) bool {
+		return indexs[i] < indexs[j]
+	})
 
-	for i := 0; i < len(curr.CPU); i++ {
-		c := calcCpuUsage(prevMap[i], curr.CPU[i])
+	for _, i := range indexs {
+		c := calcCpuUsage(prev.CPU[i], curr.CPU[i])
 		c.Index = fmt.Sprintf("%d", i)
-
 		*cpus = append(*cpus, c)
 	}
-
 }
 
 func calcCpuUsage(prev, curr procfs.CPUStat) CPU {
 
 	c := CPU{}
-
-	empty := procfs.CPUStat{}
-	if curr == empty {
-		return c
-	}
 
 	user := curr.User - prev.User
 	nice := curr.Nice - prev.Nice

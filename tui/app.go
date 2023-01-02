@@ -74,7 +74,7 @@ func NewTUI(log *log.Logger) *TUI {
 			}
 			tui.header.Update(tui.sm)
 			tui.basic.Update(tui.sm)
-			tui.process.SetSource(tui.sm.ProcessList)
+			tui.process.SetSource(tui.sm)
 			tui.system.SetSource(tui.sm)
 			tui.search.form.SetText("")
 			tui.pages.HidePage("search")
@@ -111,7 +111,7 @@ func NewTUI(log *log.Logger) *TUI {
 				}
 				tui.header.Update(tui.sm)
 				tui.basic.Update(tui.sm)
-				tui.process.SetSource(tui.sm.ProcessList)
+				tui.process.SetSource(tui.sm)
 				tui.system.SetSource(tui.sm)
 			}
 			return nil
@@ -123,7 +123,7 @@ func NewTUI(log *log.Logger) *TUI {
 				}
 				tui.header.Update(tui.sm)
 				tui.basic.Update(tui.sm)
-				tui.process.SetSource(tui.sm.ProcessList)
+				tui.process.SetSource(tui.sm)
 				tui.system.SetSource(tui.sm)
 			}
 			return nil
@@ -144,16 +144,28 @@ func NewTUI(log *log.Logger) *TUI {
 	return tui
 }
 
-func (tui *TUI) Run(inputFileName string) error {
+func (tui *TUI) Run(path string, beginTime string) error {
 	tui.mode = REPORT
 
 	local, err := store.NewLocalStore(
 		store.WithSetDefault("", tui.log),
+		store.WithSetPath(path),
 	)
 	if err != nil {
 		return err
 	}
 	sm, err := model.NewSysModel(local, tui.log)
+
+	begin := int64(0)
+	if begin, err = util.ConvertToTime(beginTime); err != nil {
+		return err
+	}
+
+	if err := sm.CollectSampleByTime(begin); err != nil {
+		return err
+	}
+
+	sm.Config["process"].Update("Comm", model.Field{"Comm", model.Raw, 0, "", 35, true})
 	if err != nil {
 		return err
 	}
@@ -161,7 +173,7 @@ func (tui *TUI) Run(inputFileName string) error {
 	tui.sm = sm
 	tui.header.Update(sm)
 	tui.basic.Update(sm)
-	tui.process.SetSource(sm.ProcessList)
+	tui.process.SetSource(sm)
 	tui.system.SetSource(sm)
 
 	if err := tui.Application.SetRoot(tui.pages, true).SetFocus(tui.pages).Run(); err != nil {
@@ -172,10 +184,12 @@ func (tui *TUI) Run(inputFileName string) error {
 
 func (tui *TUI) RunWithLive(interval time.Duration) error {
 	tui.mode = LIVE
-	sm, err := model.NewSysModelWithLive(tui.log)
+	sm, err := model.NewSysModel(nil, tui.log)
 	if err != nil {
 		return err
 	}
+	sm.Mode = "live"
+	sm.Config["process"].Update("Comm", model.Field{"Comm", model.Raw, 0, "", 35, true})
 
 	tui.sm = sm
 	go func() {
@@ -189,7 +203,7 @@ func (tui *TUI) RunWithLive(interval time.Duration) error {
 			tui.QueueUpdateDraw(func() {
 				tui.header.Update(sm)
 				tui.basic.Update(sm)
-				tui.process.SetSource(sm.ProcessList)
+				tui.process.SetSource(sm)
 				tui.system.SetSource(sm)
 			})
 

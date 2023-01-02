@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -62,7 +63,7 @@ type MEM struct {
 }
 
 func (m *MEM) GetRenderValue(config RenderConfig, field string) string {
-	s := config[field].Render(m.MemTotal)
+	s := fmt.Sprintf("no %s for mem stat", field)
 	switch field {
 	case "Total":
 		s = config[field].Render(m.MemTotal * 1024)
@@ -70,6 +71,8 @@ func (m *MEM) GetRenderValue(config RenderConfig, field string) string {
 		s = config[field].Render(m.MemFree * 1024)
 	case "Avail":
 		s = config[field].Render(m.MemAvailable * 1024)
+	case "HSlab":
+		s = config[field].Render(m.Slab * 1024)
 	case "Buffer":
 		s = config[field].Render(m.Buffers * 1024)
 	case "Cache":
@@ -228,7 +231,7 @@ func (m *MEM) Collect(prev, curr *store.Sample) {
 
 }
 
-func getValueOrDefault(m *uint64) uint64 {
+func getValueOrDefault[T uint64 | float64](m *T) T {
 	if m == nil {
 		return 0
 	}

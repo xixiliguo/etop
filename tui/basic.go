@@ -76,13 +76,19 @@ func (basic *Basic) Update(sm *model.Model) {
 	basic.disk.Clear()
 	fmt.Fprintf(basic.disk, "%-10s", "DSK")
 	for _, d := range sm.Disks {
-		fmt.Fprintf(basic.disk, "%-7s%7s|%-7s ", d.GetRenderValue("Disk"), d.GetRenderValue("R/s"), d.GetRenderValue("W/s"))
+		fmt.Fprintf(basic.disk, "%-7s%7s|%-7s ",
+			d.GetRenderValue(sm.Config["disk"], "Disk"),
+			d.GetRenderValue(sm.Config["disk"], "Read/s"),
+			d.GetRenderValue(sm.Config["disk"], "Write/s"))
 	}
 
 	basic.net.Clear()
 	fmt.Fprintf(basic.net, "%-10s", "NET")
 	for _, d := range sm.Nets {
-		fmt.Fprintf(basic.net, "%-7s%7s|%-7s ", d.GetRenderValue("Name"), d.GetRenderValue("R/s"), d.GetRenderValue("T/s"))
+		fmt.Fprintf(basic.net, "%-7s%7s|%-7s ",
+			d.GetRenderValue(sm.Config["netdev"], "Name"),
+			d.GetRenderValue(sm.Config["netdev"], "RxByte/s"),
+			d.GetRenderValue(sm.Config["netdev"], "TxByte/s"))
 	}
 
 }

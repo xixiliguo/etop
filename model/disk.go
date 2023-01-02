@@ -1,54 +1,86 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/xixiliguo/etop/store"
-	"github.com/xixiliguo/etop/util"
 )
 
+var DefaultDiskFields = []string{"Disk", "Util",
+	"Read/s", "ReadByte/s", "Write/s", "WriteByte/s",
+	"AvgQueueLength", "AvgWait", "AvgIOTime"}
+
 type Disk struct {
-	DeviceName       string
-	ReadIOs          uint64
-	ReadMerges       uint64
-	ReadSectors      uint64
-	ReadTicks        uint64
-	WriteIOs         uint64
-	WriteMerges      uint64
-	WriteSectors     uint64
-	WriteTicks       uint64
-	IOsInProgress    uint64
-	IOsTotalTicks    uint64
-	WeightedIOTicks  uint64
-	ReadBytesPerSec  uint64
-	WriteBytesPerSec uint64
-	Await            float64
-	Avio             float64
-	Busy             uint64
+	DeviceName             string
+	ReadIOs                uint64
+	ReadMerges             uint64
+	ReadSectors            uint64
+	ReadTicks              uint64
+	WriteIOs               uint64
+	WriteMerges            uint64
+	WriteSectors           uint64
+	WriteTicks             uint64
+	IOsInProgress          uint64
+	IOsTotalTicks          uint64
+	WeightedIOTicks        uint64
+	DiscardIOs             uint64
+	DiscardMerges          uint64
+	DiscardSectors         uint64
+	DiscardTicks           uint64
+	FlushRequestsCompleted uint64
+	TimeSpentFlushing      uint64
+	ReadPerSec             float64
+	WritePerSec            float64
+	DiscardPerSec          float64
+	ReadBytePerSec         float64
+	WriteBytePerSec        float64
+	DiscardBytePerSec      float64
+	ReadAvgIOSize          float64
+	WriteAvgIOSize         float64
+	DiscardAvgIOSize       float64
+	AvgIOSize              float64
+	ReadAvgWait            float64
+	WriteAvgWait           float64
+	DiscardAvgWait         float64
+	AvgWait                float64
+	AvgQueueLength         float64
+	AvgIOTime              float64
+	Util                   float64
 }
 
 type DiskMap map[string]Disk
 
-func (d *Disk) GetRenderValue(field string) string {
+func (d *Disk) GetRenderValue(config RenderConfig, field string) string {
+
+	s := fmt.Sprintf("no %s for disk stat", field)
 	switch field {
 	case "Disk":
-		return fmt.Sprintf("%s", d.DeviceName)
-	case "Busy":
-		return fmt.Sprintf("%d%%", d.Busy)
+		s = config[field].Render(d.DeviceName)
+	case "Util":
+		s = config[field].Render(d.Util)
 	case "Read":
-		return fmt.Sprintf("%d", d.ReadIOs)
-	case "R/s":
-		return fmt.Sprintf("%s/s", util.GetHumanSize(d.ReadBytesPerSec))
+		s = config[field].Render(d.ReadIOs)
+	case "Read/s":
+		s = config[field].Render(d.ReadPerSec)
+	case "ReadByte/s":
+		s = config[field].Render(d.ReadBytePerSec)
 	case "Write":
-		return fmt.Sprintf("%d", d.WriteIOs)
-	case "W/s":
-		return fmt.Sprintf("%s/s", util.GetHumanSize(d.WriteBytesPerSec))
-	case "Await":
-		return fmt.Sprintf("%.2fms", d.Await)
-	case "Avio":
-		return fmt.Sprintf("%.2fms", d.Avio)
+		s = config[field].Render(d.WriteIOs)
+	case "Write/s":
+		s = config[field].Render(d.WritePerSec)
+	case "WriteByte/s":
+		s = config[field].Render(d.WriteBytePerSec)
+	case "AvgQueueLength":
+		s = config[field].Render(d.AvgQueueLength)
+	case "AvgWait":
+		s = config[field].Render(d.AvgWait)
+	case "AvgIOTime":
+		s = config[field].Render(d.AvgIOTime)
 	}
-	return ""
+	return s
 }
 
 func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
@@ -56,29 +88,99 @@ func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
 	for k := range diskMap {
 		delete(diskMap, k)
 	}
-	for name, _ := range curr.DiskStats {
+	for name := range curr.DiskStats {
 		new := curr.DiskStats[name]
 		old := prev.DiskStats[name]
 		interval := uint64(curr.TimeStamp) - uint64(prev.TimeStamp)
 		d := Disk{
-			DeviceName:      new.DeviceName,
-			ReadIOs:         new.ReadIOs - old.ReadIOs,
-			ReadMerges:      new.ReadMerges - old.ReadMerges,
-			ReadSectors:     new.ReadSectors - old.ReadSectors,
-			ReadTicks:       new.ReadTicks - old.ReadTicks,
-			WriteIOs:        new.WriteIOs - old.WriteIOs,
-			WriteMerges:     new.WriteMerges - old.WriteMerges,
-			WriteSectors:    new.WriteSectors - old.WriteSectors,
-			WriteTicks:      new.WriteTicks - old.WriteTicks,
-			IOsTotalTicks:   new.IOsTotalTicks - old.IOsTotalTicks,
-			WeightedIOTicks: new.WeightedIOTicks - old.WeightedIOTicks,
+			DeviceName:             new.DeviceName,
+			ReadIOs:                new.ReadIOs - old.ReadIOs,
+			ReadMerges:             new.ReadMerges - old.ReadMerges,
+			ReadSectors:            new.ReadSectors - old.ReadSectors,
+			ReadTicks:              new.ReadTicks - old.ReadTicks,
+			WriteIOs:               new.WriteIOs - old.WriteIOs,
+			WriteMerges:            new.WriteMerges - old.WriteMerges,
+			WriteSectors:           new.WriteSectors - old.WriteSectors,
+			WriteTicks:             new.WriteTicks - old.WriteTicks,
+			IOsTotalTicks:          new.IOsTotalTicks - old.IOsTotalTicks,
+			WeightedIOTicks:        new.WeightedIOTicks - old.WeightedIOTicks,
+			DiscardIOs:             new.DiscardIOs - old.DiscardIOs,
+			DiscardMerges:          new.DiscardMerges - old.DiscardMerges,
+			DiscardSectors:         new.DiscardSectors - old.DiscardSectors,
+			DiscardTicks:           new.DiscardTicks - old.DiscardTicks,
+			FlushRequestsCompleted: new.FlushRequestsCompleted - old.FlushRequestsCompleted,
+			TimeSpentFlushing:      new.TimeSpentFlushing - old.TimeSpentFlushing,
 		}
-		d.ReadBytesPerSec = d.ReadSectors * 512 / interval
-		d.WriteBytesPerSec = d.WriteSectors * 512 / interval
-		d.Await = float64(d.WeightedIOTicks) / float64((d.ReadIOs + d.WriteIOs))
-		d.Avio = float64(d.IOsTotalTicks) / float64((d.ReadIOs + d.WriteIOs))
-		d.Busy = d.WeightedIOTicks / 1000 * 100 / interval
+
+		d.ReadPerSec = float64(d.ReadIOs) / float64(interval)
+		d.WritePerSec = float64(d.WriteIOs) / float64(interval)
+		d.DiscardPerSec = float64(d.DiscardIOs) / float64(interval)
+
+		d.ReadBytePerSec = float64(d.ReadSectors*512) / float64(interval)
+		d.WriteBytePerSec = float64(d.WriteSectors*512) / float64(interval)
+		d.DiscardBytePerSec = float64(d.DiscardBytePerSec*512) / float64(interval)
+
+		d.ReadAvgIOSize = float64(d.ReadSectors*512) / float64((d.ReadIOs))
+		d.WriteAvgIOSize = float64(d.WriteSectors*512) / float64((d.WriteIOs))
+		d.DiscardAvgIOSize = float64(d.DiscardSectors*512) / float64((d.DiscardIOs))
+		d.AvgIOSize = float64(d.ReadSectors+d.WriteSectors+d.DiscardSectors) * 512 / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
+
+		d.ReadAvgWait = float64(d.ReadTicks) / float64((d.ReadIOs))
+		d.WriteAvgWait = float64(d.WriteTicks) / float64((d.WriteIOs))
+		d.DiscardAvgWait = float64(d.DiscardTicks) / float64((d.DiscardIOs))
+		d.AvgWait = float64(d.ReadTicks+d.WriteTicks+d.DiscardTicks) / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
+
+		d.AvgQueueLength = float64(d.WeightedIOTicks) / 1000 / float64(interval)
+
+		d.AvgIOTime = float64(d.IOsTotalTicks) / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
+		d.Util = float64(d.IOsTotalTicks) / 1000 * 100 / float64(interval)
 		diskMap[name] = d
 	}
 
+}
+
+func (diskMap DiskMap) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
+
+	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
+	switch opt.Format {
+	case "text":
+		config.SetFixWidth(true)
+	looptext:
+		for _, d := range diskMap {
+			row := strings.Builder{}
+			row.WriteString(dateTime)
+			for _, f := range opt.Fields {
+				renderValue := d.GetRenderValue(config, f)
+				if f == opt.SelectField && opt.Filter != nil {
+					if opt.Filter.MatchString(renderValue) == false {
+						continue looptext
+					}
+				}
+				row.WriteString(" ")
+				row.WriteString(renderValue)
+			}
+			row.WriteString("\n")
+
+			opt.Output.WriteString(row.String())
+		}
+	case "json":
+		t := []any{}
+	loopjson:
+		for _, d := range diskMap {
+			row := make(map[string]string)
+			row["Timestamp"] = dateTime
+			for _, f := range opt.Fields {
+				renderValue := d.GetRenderValue(config, f)
+				if f == opt.SelectField && opt.Filter != nil {
+					if opt.Filter.MatchString(renderValue) == false {
+						continue loopjson
+					}
+				}
+				row[config[f].Name] = renderValue
+			}
+			t = append(t, row)
+		}
+		b, _ := json.Marshal(t)
+		opt.Output.Write(b)
+	}
 }
