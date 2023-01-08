@@ -61,12 +61,12 @@ func (s *Model) CollectLiveSample() error {
 }
 
 func (s *Model) CollectNext() error {
-	next := store.NewSample()
-	if err := s.Store.NextSample(1, &next); err != nil {
+
+	s.Prev = s.Curr
+	s.Curr = store.NewSample()
+	if err := s.Store.NextSample(1, &s.Curr); err != nil {
 		return err
 	}
-	s.Prev = s.Curr
-	s.Curr = next
 	if s.Curr.BootTime != s.Prev.BootTime {
 		//system ever reboot, skip one sample
 		s.log.Printf("skip one sample since system reboot")
@@ -77,11 +77,11 @@ func (s *Model) CollectNext() error {
 }
 
 func (s *Model) CollectPrev() error {
-
+	s.Prev = store.NewSample()
 	if err := s.Store.NextSample(-2, &s.Prev); err != nil {
 		return err
 	}
-
+	s.Curr = store.NewSample()
 	if err := s.Store.NextSample(1, &s.Curr); err != nil {
 		return err
 	}
@@ -95,14 +95,16 @@ func (s *Model) CollectPrev() error {
 }
 
 func (s *Model) CollectSampleByTime(timeStamp int64) error {
-
+	s.Curr = store.NewSample()
 	if err := s.Store.JumpSampleByTimeStamp(timeStamp, &s.Curr); err != nil {
 		return err
 	}
+
+	s.Prev = store.NewSample()
 	if err := s.Store.NextSample(-1, &s.Prev); err != nil {
 		return err
 	}
-
+	s.Curr = store.NewSample()
 	if err := s.Store.NextSample(1, &s.Curr); err != nil {
 		return err
 	}

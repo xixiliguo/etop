@@ -37,11 +37,24 @@ type SystemSample struct {
 	procfs.Meminfo
 	NetDevStats map[string]procfs.NetDevLine
 	DiskStats   map[string]blockdevice.Diskstats
-	procfs.ProcSnmp
-	procfs.ProcSnmp6
-	procfs.ProcNetstat
+	NetStat
 	procfs.NetProtocolStats
 	SoftNetStats []procfs.SoftnetStat
+}
+
+type NetStat struct {
+	Ip       procfs.Ip
+	Icmp     procfs.Icmp
+	IcmpMsg  procfs.IcmpMsg
+	Tcp      procfs.Tcp
+	Udp      procfs.Udp
+	UdpLite  procfs.UdpLite
+	Ip6      procfs.Ip6
+	Icmp6    procfs.Icmp6
+	Udp6     procfs.Udp6
+	UdpLite6 procfs.UdpLite6
+	TcpExt   procfs.TcpExt
+	IpExt    procfs.IpExt
 }
 
 type ProcSample struct {
@@ -144,13 +157,6 @@ func WithWriteOnly() Option {
 	}
 }
 
-func WithSetPath(path string) Option {
-	return func(local *LocalStore) error {
-		local.Path = path
-		return nil
-	}
-}
-
 // LocalStore represent local store, which consist of index and data files.
 // All files was stored into Path (default: /var/log/etop).
 // file format: index_{suffix}, data_{suffix}  suffix: yyyymmdd
@@ -243,6 +249,8 @@ func (local *LocalStore) FileStatInfo() (result string, err error) {
 	if err != nil {
 		return
 	}
+
+	result += fmt.Sprintf("%-5s: %s\n", "Path", local.Path)
 	result += fmt.Sprintf("%-5s: %d files %s\n", "Index", len(suffixs), util.GetHumanSize(indexSize))
 	result += fmt.Sprintf("%-5s: %d files %s\n", "Data", len(suffixs), util.GetHumanSize(dataSize))
 
@@ -480,17 +488,27 @@ func CollectSampleFromSys(s *Sample) error {
 	if snmp, err := p.Snmp(); err != nil {
 		return err
 	} else {
-		s.ProcSnmp = snmp
+		s.Ip = snmp.Ip
+		s.Icmp = snmp.Icmp
+		s.IcmpMsg = snmp.IcmpMsg
+		s.Tcp = snmp.Tcp
+		s.Udp = snmp.Udp
+		s.UdpLite = snmp.UdpLite
+
 	}
 	if snmp6, err := p.Snmp6(); err != nil {
 		return err
 	} else {
-		s.ProcSnmp6 = snmp6
+		s.Ip6 = snmp6.Ip6
+		s.Icmp6 = snmp6.Icmp6
+		s.Udp6 = snmp6.Udp6
+		s.UdpLite6 = snmp6.UdpLite6
 	}
 	if netStat, err := p.Netstat(); err != nil {
 		return err
 	} else {
-		s.ProcNetstat = netStat
+		s.TcpExt = netStat.TcpExt
+		s.IpExt = netStat.IpExt
 	}
 
 	if s.SoftNetStats, err = fs.NetSoftnetStat(); err != nil {
@@ -531,13 +549,23 @@ func CollectSampleFromSys(s *Sample) error {
 	return nil
 }
 
-func (local *LocalStore) WriteSample(s *Sample) error {
+func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
+
+	newSuffix := false
+	suffix := time.Unix(s.TimeStamp, 0).Format("20060102")
+	if suffix != local.suffix {
+		if err := local.changeFile(suffix, true); err != nil {
+			return newSuffix, err
+		}
+		local.Log.Printf("switch and write data into data_%s", suffix)
+		newSuffix = true
+	}
 
 	var err error
 
 	compressed := []byte{}
 	if compressed, err = s.Marshal(); err != nil {
-		return err
+		return newSuffix, err
 	}
 
 	idx := Index{
@@ -547,16 +575,16 @@ func (local *LocalStore) WriteSample(s *Sample) error {
 	}
 	_, err = local.Index.Write(idx.Marshal())
 	if err != nil {
-		return err
+		return newSuffix, err
 	}
 	_, err = local.Data.Write(compressed)
 
 	if err != nil {
-		return err
+		return newSuffix, err
 	}
 
 	local.DataOffset += int64(len(compressed))
-	return nil
+	return newSuffix, nil
 }
 
 type WriteOption struct {
@@ -588,12 +616,11 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 				isSkip = 0
 			}
 
-			suffix := time.Unix(s.TimeStamp, 0).Format("20060102")
-			if suffix != local.suffix {
-				if err := local.changeFile(suffix, true); err != nil {
-					return err
-				}
-				local.Log.Printf("switch and write data into data_%s", suffix)
+			newSuffix, err := local.WriteSample(&s)
+			if err != nil {
+				return err
+			}
+			if newSuffix == true {
 				// it is time to check if clean old data or not.
 				// oldest first.
 				if suffixs, _, size, err := getIndexAndDataInfo(local.Path); err != nil {
@@ -601,24 +628,21 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 				} else {
 					if len(suffixs) > 0 {
 						if len(suffixs)-1 > opt.RetainDay || size > opt.RetainSize {
-							err := os.Remove("index_" + suffixs[0])
+							oldest := suffixs[0]
+							err := os.Remove("index_" + oldest)
 							if err != nil {
 								return err
 							}
-							err = os.Remove("data_" + suffixs[0])
+							err = os.Remove("data_" + oldest)
 							if err != nil {
 								return err
 							}
 							local.Log.Printf("total historical files: %d %s",
 								len(suffixs)-1, util.GetHumanSize(size))
-							local.Log.Printf("delete oldest data_%s", suffix)
+							local.Log.Printf("delete oldest data_%s", oldest)
 						}
 					}
 				}
-			}
-
-			if err := local.WriteSample(&s); err != nil {
-				return err
 			}
 		} else {
 			if isSkip == 0 {

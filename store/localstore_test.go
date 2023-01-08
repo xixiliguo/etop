@@ -52,10 +52,12 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 				KernelVersion: "",
 				PageSize:      0,
 				LoadAvg:       procfs.LoadAvg{},
-				Stat:          procfs.Stat{},
-				Meminfo:       procfs.Meminfo{},
-				NetDevStats:   make(map[string]procfs.NetDevLine),
-				DiskStats:     make(map[string]blockdevice.Diskstats),
+				Stat: procfs.Stat{
+					IRQ: []uint64{1, 2, 3},
+				},
+				Meminfo:     procfs.Meminfo{},
+				NetDevStats: make(map[string]procfs.NetDevLine),
+				DiskStats:   make(map[string]blockdevice.Diskstats),
 			},
 			ProcSamples: make(map[int]ProcSample),
 		},
@@ -109,37 +111,41 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 			},
 		},
 	}
-	for _, testCase := range testCases {
+	realData := NewSample()
+	CollectSampleFromSys(&realData)
+	testCases = append(testCases, realData)
+	for i, testCase := range testCases {
 		var b []byte
 		var err error
 		if b, err = testCase.Marshal(); err != nil {
 			t.Errorf("%+v Marshal: %s", testCase, err)
 		}
-		re := Sample{}
+		re := NewSample()
 		if err = re.Unmarshal(b); err != nil {
-			t.Errorf("%+v Unmarshal: %s", b, err)
+			t.Fatalf("%+v Unmarshal: %s", b, err)
 		}
 		opts := []cmp.Option{
 			cmpopts.IgnoreUnexported(Sample{}, procfs.ProcStat{}),
 		}
 		if cmp.Equal(testCase, re, opts...) == false {
-			t.Errorf("got %+v\nwant %+v\n", re, testCase)
+			t.Errorf("case%d: %s", i, cmp.Diff(testCase, re, opts...))
 		}
 	}
 }
 
 func BenchmarkSampleMarshal(b *testing.B) {
+
 	testCase := NewSample()
-	if err := CollectSampleFromSys(&testCase); err != nil {
-		b.Fatalf("collect sample: %s", err)
-	}
-	re, _ := testCase.Marshal()
+	CollectSampleFromSys(&testCase)
+
 	b.ReportAllocs()
 	b.ResetTimer()
+	size := 0
 	for n := 0; n < b.N; n++ {
-		testCase.Marshal()
+		re, _ := testCase.Marshal()
+		size += len(re)
 	}
-	b.Logf("Marshal to %d bytes", len(re))
+	b.ReportMetric(float64(size)/float64(b.N), "size/op")
 }
 
 func TestLocalStoreopenFile(t *testing.T) {
@@ -217,7 +223,7 @@ func TestNextSample(t *testing.T) {
 	if err := writeStore.CollectSample(&s); err != nil {
 		t.Fatalf("collect sample: %s\n", err)
 	}
-	if err := writeStore.WriteSample(&s); err != nil {
+	if _, err := writeStore.WriteSample(&s); err != nil {
 		t.Fatalf("write sample: %s\n", err)
 	}
 
@@ -250,7 +256,7 @@ func TestNextSample(t *testing.T) {
 	}
 
 	s.TimeStamp += 1
-	if err := writeStore.WriteSample(&s); err != nil {
+	if _, err := writeStore.WriteSample(&s); err != nil {
 		t.Fatalf("write new sample: %s\n", err)
 	}
 	writeStore.Index.Sync()
@@ -296,7 +302,7 @@ func TestJumpSampleByTimeStamp(t *testing.T) {
 	if err := writeStore.CollectSample(&s); err != nil {
 		t.Fatalf("collect sample: %s\n", err)
 	}
-	if err := writeStore.WriteSample(&s); err != nil {
+	if _, err := writeStore.WriteSample(&s); err != nil {
 		t.Fatalf("write sample: %s\n", err)
 	}
 	writeStore.Index.Sync()
@@ -317,7 +323,7 @@ func TestJumpSampleByTimeStamp(t *testing.T) {
 
 	// write 2nd sample
 	s.TimeStamp += 1
-	if err := writeStore.WriteSample(&s); err != nil {
+	if _, err := writeStore.WriteSample(&s); err != nil {
 		t.Fatalf("write sample: %s\n", err)
 	}
 	writeStore.Index.Sync()

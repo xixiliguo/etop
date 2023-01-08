@@ -88,6 +88,12 @@ var (
 			Value:   false,
 			Usage:   "dump raw data without units or conversion",
 		},
+		&cli.StringFlag{
+			Name:    "path",
+			Aliases: []string{"p"},
+			Value:   "/var/log/etop",
+			Usage:   "dump data from `PATH`",
+		},
 	}
 )
 
@@ -111,7 +117,7 @@ func normalizeField(module string, config model.RenderConfig, fields []string) (
 
 func dumpCommand(c *cli.Context, module string, fields []string) error {
 	local, err := store.NewLocalStore(
-		store.WithSetDefault("", logger),
+		store.WithSetDefault(c.String("path"), logger),
 	)
 	if err != nil {
 		return err
@@ -228,8 +234,14 @@ func main() {
 					if retainsizeFlag <= 0 {
 						return fmt.Errorf("retainday flag shoud great than 0, but get %d\n", retainsizeFlag)
 					}
+					path := c.String("path")
+					if _, err := os.Stat(path); os.IsNotExist(err) {
+						if err := os.Mkdir(path, 0755); err != nil {
+							return err
+						}
+					}
 					local, err := store.NewLocalStore(
-						store.WithSetDefault(c.String("path"), logger),
+						store.WithSetDefault(path, logger),
 						store.WithWriteOnly(),
 					)
 					if err != nil {
@@ -272,12 +284,24 @@ func main() {
 						Value:   false,
 						Usage:   "output data statistics info instead of display",
 					},
+					&cli.StringFlag{
+						Name:  "snapshot",
+						Value: "",
+						Usage: "read data from snapshot `FILE`",
+					},
 				},
 				Action: func(c *cli.Context) error {
+					path := c.String("path")
+					if snapshot := c.String("snapshot"); snapshot != "" {
+						if tempPath, err := util.ExtractFileFromTar(snapshot); err != nil {
+							return err
+						} else {
+							path = tempPath
+						}
+					}
 					if c.Bool("stat") == true {
 						local, err := store.NewLocalStore(
-							store.WithSetDefault("", logger),
-							store.WithSetPath(c.String("path")),
+							store.WithSetDefault(path, logger),
 						)
 						if err != nil {
 							return err
@@ -290,7 +314,7 @@ func main() {
 						return nil
 					}
 					t := tui.NewTUI(logger)
-					if err := t.Run(c.String("path"), c.String("begin")); err != nil {
+					if err := t.Run(path, c.String("begin")); err != nil {
 						return err
 					}
 					return nil
@@ -316,6 +340,75 @@ func main() {
 					t := tui.NewTUI(logger)
 					if err := t.RunWithLive(time.Duration(internal) * time.Second); err != nil {
 						return err
+					}
+					return nil
+				},
+			},
+			{
+				Name:  "snapshot",
+				Usage: "Generate a snapshot file based on the time range provided",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "begin",
+						Aliases: []string{"b"},
+						Value:   "",
+						Usage: "`TIME` indicate start point of dump\n" +
+							"			relate value: 1h ago, 3h4m5s ago\n" +
+							"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
+							"			 ",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:     "end",
+						Aliases:  []string{"e"},
+						Value:    "",
+						Usage:    "`TIME` indicate end point of dump, same format with --begin",
+						Required: true,
+					},
+					&cli.StringFlag{
+						Name:    "duration",
+						Aliases: []string{"d"},
+						Value:   "",
+						Usage:   "e.g 1h, 30m10s. if `DURATION` is specified, overrides --end value",
+					},
+					&cli.StringFlag{
+						Name:    "path",
+						Aliases: []string{"p"},
+						Value:   "/var/log/etop",
+						Usage:   "geneate snapshot file from `PATH`",
+					},
+				},
+				Action: func(c *cli.Context) error {
+					begin, err := util.ConvertToTime(c.String("begin"))
+					if err != nil {
+						return err
+					}
+					end := int64(0)
+					if duration := c.String("duration"); duration == "" {
+						end, err = util.ConvertToTime(c.String("end"))
+						if err != nil {
+							return err
+						}
+					} else {
+						d, err := time.ParseDuration(duration)
+						if err != nil {
+							return err
+						}
+						end = begin + int64(d/time.Second)
+					}
+					fmt.Printf("start to generate snapshot file from %s to %s\n",
+						time.Unix(begin, 0),
+						time.Unix(end, 0))
+					local, err := store.NewLocalStore(
+						store.WithSetDefault(c.String("path"), logger),
+					)
+					if err != nil {
+						return err
+					}
+					if snapshotFileName, err := local.Snapshot(begin, end); err != nil {
+						return err
+					} else {
+						fmt.Printf("snapshot file was created at %s\n", snapshotFileName)
 					}
 					return nil
 				},

@@ -148,8 +148,7 @@ func (tui *TUI) Run(path string, beginTime string) error {
 	tui.mode = REPORT
 
 	local, err := store.NewLocalStore(
-		store.WithSetDefault("", tui.log),
-		store.WithSetPath(path),
+		store.WithSetDefault(path, tui.log),
 	)
 	if err != nil {
 		return err
