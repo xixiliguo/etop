@@ -22,6 +22,7 @@ type Model struct {
 	ContextSwitch uint64
 	CPUs          CPUSlice
 	MEM
+	Vm
 	Disks DiskMap
 	Nets  NetDevMap
 	NetStat
@@ -40,6 +41,7 @@ func NewSysModel(s *store.LocalStore, log *log.Logger) (*Model, error) {
 		Curr:         store.NewSample(),
 		CPUs:         []CPU{},
 		MEM:          MEM{},
+		Vm:           Vm{},
 		Disks:        make(DiskMap),
 		Nets:         make(NetDevMap),
 		NetProtocols: make(NetProtocolMap),
@@ -121,6 +123,7 @@ func (s *Model) CollectField() {
 
 	s.CPUs.Collect(&s.Prev, &s.Curr)
 	s.MEM.Collect(&s.Prev, &s.Curr)
+	s.Vm.Collect(&s.Prev, &s.Curr)
 	s.Disks.Collect(&s.Prev, &s.Curr)
 	s.Nets.Collect(&s.Prev, &s.Curr)
 	s.NetStat.Collect(&s.Prev, &s.Curr)
@@ -189,6 +192,8 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 			s.CPUs.Dump(s.Curr.TimeStamp, config, opt)
 		case "memory":
 			s.MEM.Dump(s.Curr.TimeStamp, config, opt)
+		case "vm":
+			s.Vm.Dump(s.Curr.TimeStamp, config, opt)
 		case "disk":
 			s.Disks.Dump(s.Curr.TimeStamp, config, opt)
 		case "netdev":
@@ -233,6 +238,8 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 			s.CPUs.Dump(s.Curr.TimeStamp, config, opt)
 		case "memory":
 			s.MEM.Dump(s.Curr.TimeStamp, config, opt)
+		case "vm":
+			s.Vm.Dump(s.Curr.TimeStamp, config, opt)
 		case "disk":
 			s.Disks.Dump(s.Curr.TimeStamp, config, opt)
 		case "netdev":

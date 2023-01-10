@@ -442,6 +442,18 @@ func main() {
 						},
 					},
 					{
+						Name:  "vm",
+						Usage: "Dump vm stat",
+						Flags: dumpFlag,
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultVmFields
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "vm", fs)
+						},
+					},
+					{
 						Name:  "disk",
 						Usage: "Dump disk stat",
 						Flags: dumpFlag,

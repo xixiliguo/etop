@@ -106,6 +106,8 @@ var cpuDefaultRenderConfig = make(RenderConfig)
 
 var memDefaultRenderConfig = make(RenderConfig)
 
+var vmDefaultRenderConfig = make(RenderConfig)
+
 var diskDefaultRenderConfig = make(RenderConfig)
 
 var netDevDefaultRenderConfig = make(RenderConfig)
@@ -188,6 +190,19 @@ func genMEMDefaultConfig() {
 	memDefaultRenderConfig["DirectMap4k"] = Field{"DirectMap4k", Raw, 0, " KB", 10, false}
 	memDefaultRenderConfig["DirectMap2M"] = Field{"DirectMap2M", Raw, 0, " KB", 10, false}
 	memDefaultRenderConfig["DirectMap1G"] = Field{"DirectMap1G", Raw, 0, " KB", 10, false}
+}
+
+func genVmDefaultConfig() {
+
+	vmDefaultRenderConfig["PageIn"] = Field{"PageIn", Raw, 0, "", 10, false}
+	vmDefaultRenderConfig["PageOut"] = Field{"PageOut", Raw, 0, "", 10, false}
+	vmDefaultRenderConfig["SwapIn"] = Field{"SwapIn", Raw, 0, "", 10, false}
+	vmDefaultRenderConfig["SwapOut"] = Field{"SwapOut", Raw, 0, "", 10, false}
+	vmDefaultRenderConfig["PageScanKswapd"] = Field{"PageScanKswapd", Raw, 0, "", 10, false}
+	vmDefaultRenderConfig["PageScanDirect"] = Field{"PageScanDirect", Raw, 0, "", 10, false}
+	vmDefaultRenderConfig["PageStealKswapd"] = Field{"PageStealKswapd", Raw, 0, "", 10, false}
+	vmDefaultRenderConfig["PageStealDirect"] = Field{"PageStealDirect", Raw, 0, "", 10, false}
+	vmDefaultRenderConfig["OOMKill"] = Field{"OOMKill", Raw, 0, "", 10, false}
 }
 
 func genDiskDefaultConfig() {
@@ -589,6 +604,7 @@ func genProcessDefaultConfig() {
 func init() {
 	genCPUDefaultConfig()
 	genMEMDefaultConfig()
+	genVmDefaultConfig()
 	genDiskDefaultConfig()
 	genNetDevDefaultConfig()
 	genNetStatDefaultConfig()
@@ -597,6 +613,7 @@ func init() {
 	genSoftnetDefaultConfig()
 	DefaultRenderConfig["cpu"] = cpuDefaultRenderConfig
 	DefaultRenderConfig["memory"] = memDefaultRenderConfig
+	DefaultRenderConfig["vm"] = vmDefaultRenderConfig
 	DefaultRenderConfig["disk"] = diskDefaultRenderConfig
 	DefaultRenderConfig["netdev"] = netDevDefaultRenderConfig
 	DefaultRenderConfig["network"] = netStatDefaultRenderConfig

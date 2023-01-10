@@ -19,6 +19,7 @@ type System struct {
 	content          *tview.Pages
 	cpu              *tview.Table
 	mem              *tview.Table
+	vm               *tview.Table
 	disk             *tview.Table
 	net              *tview.Table
 	source           *model.Model
@@ -33,6 +34,7 @@ func NewSystem() *System {
 		content: tview.NewPages(),
 		cpu:     tview.NewTable().SetFixed(1, 1),
 		mem:     tview.NewTable().SetFixed(1, 1),
+		vm:      tview.NewTable().SetFixed(1, 1),
 		disk:    tview.NewTable().SetFixed(1, 1),
 		net:     tview.NewTable().SetFixed(1, 1),
 	}
@@ -42,6 +44,7 @@ func NewSystem() *System {
 	system.content.
 		AddPage("CPU", system.cpu, true, true).
 		AddPage("MEM", system.mem, true, false).
+		AddPage("VM", system.vm, true, false).
 		AddPage("DISK", system.disk, true, false).
 		AddPage("NET", system.net, true, false)
 
@@ -49,16 +52,18 @@ func NewSystem() *System {
 		AddItem(system.header, 1, 0, false).
 		AddItem(system.content, 0, 1, true)
 
-	system.regions = []string{"c", "m", "d", "n"}
+	system.regions = []string{"c", "m", "v", "d", "n"}
 	system.regionToPage = map[string]string{
 		"c": "CPU",
 		"m": "MEM",
+		"v": "VM",
 		"d": "DISK",
 		"n": "NET",
 	}
-	fmt.Fprintf(system.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
+	fmt.Fprintf(system.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
 		"c", "CPU",
 		"m", "MEM",
+		"v", "VM",
 		"d", "DISK",
 		"n", "NET")
 	system.header.SetRegions(true).Highlight("c")
@@ -70,6 +75,7 @@ func (system *System) SetSource(source *model.Model) {
 	system.source = source
 	system.DrawCPUInfo()
 	system.DrawMEMInfo()
+	system.DrawVMInfo()
 	system.DrawDiskInfo()
 	system.DrawNetInfo()
 }
@@ -130,6 +136,33 @@ func (system *System) DrawMEMInfo() {
 		system.mem.SetCell(i+1,
 			1,
 			tview.NewTableCell(system.source.MEM.GetRenderValue(system.source.Config["memory"], item)).
+				SetExpansion(0).
+				SetAlign(tview.AlignRight))
+	}
+
+}
+
+func (system *System) DrawVMInfo() {
+	system.vm.Clear()
+	system.vm.SetOffset(0, 0)
+
+	items := []string{"PageIn", "PageOut",
+		"SwapIn", "SwapOut",
+		"PageScanKswapd", "PageScanDirect",
+		"PageStealKswapd", "PageStealDirect", "OOMKill"}
+	for i, v := range []string{"Field", "Value"} {
+		system.vm.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorBlue))
+	}
+
+	for i, item := range items {
+		system.vm.SetCell(i+1,
+			0,
+			tview.NewTableCell(item).
+				SetExpansion(0).
+				SetAlign(tview.AlignLeft))
+		system.vm.SetCell(i+1,
+			1,
+			tview.NewTableCell(system.source.Vm.GetRenderValue(system.source.Config["vm"], item)).
 				SetExpansion(0).
 				SetAlign(tview.AlignRight))
 	}
@@ -241,7 +274,7 @@ func (system *System) setRegionAndSwitchPage(region string) {
 func (system *System) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
 	return system.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
 
-		if k := event.Rune(); k == 'c' || k == 'm' || k == 'd' || k == 'n' {
+		if k := event.Rune(); k == 'c' || k == 'm' || k == 'v' || k == 'd' || k == 'n' {
 			s := string(k)
 			system.setRegionAndSwitchPage(s)
 			return
