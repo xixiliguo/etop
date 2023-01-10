@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 
@@ -24,6 +25,10 @@ type Process struct {
 	*tview.Box
 	layout         *tview.Flex
 	upper          *tview.Flex
+	lower          *tview.Flex
+	regions        []string
+	currRegionIdx  int
+	header         *tview.TextView
 	processView    *tview.Table
 	processDisplay bool
 	sortView       *tview.List
@@ -44,6 +49,8 @@ func NewProcess() *Process {
 		Box:            tview.NewBox(),
 		layout:         tview.NewFlex(),
 		upper:          tview.NewFlex(),
+		lower:          tview.NewFlex(),
+		header:         tview.NewTextView(),
 		processView:    tview.NewTable(),
 		sortView:       tview.NewList(),
 		sortField:      "CPU",
@@ -56,8 +63,18 @@ func NewProcess() *Process {
 		defaultOrder:   GENERALDEFAULTORDER,
 	}
 
+	process.regions = []string{"g", "c", "m", "d"}
+	fmt.Fprintf(process.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
+		"g", "General",
+		"c", "CPU",
+		"m", "MEM",
+		"d", "I/O")
+	process.header.SetRegions(true).Highlight("g")
+
 	process.processView.
-		SetFixed(1, 1).
+		SetFixed(1, 1)
+
+	process.lower.
 		SetBorder(true).
 		SetTitle("Process").
 		SetTitleAlign(tview.AlignLeft)
@@ -95,7 +112,10 @@ func NewProcess() *Process {
 		SetDirection(tview.FlexRow).
 		AddItem(process.upper.
 			AddItem(process.sortView, 0, 0, false).
-			AddItem(process.processView, 0, 1, true), 0, 1, true).
+			AddItem(process.lower.
+				SetDirection(tview.FlexRow).
+				AddItem(process.header, 1, 0, false).
+				AddItem(process.processView, 0, 1, true), 0, 1, true), 0, 1, true).
 		AddItem(process.searchView, 0, 0, false)
 
 	return process
@@ -137,6 +157,28 @@ func (process *Process) Draw(screen tcell.Screen) {
 	process.layout.Draw(screen)
 }
 
+func (process *Process) setRegionAndSwitchView(region string) {
+	for i, r := range process.regions {
+		if r == region {
+			process.currRegionIdx = i
+		}
+	}
+	process.header.Highlight(region)
+
+	switch region {
+	case "g":
+		process.setVisibleColumns(GENERALLAYOUT, GENERALDEFAULTORDER)
+	case "c":
+		process.setVisibleColumns(CPULAYOUT, CPUDEFAULTORDER)
+	case "m":
+		process.setVisibleColumns(MEMLAYOUT, MEMDEFAULTORDER)
+	case "d":
+		process.setVisibleColumns(IOLAYOUT, IODEFAULTORDER)
+	}
+	process.update()
+	return
+}
+
 func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
 	return process.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
 		if process.searchDisplay {
@@ -176,21 +218,28 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 			}
 		}
 		if process.processView.HasFocus() {
-			if event.Rune() == 'g' {
-				process.setVisibleColumns(GENERALLAYOUT, GENERALDEFAULTORDER)
-				process.update()
+
+			if event.Key() == tcell.KeyTab {
+				nextId := (process.currRegionIdx + 1) % len(process.regions)
+				region := process.regions[nextId]
+				process.setRegionAndSwitchView(region)
+				return
+			} else if event.Key() == tcell.KeyBacktab {
+				nextId := (process.currRegionIdx - 1 + len(process.regions)) % len(process.regions)
+				region := process.regions[nextId]
+				process.setRegionAndSwitchView(region)
+				return
+			} else if event.Rune() == 'g' {
+				process.setRegionAndSwitchView("g")
 				return
 			} else if event.Rune() == 'c' {
-				process.setVisibleColumns(CPULAYOUT, CPUDEFAULTORDER)
-				process.update()
+				process.setRegionAndSwitchView("c")
 				return
 			} else if event.Rune() == 'm' {
-				process.setVisibleColumns(MEMLAYOUT, MEMDEFAULTORDER)
-				process.update()
+				process.setRegionAndSwitchView("m")
 				return
 			} else if event.Rune() == 'd' {
-				process.setVisibleColumns(IOLAYOUT, IODEFAULTORDER)
-				process.update()
+				process.setRegionAndSwitchView("d")
 				return
 			}
 			if handler := process.processView.InputHandler(); handler != nil {
