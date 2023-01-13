@@ -28,7 +28,7 @@ var RenderAndField = []struct {
 	{"Majflt", "MajFlt"},
 	{"Vsize", "VSize"},
 	{"RSS", "RSS"},
-	{"MEM", "MEMUsage"},
+	{"Mem", "MemUsage"},
 	{"Rchar", "RChar"},
 	{"Wchar", "WChar"},
 	{"Syscr", "SyscR"},

@@ -102,6 +102,8 @@ func (renderConfig RenderConfig) SetRawData() {
 
 var DefaultRenderConfig = make(map[string]RenderConfig)
 
+var sysDefaultRenderConfig = make(RenderConfig)
+
 var cpuDefaultRenderConfig = make(RenderConfig)
 
 var memDefaultRenderConfig = make(RenderConfig)
@@ -119,6 +121,20 @@ var netProtocolDefaultRenderConfig = make(RenderConfig)
 var softnetDefaultRenderConfig = make(RenderConfig)
 
 var processDefaultRenderConfig = make(RenderConfig)
+
+func genSysDefaultConfig() {
+
+	sysDefaultRenderConfig["Load1"] = Field{"Load1", Raw, 0, "", 10, false}
+	sysDefaultRenderConfig["Load5"] = Field{"Load5", Raw, 0, "", 10, false}
+	sysDefaultRenderConfig["Load15"] = Field{"Load15", Raw, 0, "", 10, false}
+	sysDefaultRenderConfig["Processes"] = Field{"Process", Raw, 0, "", 10, false}
+	sysDefaultRenderConfig["Threads"] = Field{"Thread", Raw, 0, "", 10, false}
+	sysDefaultRenderConfig["ProcessesRunning"] = Field{"Running", Raw, 0, "", 10, false}
+	sysDefaultRenderConfig["ProcessesBlocked"] = Field{"Blocked", Raw, 0, "", 10, false}
+	sysDefaultRenderConfig["ClonePerSec"] = Field{"Clone", Raw, 1, " /s", 10, false}
+	sysDefaultRenderConfig["ContextSwitchPerSec"] = Field{"CtxSw", Raw, 1, " /s", 10, false}
+
+}
 
 func genCPUDefaultConfig() {
 	cpuDefaultRenderConfig["Index"] = Field{"Index", Raw, 0, "", 10, false}
@@ -586,7 +602,7 @@ func genProcessDefaultConfig() {
 	processDefaultRenderConfig["Majflt"] = Field{"Majflt", Raw, 0, "", 10, false}
 	processDefaultRenderConfig["Vsize"] = Field{"Vsize", HumanReadableSize, 0, "", 10, false}
 	processDefaultRenderConfig["RSS"] = Field{"RSS", HumanReadableSize, 0, "", 10, false}
-	processDefaultRenderConfig["MEM"] = Field{"MEM", Raw, 1, "%", 10, false}
+	processDefaultRenderConfig["Mem"] = Field{"Mem", Raw, 1, "%", 10, false}
 
 	processDefaultRenderConfig["Rchar"] = Field{"Rchar", HumanReadableSize, 0, "", 10, false}
 	processDefaultRenderConfig["Wchar"] = Field{"Wchar", HumanReadableSize, 0, "", 10, false}
@@ -597,11 +613,13 @@ func genProcessDefaultConfig() {
 	processDefaultRenderConfig["Wcancel"] = Field{"Wcancel", HumanReadableSize, 0, "", 10, false}
 	processDefaultRenderConfig["R/s"] = Field{"R/s", HumanReadableSize, 1, "/s", 10, false}
 	processDefaultRenderConfig["W/s"] = Field{"W/s", HumanReadableSize, 1, "/s", 10, false}
+	processDefaultRenderConfig["CW/s"] = Field{"CW/s", HumanReadableSize, 1, "/s", 10, false}
 	processDefaultRenderConfig["Disk"] = Field{"Disk", Raw, 1, "%", 10, false}
 
 }
 
 func init() {
+	genSysDefaultConfig()
 	genCPUDefaultConfig()
 	genMEMDefaultConfig()
 	genVmDefaultConfig()
@@ -611,6 +629,7 @@ func init() {
 	genNetProtocolDefaultConfig()
 	genProcessDefaultConfig()
 	genSoftnetDefaultConfig()
+	DefaultRenderConfig["system"] = sysDefaultRenderConfig
 	DefaultRenderConfig["cpu"] = cpuDefaultRenderConfig
 	DefaultRenderConfig["memory"] = memDefaultRenderConfig
 	DefaultRenderConfig["vm"] = vmDefaultRenderConfig

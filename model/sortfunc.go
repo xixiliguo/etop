@@ -16,7 +16,7 @@ var SortMap = map[string]sortFunc{
 	"Majflt":    SortByMajFlt,
 	"Vsize":     SortByVSize,
 	"RSS":       SortByRSS,
-	"MEM":       SortByMEMUsage,
+	"Mem":       SortByMemUsage,
 	"Rchar":     SortByRChar,
 	"Wchar":     SortByWChar,
 	"Syscr":     SortBySyscR,
@@ -89,8 +89,8 @@ func SortByRSS(i, j Process) bool {
 	return i.RSS > j.RSS
 }
 
-func SortByMEMUsage(i, j Process) bool {
-	return i.MEMUsage > j.MEMUsage
+func SortByMemUsage(i, j Process) bool {
+	return i.MemUsage > j.MemUsage
 }
 
 func SortByRChar(i, j Process) bool {

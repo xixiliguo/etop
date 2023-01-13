@@ -43,10 +43,10 @@ func NewSystem() *System {
 
 	system.content.
 		AddPage("CPU", system.cpu, true, true).
-		AddPage("MEM", system.mem, true, false).
-		AddPage("VM", system.vm, true, false).
-		AddPage("DISK", system.disk, true, false).
-		AddPage("NET", system.net, true, false)
+		AddPage("Mem", system.mem, true, false).
+		AddPage("Vm", system.vm, true, false).
+		AddPage("Disk", system.disk, true, false).
+		AddPage("Net", system.net, true, false)
 
 	system.layout.SetDirection(tview.FlexRow).
 		AddItem(system.header, 1, 0, false).
@@ -55,17 +55,17 @@ func NewSystem() *System {
 	system.regions = []string{"c", "m", "v", "d", "n"}
 	system.regionToPage = map[string]string{
 		"c": "CPU",
-		"m": "MEM",
-		"v": "VM",
-		"d": "DISK",
-		"n": "NET",
+		"m": "Mem",
+		"v": "Vm",
+		"d": "Disk",
+		"n": "Net",
 	}
 	fmt.Fprintf(system.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
 		"c", "CPU",
-		"m", "MEM",
-		"v", "VM",
-		"d", "DISK",
-		"n", "NET")
+		"m", "Mem",
+		"v", "Vm",
+		"d", "Disk",
+		"n", "Net")
 	system.header.SetRegions(true).Highlight("c")
 
 	return system

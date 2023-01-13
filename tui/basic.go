@@ -11,8 +11,8 @@ import (
 type Basic struct {
 	*tview.Box
 	layout *tview.Flex
-	prc    *tview.TextView
-	cpl    *tview.TextView
+	load   *tview.TextView
+	proc   *tview.TextView
 	cpu    *tview.TextView
 	mem    *tview.TextView
 	disk   *tview.TextView
@@ -24,8 +24,8 @@ func NewBasic() *Basic {
 	basic := &Basic{
 		Box:    tview.NewBox(),
 		layout: tview.NewFlex(),
-		prc:    tview.NewTextView(),
-		cpl:    tview.NewTextView(),
+		load:   tview.NewTextView(),
+		proc:   tview.NewTextView(),
 		cpu:    tview.NewTextView(),
 		mem:    tview.NewTextView(),
 		disk:   tview.NewTextView(),
@@ -33,8 +33,8 @@ func NewBasic() *Basic {
 	}
 	basic.SetBorder(true)
 	basic.layout.SetDirection(tview.FlexRow).
-		AddItem(basic.prc, 1, 0, false).
-		AddItem(basic.cpl, 1, 0, false).
+		AddItem(basic.load, 1, 0, false).
+		AddItem(basic.proc, 1, 0, false).
 		AddItem(basic.cpu, 1, 0, false).
 		AddItem(basic.mem, 1, 0, false).
 		AddItem(basic.disk, 1, 0, false).
@@ -45,15 +45,20 @@ func NewBasic() *Basic {
 
 func (basic *Basic) Update(sm *model.Model) {
 
-	basic.prc.Clear()
-	fmt.Fprintf(basic.prc, "%-10sProcess %4d%5sThread %5d%5sClone %4d/s",
-		"PRC", sm.Prcesses, "", sm.Threads, "", sm.Clones)
+	basic.load.Clear()
+	fmt.Fprintf(basic.load, "%-7sLoad1 %9s%5sLoad5 %9s%5sLoad15 %8s",
+		"Load", sm.Sys.GetRenderValue(sm.Config["system"], "Load1"), "",
+		sm.Sys.GetRenderValue(sm.Config["system"], "Load5"), "",
+		sm.Sys.GetRenderValue(sm.Config["system"], "Load15"))
 
-	basic.cpl.Clear()
-	fmt.Fprintf(basic.cpl, "%-10sAvg1 %7.2f%5sAvg5 %7.2f%5sAvg15 %6.2f%5sTrun %7d%5sTslpu %6d%5sCtxsw %4d/s",
-		"CPL", sm.Curr.Load1, "", sm.Curr.Load5, "", sm.Curr.Load15, "", sm.Curr.ProcessesRunning, "",
-		sm.Curr.ProcessesBlocked, "",
-		sm.ContextSwitch)
+	basic.proc.Clear()
+	fmt.Fprintf(basic.proc, "%-7sProcess %7s%5sThread %8s%5sRunning %7s%5sBlocked %7s%5sClone %9s%5sCtxSw %9s",
+		"Proc", sm.Sys.GetRenderValue(sm.Config["system"], "Processes"), "",
+		sm.Sys.GetRenderValue(sm.Config["system"], "Threads"), "",
+		sm.Sys.GetRenderValue(sm.Config["system"], "ProcessesRunning"), "",
+		sm.Sys.GetRenderValue(sm.Config["system"], "ProcessesBlocked"), "",
+		sm.Sys.GetRenderValue(sm.Config["system"], "ClonePerSec"), "",
+		sm.Sys.GetRenderValue(sm.Config["system"], "ContextSwitchPerSec"))
 
 	c := model.CPU{}
 	for i := 0; i < len(sm.CPUs); i++ {
@@ -62,11 +67,17 @@ func (basic *Basic) Update(sm *model.Model) {
 		}
 	}
 	basic.cpu.Clear()
-	fmt.Fprintf(basic.cpu, "%-10sUser %6.1f%%%5sSystem %4.1f%%%5sIowait %4.1f%%%5sIdle %6.1f%%%5sIRQ %7.1f%%%5sSoftIRQ %3.1f%%",
-		"CPU", c.User, "", c.System, "", c.Iowait, "", c.Idle, "", c.IRQ, "", c.SoftIRQ)
+	fmt.Fprintf(basic.cpu, "%-7sUser %10s%5sSystem %8s%5sIowait %8s%5sIdle %10s%5sIRQ %11s%5sSoftIRQ %7s",
+		"CPU", c.GetRenderValue(sm.Config["cpu"], "User"), "",
+		c.GetRenderValue(sm.Config["cpu"], "System"), "",
+		c.GetRenderValue(sm.Config["cpu"], "Iowait"), "",
+		c.GetRenderValue(sm.Config["cpu"], "Idle"), "",
+		c.GetRenderValue(sm.Config["cpu"], "IRQ"), "",
+		c.GetRenderValue(sm.Config["cpu"], "SoftIRQ"))
+
 	basic.mem.Clear()
-	fmt.Fprintf(basic.mem, "%-10sTotal %6s%5sFree %7s%5sAvail %6s%5sSlab %7s%5sBuffer %5s%5sCache %6s",
-		"MEM", sm.MEM.GetRenderValue(sm.Config["memory"], "Total"), "",
+	fmt.Fprintf(basic.mem, "%-7sTotal %9s%5sFree %10s%5sAvail %9s%5sSlab %10s%5sBuffer %8s%5sCache %9s",
+		"Mem", sm.MEM.GetRenderValue(sm.Config["memory"], "Total"), "",
 		sm.MEM.GetRenderValue(sm.Config["memory"], "Free"), "",
 		sm.MEM.GetRenderValue(sm.Config["memory"], "Avail"), "",
 		sm.MEM.GetRenderValue(sm.Config["memory"], "HSlab"), "",
@@ -74,18 +85,18 @@ func (basic *Basic) Update(sm *model.Model) {
 		sm.MEM.GetRenderValue(sm.Config["memory"], "Cache"))
 
 	basic.disk.Clear()
-	fmt.Fprintf(basic.disk, "%-10s", "DSK")
+	fmt.Fprintf(basic.disk, "%-7s", "Disk")
 	for _, d := range sm.Disks {
-		fmt.Fprintf(basic.disk, "%-7s%7s|%-7s ",
+		fmt.Fprintf(basic.disk, "%-5s%10s|%-10s ",
 			d.GetRenderValue(sm.Config["disk"], "Disk"),
-			d.GetRenderValue(sm.Config["disk"], "Read/s"),
-			d.GetRenderValue(sm.Config["disk"], "Write/s"))
+			d.GetRenderValue(sm.Config["disk"], "ReadByte/s"),
+			d.GetRenderValue(sm.Config["disk"], "WriteByte/s"))
 	}
 
 	basic.net.Clear()
-	fmt.Fprintf(basic.net, "%-10s", "NET")
+	fmt.Fprintf(basic.net, "%-7s", "Net")
 	for _, d := range sm.Nets {
-		fmt.Fprintf(basic.net, "%-7s%7s|%-7s ",
+		fmt.Fprintf(basic.net, "%-5s%10s|%-10s ",
 			d.GetRenderValue(sm.Config["netdev"], "Name"),
 			d.GetRenderValue(sm.Config["netdev"], "RxByte/s"),
 			d.GetRenderValue(sm.Config["netdev"], "TxByte/s"))

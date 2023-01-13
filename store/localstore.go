@@ -222,15 +222,23 @@ func (local *LocalStore) openFile(suffix string, writeonly bool) (err error) {
 		flags = os.O_APPEND | os.O_CREATE | os.O_WRONLY
 	}
 
+	lock := syscall.LOCK_EX | syscall.LOCK_NB
+
 	idxPath := filepath.Join(local.Path, fmt.Sprintf("index_%s", suffix))
 	if local.Index, err = os.OpenFile(idxPath, flags, 0644); err != nil {
 		return err
+	}
+	if writeonly == true && syscall.Flock(int(local.Index.Fd()), lock) != nil {
+		return fmt.Errorf("can not acquire lock for file %s", idxPath)
 	}
 
 	dataPath := filepath.Join(local.Path, fmt.Sprintf("data_%s", suffix))
 	if local.Data, err = os.OpenFile(dataPath, flags, 0644); err != nil {
 		local.Index.Close()
 		return err
+	}
+	if writeonly == true && syscall.Flock(int(local.Index.Fd()), lock) != nil {
+		return fmt.Errorf("can not acquire lock for file %s", dataPath)
 	}
 
 	// data file may already exist and take file size as initail DataOffset

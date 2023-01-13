@@ -58,7 +58,7 @@ type PMEM struct {
 	MajFlt   uint
 	VSize    uint
 	RSS      int
-	MEMUsage int
+	MemUsage int
 }
 
 func (m *PMEM) GetRenderValue(config RenderConfig, field string) string {
@@ -72,23 +72,24 @@ func (m *PMEM) GetRenderValue(config RenderConfig, field string) string {
 		s = config[field].Render(m.VSize)
 	case "RSS":
 		s = config[field].Render(m.RSS)
-	case "MEM":
-		s = config[field].Render(m.MEMUsage)
+	case "Mem":
+		s = config[field].Render(m.MemUsage)
 	}
 	return s
 }
 
 type PIO struct {
-	RChar               uint64
-	WChar               uint64
-	SyscR               uint64
-	SyscW               uint64
-	ReadBytes           uint64
-	WriteBytes          uint64
-	ReadBytesPerSec     float64
-	WriteBytesPerSec    float64
-	CancelledWriteBytes int64
-	DiskUage            float64
+	RChar                     uint64
+	WChar                     uint64
+	SyscR                     uint64
+	SyscW                     uint64
+	ReadBytes                 uint64
+	WriteBytes                uint64
+	CancelledWriteBytes       int64
+	ReadBytesPerSec           float64
+	WriteBytesPerSec          float64
+	CancelledWriteBytesPerSec float64
+	DiskUage                  float64
 }
 
 func (i *PIO) GetRenderValue(config RenderConfig, field string) string {
@@ -113,6 +114,8 @@ func (i *PIO) GetRenderValue(config RenderConfig, field string) string {
 		s = config[field].Render(i.ReadBytesPerSec)
 	case "W/s":
 		s = config[field].Render(i.WriteBytesPerSec)
+	case "CW/s":
+		s = config[field].Render(i.CancelledWriteBytesPerSec)
 	case "Disk":
 		s = config[field].Render(i.DiskUage)
 	}
@@ -152,9 +155,9 @@ func (p *Process) GetRenderValue(config RenderConfig, field string) string {
 		s = config[field].Render(startTime)
 	case "UserCPU", "SysCPU", "Pri", "Nice", "CPU":
 		return p.PCPU.GetRenderValue(config, field)
-	case "Minflt", "Majflt", "Vsize", "RSS", "MEM":
+	case "Minflt", "Majflt", "Vsize", "RSS", "Mem":
 		return p.PMEM.GetRenderValue(config, field)
-	case "Rchar", "Wchar", "Syscr", "Syscw", "Read", "Write", "Wcancel", "R/s", "W/s", "Disk":
+	case "Rchar", "Wchar", "Syscr", "Syscw", "Read", "Write", "Wcancel", "R/s", "W/s", "CW/s", "Disk":
 		return p.PIO.GetRenderValue(config, field)
 	}
 	return s
@@ -166,7 +169,7 @@ type sortFunc func(i, j Process) bool
 
 type ProcessMap map[int]Process
 
-func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threads int) {
+func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threads uint64) {
 
 	for k := range processMap {
 		delete(processMap, k)
@@ -206,7 +209,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.MajFlt = new.MajFlt - old.MajFlt
 		p.VSize = new.VSize
 		p.RSS = new.RSS * curr.PageSize
-		p.MEMUsage = p.RSS * 100 / 1024 / int(*curr.MemTotal)
+		p.MemUsage = p.RSS * 100 / 1024 / int(*curr.MemTotal)
 
 		p.RChar = new.RChar - old.RChar
 		p.WChar = new.WChar - old.WChar
@@ -217,12 +220,12 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.CancelledWriteBytes = new.CancelledWriteBytes - old.CancelledWriteBytes
 		p.ReadBytesPerSec = float64(p.ReadBytes) / float64(interval)
 		p.WriteBytesPerSec = float64(p.WriteBytes) / float64(interval)
-
+		p.CancelledWriteBytesPerSec = float64(p.CancelledWriteBytes) / float64(interval)
 		processMap[pid] = p
 
 		totalIO += p.ReadBytes + p.WriteBytes
 		processes += 1
-		threads += p.NumThreads
+		threads += uint64(p.NumThreads)
 
 	}
 	if totalIO != 0 {

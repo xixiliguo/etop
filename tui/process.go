@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "MEM", "R/s", "W/s"}
+	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "Mem", "R/s", "W/s"}
 	GENERALDEFAULTORDER = "CPU"
 	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "UserCPU", "SysCPU", "Pri", "Nice", "Ppid", "Thr", "StartTime"}
 	CPUDEFAULTORDER     = "CPU"
-	MEMLAYOUT           = []string{"Pid", "Comm", "MEM", "Minflt", "Majflt", "Vsize", "RSS"}
-	MEMDEFAULTORDER     = "MEM"
-	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "Rchar", "Wchar", "Syscr", "Syscw", "Read", "Write", "Wcancel"}
+	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "Minflt", "Majflt", "Vsize", "RSS"}
+	MEMDEFAULTORDER     = "Mem"
+	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "Rchar", "Wchar", "Syscr", "Syscw", "R/s", "W/s", "CW/s"}
 	IODEFAULTORDER      = "Disk"
 )
 
@@ -67,7 +67,7 @@ func NewProcess() *Process {
 	fmt.Fprintf(process.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
 		"g", "General",
 		"c", "CPU",
-		"m", "MEM",
+		"m", "Mem",
 		"d", "I/O")
 	process.header.SetRegions(true).Highlight("g")
 

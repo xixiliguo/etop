@@ -109,7 +109,7 @@ func normalizeField(module string, config model.RenderConfig, fields []string) (
 	}
 	for _, f := range fields {
 		if _, ok := config[f]; !ok {
-			return nil, fmt.Errorf("%s is not available field", f)
+			return nil, fmt.Errorf("%s is not available field for module %s", f, module)
 		}
 	}
 	return fields, nil
@@ -417,6 +417,18 @@ func main() {
 				Name:  "dump",
 				Usage: "Dump data into parseable format",
 				Subcommands: []*cli.Command{
+					{
+						Name:  "system",
+						Usage: "Dump system stat",
+						Flags: dumpFlag,
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultSystemFields
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "system", fs)
+						},
+					},
 					{
 						Name:  "cpu",
 						Usage: "Dump cpu stat",

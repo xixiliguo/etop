@@ -10,17 +10,14 @@ import (
 )
 
 type Model struct {
-	Config        map[string]RenderConfig
-	Mode          string
-	Store         store.Store
-	log           *log.Logger
-	Prev          store.Sample
-	Curr          store.Sample
-	Prcesses      int
-	Threads       int
-	Clones        uint64
-	ContextSwitch uint64
-	CPUs          CPUSlice
+	Config map[string]RenderConfig
+	Mode   string
+	Store  store.Store
+	log    *log.Logger
+	Prev   store.Sample
+	Curr   store.Sample
+	Sys    System
+	CPUs   CPUSlice
 	MEM
 	Vm
 	Disks DiskMap
@@ -39,6 +36,7 @@ func NewSysModel(s *store.LocalStore, log *log.Logger) (*Model, error) {
 		log:          log,
 		Prev:         store.NewSample(),
 		Curr:         store.NewSample(),
+		Sys:          System{},
 		CPUs:         []CPU{},
 		MEM:          MEM{},
 		Vm:           Vm{},
@@ -121,6 +119,7 @@ func (s *Model) CollectSampleByTime(timeStamp int64) error {
 
 func (s *Model) CollectField() {
 
+	s.Sys.Collect(&s.Prev, &s.Curr)
 	s.CPUs.Collect(&s.Prev, &s.Curr)
 	s.MEM.Collect(&s.Prev, &s.Curr)
 	s.Vm.Collect(&s.Prev, &s.Curr)
@@ -129,9 +128,7 @@ func (s *Model) CollectField() {
 	s.NetStat.Collect(&s.Prev, &s.Curr)
 	s.NetProtocols.Collect(&s.Prev, &s.Curr)
 	s.Softnets.Collect(&s.Prev, &s.Curr)
-	s.Prcesses, s.Threads = s.Processes.Collect(&s.Prev, &s.Curr)
-	s.Clones = (s.Curr.ProcessCreated - s.Prev.ProcessCreated) / uint64(s.Curr.TimeStamp-s.Prev.TimeStamp)
-	s.ContextSwitch = (s.Curr.ContextSwitches - s.Prev.ContextSwitches) / uint64(s.Curr.TimeStamp-s.Prev.TimeStamp)
+	s.Sys.Processes, s.Sys.Threads = s.Processes.Collect(&s.Prev, &s.Curr)
 
 }
 
@@ -188,6 +185,8 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 			opt.Output.WriteString(title)
 		}
 		switch opt.Module {
+		case "system":
+			s.Sys.Dump(s.Curr.TimeStamp, config, opt)
 		case "cpu":
 			s.CPUs.Dump(s.Curr.TimeStamp, config, opt)
 		case "memory":
@@ -234,6 +233,8 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 			opt.Output.WriteString("\n,")
 		}
 		switch opt.Module {
+		case "system":
+			s.Sys.Dump(s.Curr.TimeStamp, config, opt)
 		case "cpu":
 			s.CPUs.Dump(s.Curr.TimeStamp, config, opt)
 		case "memory":
