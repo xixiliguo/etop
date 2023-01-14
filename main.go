@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/xixiliguo/etop/tui"
 	"github.com/xixiliguo/etop/util"
 	"github.com/xixiliguo/etop/version"
+	"golang.org/x/exp/slog"
 )
 
 var (
@@ -116,13 +118,18 @@ func normalizeField(module string, config model.RenderConfig, fields []string) (
 }
 
 func dumpCommand(c *cli.Context, module string, fields []string) error {
+	path := c.String("path")
+	logFile, err := os.OpenFile(filepath.Join(path, "etop.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
 	local, err := store.NewLocalStore(
-		store.WithSetDefault(c.String("path"), logger),
+		store.WithSetDefault(path, createLogger(logFile)),
 	)
 	if err != nil {
 		return err
 	}
-	sm, err := model.NewSysModel(local, logger)
+	sm, err := model.NewSysModel(local, createLogger(logFile))
 	if err != nil {
 		return err
 	}
@@ -185,8 +192,6 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 	return sm.Dump(opt)
 }
 
-var logger *log.Logger
-
 func main() {
 	app := &cli.App{
 		Name:    "etop",
@@ -240,8 +245,14 @@ func main() {
 							return err
 						}
 					}
+
+					logFile, err := os.OpenFile(filepath.Join(path, "etop.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+					if err != nil {
+						return err
+					}
+
 					local, err := store.NewLocalStore(
-						store.WithSetDefault(path, logger),
+						store.WithSetDefault(path, createLogger(logFile)),
 						store.WithWriteOnly(),
 					)
 					if err != nil {
@@ -300,8 +311,9 @@ func main() {
 						}
 					}
 					if c.Bool("stat") == true {
+
 						local, err := store.NewLocalStore(
-							store.WithSetDefault(path, logger),
+							store.WithSetDefault(path, createLogger(os.Stdout)),
 						)
 						if err != nil {
 							return err
@@ -313,7 +325,12 @@ func main() {
 						fmt.Println(result)
 						return nil
 					}
-					t := tui.NewTUI(logger)
+					logFile, err := os.OpenFile(filepath.Join(path, "etop.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+					if err != nil {
+						return err
+					}
+
+					t := tui.NewTUI(createLogger(logFile))
 					if err := t.Run(path, c.String("begin")); err != nil {
 						return err
 					}
@@ -337,7 +354,7 @@ func main() {
 						fmt.Printf("interval shoud great than 0, but get %d\n", internal)
 						os.Exit(1)
 					}
-					t := tui.NewTUI(logger)
+					t := tui.NewTUI(createLogger(os.Stdout))
 					if err := t.RunWithLive(time.Duration(internal) * time.Second); err != nil {
 						return err
 					}
@@ -400,7 +417,7 @@ func main() {
 						time.Unix(begin, 0),
 						time.Unix(end, 0))
 					local, err := store.NewLocalStore(
-						store.WithSetDefault(c.String("path"), logger),
+						store.WithSetDefault(c.String("path"), createLogger(os.Stdout)),
 					)
 					if err != nil {
 						return err
@@ -560,15 +577,20 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		logger.Fatalf("%s", err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 
-func init() {
-	file, err := os.OpenFile("/var/log/etop/etop.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Default().Fatalf("%s", err)
-	}
-	pidPrefix := fmt.Sprintf("[%d] ", os.Getpid())
-	logger = log.New(file, pidPrefix, log.LstdFlags|log.Lshortfile)
+func createLogger(w io.Writer) *slog.Logger {
+	th := slog.HandlerOptions{
+		AddSource: true,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.SourceKey {
+				a.Value = slog.StringValue(filepath.Base(a.Value.String()))
+			}
+			return a
+		},
+	}.NewTextHandler(w)
+	return slog.New(th)
 }

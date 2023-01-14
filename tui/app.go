@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"log"
+	"fmt"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -9,6 +9,7 @@ import (
 	"github.com/xixiliguo/etop/model"
 	"github.com/xixiliguo/etop/store"
 	"github.com/xixiliguo/etop/util"
+	"golang.org/x/exp/slog"
 )
 
 const (
@@ -27,12 +28,12 @@ type TUI struct {
 	detail  *tview.Pages
 	search  *InputDialog
 	help    *Help
-	log     *log.Logger
+	log     *slog.Logger
 	mode    int
 	sm      *model.Model
 }
 
-func NewTUI(log *log.Logger) *TUI {
+func NewTUI(log *slog.Logger) *TUI {
 	tui := &TUI{
 		Application: tview.NewApplication(),
 		pages:       tview.NewPages(),
@@ -65,11 +66,12 @@ func NewTUI(log *log.Logger) *TUI {
 		if key == tcell.KeyEnter {
 			timeStamp, err := util.ConvertToTime(tui.search.form.GetText())
 			if err != nil {
-				tui.log.Printf("%s", err)
+				tui.log.Error("user-input time", err)
 				return
 			}
 			if err := tui.sm.CollectSampleByTime(timeStamp); err != nil {
-				tui.log.Printf("%s", err)
+				msg := fmt.Sprintf("search sample by %s", time.Unix(timeStamp, 0).Format(time.RFC3339))
+				tui.log.Error(msg, err)
 				return
 			}
 			tui.header.Update(tui.sm)
@@ -106,7 +108,7 @@ func NewTUI(log *log.Logger) *TUI {
 		if event.Rune() == 't' {
 			if tui.mode == REPORT {
 				if err := tui.sm.CollectNext(); err != nil {
-					tui.log.Printf("%s", err)
+					tui.log.Error("next sample", err)
 					return nil
 				}
 				tui.header.Update(tui.sm)
@@ -118,7 +120,7 @@ func NewTUI(log *log.Logger) *TUI {
 		} else if event.Rune() == 'T' {
 			if tui.mode == REPORT {
 				if err := tui.sm.CollectPrev(); err != nil {
-					tui.log.Printf("%s", err)
+					tui.log.Error("previous sample", err)
 					return nil
 				}
 				tui.header.Update(tui.sm)

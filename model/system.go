@@ -88,7 +88,6 @@ func (sys *System) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
 		opt.Output.WriteString(row.String())
 
 	case "json":
-		t := []any{}
 
 		row := make(map[string]string)
 		row["Timestamp"] = dateTime
@@ -101,9 +100,8 @@ func (sys *System) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
 			}
 			row[config[f].Name] = renderValue
 		}
-		t = append(t, row)
 
-		b, _ := json.Marshal(t)
+		b, _ := json.Marshal(row)
 		opt.Output.Write(b)
 	}
 

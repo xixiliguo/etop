@@ -1261,7 +1261,7 @@ func (netStat *NetStat) Dump(timeStamp int64, config RenderConfig, opt DumpOptio
 		opt.Output.WriteString(row.String())
 
 	case "json":
-		t := []any{}
+
 		row := make(map[string]string)
 		row["Timestamp"] = dateTime
 		for _, f := range opt.Fields {
@@ -1273,9 +1273,8 @@ func (netStat *NetStat) Dump(timeStamp int64, config RenderConfig, opt DumpOptio
 			}
 			row[config[f].Name] = renderValue
 		}
-		t = append(t, row)
 
-		b, _ := json.Marshal(t)
+		b, _ := json.Marshal(row)
 		opt.Output.Write(b)
 	}
 }

@@ -2,18 +2,18 @@ package model
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 
 	"github.com/xixiliguo/etop/store"
+	"golang.org/x/exp/slog"
 )
 
 type Model struct {
 	Config map[string]RenderConfig
 	Mode   string
 	Store  store.Store
-	log    *log.Logger
+	log    *slog.Logger
 	Prev   store.Sample
 	Curr   store.Sample
 	Sys    System
@@ -28,7 +28,7 @@ type Model struct {
 	Processes    ProcessMap
 }
 
-func NewSysModel(s *store.LocalStore, log *log.Logger) (*Model, error) {
+func NewSysModel(s *store.LocalStore, log *slog.Logger) (*Model, error) {
 	p := &Model{
 		Config:       DefaultRenderConfig,
 		Mode:         "report",
@@ -69,7 +69,7 @@ func (s *Model) CollectNext() error {
 	}
 	if s.Curr.BootTime != s.Prev.BootTime {
 		//system ever reboot, skip one sample
-		s.log.Printf("skip one sample since system reboot")
+		s.log.Info("skip one sample since system reboot")
 		return s.CollectNext()
 	}
 	s.CollectField()
@@ -87,7 +87,7 @@ func (s *Model) CollectPrev() error {
 	}
 	if s.Curr.BootTime != s.Prev.BootTime {
 		//system ever reboot, skip one sample
-		s.log.Printf("skip one sample since system reboot")
+		s.log.Info("skip one sample since system reboot")
 		return s.CollectPrev()
 	}
 	s.CollectField()
@@ -110,7 +110,7 @@ func (s *Model) CollectSampleByTime(timeStamp int64) error {
 	}
 	if s.Curr.BootTime != s.Prev.BootTime {
 		//system ever reboot, skip one sample
-		s.log.Printf("skip one sample since system reboot")
+		s.log.Info("skip one sample since system reboot")
 		return s.CollectNext()
 	}
 	s.CollectField()
