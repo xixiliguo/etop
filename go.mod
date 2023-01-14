@@ -1,6 +1,6 @@
 module github.com/xixiliguo/etop
 
-go 1.18
+go 1.19
 
 require (
 	github.com/fxamacker/cbor/v2 v2.4.0
@@ -10,6 +10,7 @@ require (
 	github.com/prometheus/procfs v0.9.0
 	github.com/rivo/tview v0.0.0-20221229180733-b86a50a5126c
 	github.com/urfave/cli/v2 v2.23.7
+	golang.org/x/exp v0.0.0-20230111222715-75897c7a292a
 	golang.org/x/sys v0.3.0
 )
 

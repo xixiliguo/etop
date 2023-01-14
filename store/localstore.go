@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/xixiliguo/etop/util"
+	"golang.org/x/exp/slog"
 )
 
 var (
@@ -56,7 +58,7 @@ type Store interface {
 
 type Option func(*LocalStore) error
 
-func WithSetDefault(path string, log *log.Logger) Option {
+func WithSetDefault(path string, log *slog.Logger) Option {
 	return func(local *LocalStore) error {
 		if path == "" {
 			path = DefaultPath
@@ -82,12 +84,15 @@ type LocalStore struct {
 	Path       string   // path which index and data file is stored
 	Index      *os.File // current active index file
 	Data       *os.File // current active data file
-	Log        *log.Logger
+	Log        *slog.Logger
 	DataOffset int64 // file offset which next sample was written to
 	writeOnly  bool
-	idxs       []Index // all indexs from Path
-	suffix     string
-	curIdx     int
+	sync.Mutex
+	closed   bool
+	closeSig chan os.Signal
+	idxs     []Index // all indexs from Path
+	suffix   string
+	curIdx   int
 }
 
 func NewLocalStore(opts ...Option) (*LocalStore, error) {
@@ -103,6 +108,7 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 		if err := local.openFile(suffix, true); err != nil {
 			return nil, err
 		}
+		local.handelSignal()
 		return local, nil
 	}
 
@@ -159,6 +165,20 @@ func getIndexFrames(path string) ([]Index, error) {
 		return idxs[i].TimeStamp < idxs[j].TimeStamp
 	})
 	return idxs, nil
+}
+
+func (local *LocalStore) handelSignal() {
+	local.closeSig = make(chan os.Signal, 1)
+	signal.Notify(local.closeSig, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
+	go func() {
+		s := <-local.closeSig
+		local.Lock()
+		defer local.Unlock()
+		local.closed = true
+		msg := fmt.Sprintf("recevice %s signal, exiting", s.String())
+		local.Log.Info(msg)
+	}()
+	return
 }
 
 func (local *LocalStore) FileStatInfo() (result string, err error) {
@@ -269,6 +289,7 @@ func (local *LocalStore) Close() error {
 func (local *LocalStore) NextSample(step int, sample *Sample) error {
 	target := local.curIdx + step
 	if target < 0 {
+		local.Log.Error("piror to first sample", ErrOutOfRange)
 		return ErrOutOfRange
 	}
 	if target >= len(local.idxs) {
@@ -278,6 +299,7 @@ func (local *LocalStore) NextSample(step int, sample *Sample) error {
 		} else {
 			local.idxs = idxs
 			if target >= len(local.idxs) {
+				local.Log.Error("already go to last sample", ErrOutOfRange)
 				return ErrOutOfRange
 			}
 		}
@@ -320,6 +342,7 @@ func (local *LocalStore) JumpSampleByTimeStamp(timestamp int64, sample *Sample) 
 		}
 	}
 	if len(local.idxs) == 0 || len(local.idxs) == 1 {
+		local.Log.Warn("None or only one sample", slog.String("path", local.Path))
 		return ErrOutOfRange
 	}
 	if target >= len(local.idxs) {
@@ -375,7 +398,8 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 		if err := local.changeFile(suffix, true); err != nil {
 			return newSuffix, err
 		}
-		local.Log.Printf("switch and write data into data_%s", suffix)
+		msg := fmt.Sprintf("switch and write data into data_%s", suffix)
+		local.Log.Info(msg)
 		newSuffix = true
 	}
 
@@ -414,10 +438,18 @@ type WriteOption struct {
 func (local *LocalStore) WriteLoop(opt WriteOption) error {
 
 	interval := opt.Interval
-
-	local.Log.Printf("start to write sample every %s to %s", interval.String(), local.Data.Name())
+	msg := fmt.Sprintf("start to write sample every %s to %s", interval.String(), local.Data.Name())
+	local.Log.Info(msg)
 	isSkip := 0
 	for {
+		var shouldClose bool
+		local.Lock()
+		shouldClose = local.closed
+		local.Unlock()
+		if shouldClose == true {
+			local.Close()
+			return nil
+		}
 		start := time.Now()
 		s := NewSample()
 		if err := local.CollectSample(&s); err != nil {
@@ -430,7 +462,8 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 		}
 		if statInfo.Bavail*uint64(statInfo.Bsize) > MinimumFreeSpaceForStore {
 			if isSkip != 0 {
-				local.Log.Printf("resume to write sample (%d skipped)", isSkip)
+				msg := fmt.Sprintf("resume to write sample (%d skipped)", isSkip)
+				local.Log.Info(msg)
 				isSkip = 0
 			}
 
@@ -455,16 +488,18 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 							if err != nil {
 								return err
 							}
-							local.Log.Printf("total historical files: %d %s",
+							msg := fmt.Sprintf("total historical files: %d %s",
 								len(suffixs)-1, util.GetHumanSize(size))
-							local.Log.Printf("delete oldest data_%s", oldest)
+							local.Log.Info(msg)
+							msg = fmt.Sprintf("delete oldest data_%s", oldest)
+							local.Log.Info(msg)
 						}
 					}
 				}
 			}
 		} else {
 			if isSkip == 0 {
-				local.Log.Printf("filesystem free space %s below %s, write sample skipped",
+				local.Log.Warn("filesystem free space %s below %s, write sample skipped",
 					util.GetHumanSize(statInfo.Bavail*uint64(statInfo.Bsize)),
 					util.GetHumanSize(MinimumFreeSpaceForStore))
 			}
@@ -473,7 +508,7 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 
 		collectDuration := time.Now().Sub(start)
 		if collectDuration > 500*time.Millisecond {
-			local.Log.Printf("write sample take %s (larger than 500 ms)", collectDuration.String())
+			local.Log.Warn("write sample take %s (larger than 500 ms)", collectDuration.String())
 		}
 		sleepDuration := time.Duration(1 * time.Second)
 		if interval-collectDuration > 1*time.Second {
