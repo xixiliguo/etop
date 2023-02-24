@@ -17,9 +17,9 @@ import (
 
 // Sample represent all system info and process info.
 type Sample struct {
-	TimeStamp    int64              // unix time when sample was generated
-	SystemSample                    // system information
-	ProcSamples  map[int]ProcSample // process information
+	TimeStamp    int64  // unix time when sample was generated
+	SystemSample        // system information
+	ProcSamples  PidMap // process information
 }
 
 type SystemSample struct {
@@ -35,6 +35,20 @@ type SystemSample struct {
 	NetStat
 	procfs.NetProtocolStats
 	SoftNetStats []procfs.SoftnetStat
+}
+
+type PidMap map[int]ProcSample
+
+func (p PidMap) mergeWithExitProcess(e *ExitProcess) {
+	e.Lock()
+	for pid, s := range e.Samples {
+		if _, ok := p[pid]; ok {
+		} else {
+			p[pid] = s
+		}
+		delete(e.Samples, pid)
+	}
+	e.Unlock()
 }
 
 type NetStat struct {
@@ -145,7 +159,7 @@ func NewSample() Sample {
 			DiskStats:        make(map[string]blockdevice.Diskstats),
 			NetProtocolStats: make(map[string]procfs.NetProtocolStatLine),
 		},
-		ProcSamples: map[int]ProcSample{},
+		ProcSamples: make(PidMap),
 	}
 	return s
 }
@@ -174,7 +188,8 @@ func (s *Sample) Unmarshal(b []byte) error {
 	return nil
 }
 
-func CollectSampleFromSys(s *Sample) error {
+func CollectSampleFromSys(s *Sample, exit *ExitProcess) error {
+
 	//collect one sample
 	var (
 		fs     procfs.FS
@@ -281,6 +296,9 @@ func CollectSampleFromSys(s *Sample) error {
 			continue
 		}
 		s.ProcSamples[p.PID] = p
+	}
+	if exit != nil {
+		s.ProcSamples.mergeWithExitProcess(exit)
 	}
 	return nil
 }

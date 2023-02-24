@@ -14,7 +14,7 @@ const (
 	userHZ = 100
 )
 
-var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "MEM", "R/s", "W/s"}
+var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "Mem", "R/s", "W/s"}
 
 type Process struct {
 	Pid        int
@@ -81,8 +81,12 @@ func (m *PMEM) GetRenderValue(config RenderConfig, field string) string {
 type PIO struct {
 	RChar                     uint64
 	WChar                     uint64
+	RCharPerSec               float64
+	WCharPerSec               float64
 	SyscR                     uint64
 	SyscW                     uint64
+	SyscRPerSec               float64
+	SyscWPerSec               float64
 	ReadBytes                 uint64
 	WriteBytes                uint64
 	CancelledWriteBytes       int64
@@ -100,10 +104,18 @@ func (i *PIO) GetRenderValue(config RenderConfig, field string) string {
 		s = config[field].Render(i.RChar)
 	case "Wchar":
 		s = config[field].Render(i.WChar)
+	case "Rchar/s":
+		s = config[field].Render(i.RCharPerSec)
+	case "Wchar/s":
+		s = config[field].Render(i.WCharPerSec)
 	case "Syscr":
 		s = config[field].Render(i.SyscR)
 	case "Syscw":
 		s = config[field].Render(i.SyscW)
+	case "Syscr/s":
+		s = config[field].Render(i.SyscRPerSec)
+	case "Syscw/s":
+		s = config[field].Render(i.SyscWPerSec)
 	case "Read":
 		s = config[field].Render(i.ReadBytes)
 	case "Write":
@@ -157,7 +169,9 @@ func (p *Process) GetRenderValue(config RenderConfig, field string) string {
 		return p.PCPU.GetRenderValue(config, field)
 	case "Minflt", "Majflt", "Vsize", "RSS", "Mem":
 		return p.PMEM.GetRenderValue(config, field)
-	case "Rchar", "Wchar", "Syscr", "Syscw", "Read", "Write", "Wcancel", "R/s", "W/s", "CW/s", "Disk":
+	case "Rchar", "Wchar", "Rchar/s", "Wchar/s",
+		"Syscr", "Syscw", "Syscr/s", "Syscw/s",
+		"Read", "Write", "Wcancel", "R/s", "W/s", "CW/s", "Disk":
 		return p.PIO.GetRenderValue(config, field)
 	}
 	return s
@@ -186,6 +200,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		old := prev.ProcSamples[pid]
 
 		if old.Starttime != new.Starttime {
+			// new created process during samples
 			old = store.ProcSample{}
 		}
 
@@ -199,8 +214,8 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		}
 
 		// get cpu info
-		p.UTime = float64(new.UTime-old.UTime) / float64(interval)
-		p.STime = float64(new.STime-old.STime) / float64(interval)
+		p.UTime = SubWithInterval(float64(new.UTime), float64(old.UTime), float64(interval))
+		p.STime = SubWithInterval(float64(new.STime), float64(old.STime), float64(interval))
 		p.Priority = new.Priority
 		p.Nice = new.Nice
 		p.CPUUsage = p.UTime + p.STime
@@ -213,8 +228,12 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 
 		p.RChar = new.RChar - old.RChar
 		p.WChar = new.WChar - old.WChar
+		p.RCharPerSec = SubWithInterval(float64(new.RChar), float64(old.RChar), float64(interval))
+		p.WCharPerSec = SubWithInterval(float64(new.WChar), float64(old.WChar), float64(interval))
 		p.SyscR = new.SyscR - old.SyscR
 		p.SyscW = new.SyscW - old.SyscW
+		p.SyscRPerSec = SubWithInterval(float64(new.SyscR), float64(old.SyscR), float64(interval))
+		p.SyscWPerSec = SubWithInterval(float64(new.SyscW), float64(old.SyscW), float64(interval))
 		p.ReadBytes = new.ReadBytes - old.ReadBytes
 		p.WriteBytes = new.WriteBytes - old.WriteBytes
 		p.CancelledWriteBytes = new.CancelledWriteBytes - old.CancelledWriteBytes
@@ -307,4 +326,11 @@ func (processMap ProcessMap) Dump(timeStamp int64, config RenderConfig, opt Dump
 		b, _ := json.Marshal(t)
 		opt.Output.Write(b)
 	}
+}
+
+func SubWithInterval[T int | int64 | float64](curr, prev, interval T) T {
+	if interval == 0 {
+		return 0
+	}
+	return (curr - prev) / interval
 }

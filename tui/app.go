@@ -184,6 +184,10 @@ func (tui *TUI) Run(path string, beginTime string) error {
 }
 
 func (tui *TUI) RunWithLive(interval time.Duration) error {
+
+	exit := store.NewExitProcess(tui.log)
+	go exit.Collect()
+
 	tui.mode = LIVE
 	sm, err := model.NewSysModel(nil, tui.log)
 	if err != nil {
@@ -197,7 +201,7 @@ func (tui *TUI) RunWithLive(interval time.Duration) error {
 		for {
 
 			start := time.Now()
-			if err := sm.CollectLiveSample(); err != nil {
+			if err := sm.CollectLiveSample(exit); err != nil {
 				return
 			}
 

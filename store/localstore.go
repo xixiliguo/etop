@@ -76,6 +76,13 @@ func WithWriteOnly() Option {
 	}
 }
 
+func WithSetExitProcess(log *slog.Logger) Option {
+	return func(local *LocalStore) error {
+		local.exit = NewExitProcess(log)
+		return nil
+	}
+}
+
 // LocalStore represent local store, which consist of index and data files.
 // All files was stored into Path (default: /var/log/etop).
 // file format: index_{suffix}, data_{suffix}  suffix: yyyymmdd
@@ -93,6 +100,7 @@ type LocalStore struct {
 	idxs     []Index // all indexs from Path
 	suffix   string
 	curIdx   int
+	exit     *ExitProcess
 }
 
 func NewLocalStore(opts ...Option) (*LocalStore, error) {
@@ -109,6 +117,7 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 			return nil, err
 		}
 		local.handelSignal()
+		go local.exit.Collect()
 		return local, nil
 	}
 
@@ -385,7 +394,7 @@ func (local *LocalStore) getSample(target int, sample *Sample) error {
 }
 
 func (local *LocalStore) CollectSample(s *Sample) error {
-	return CollectSampleFromSys(s)
+	return CollectSampleFromSys(s, local.exit)
 }
 
 func (local *LocalStore) WriteSample(s *Sample) (bool, error) {

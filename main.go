@@ -251,9 +251,12 @@ func main() {
 						return err
 					}
 
+					log := createLogger(logFile)
+
 					local, err := store.NewLocalStore(
-						store.WithSetDefault(path, createLogger(logFile)),
+						store.WithSetDefault(path, log),
 						store.WithWriteOnly(),
+						store.WithSetExitProcess(log),
 					)
 					if err != nil {
 						return err

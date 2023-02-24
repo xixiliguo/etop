@@ -606,8 +606,12 @@ func genProcessDefaultConfig() {
 
 	processDefaultRenderConfig["Rchar"] = Field{"Rchar", HumanReadableSize, 0, "", 10, false}
 	processDefaultRenderConfig["Wchar"] = Field{"Wchar", HumanReadableSize, 0, "", 10, false}
+	processDefaultRenderConfig["Rchar/s"] = Field{"Rchar/s", HumanReadableSize, 1, "/s", 10, false}
+	processDefaultRenderConfig["Wchar/s"] = Field{"Wchar/s", HumanReadableSize, 1, "/s", 10, false}
 	processDefaultRenderConfig["Syscr"] = Field{"Syscr", Raw, 0, "", 10, false}
 	processDefaultRenderConfig["Syscw"] = Field{"Syscw", Raw, 0, "", 10, false}
+	processDefaultRenderConfig["Syscr/s"] = Field{"Syscr/s", Raw, 1, "/s", 10, false}
+	processDefaultRenderConfig["Syscw/s"] = Field{"Syscw/s", Raw, 1, "/s", 10, false}
 	processDefaultRenderConfig["Read"] = Field{"Read", HumanReadableSize, 0, "", 10, false}
 	processDefaultRenderConfig["Write"] = Field{"Write", HumanReadableSize, 0, "", 10, false}
 	processDefaultRenderConfig["Wcancel"] = Field{"Wcancel", HumanReadableSize, 0, "", 10, false}

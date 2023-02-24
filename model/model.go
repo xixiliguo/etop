@@ -49,11 +49,11 @@ func NewSysModel(s *store.LocalStore, log *slog.Logger) (*Model, error) {
 	return p, nil
 }
 
-func (s *Model) CollectLiveSample() error {
+func (s *Model) CollectLiveSample(exit *store.ExitProcess) error {
 
 	s.Prev = s.Curr
 	s.Curr = store.NewSample()
-	if err := store.CollectSampleFromSys(&s.Curr); err != nil {
+	if err := store.CollectSampleFromSys(&s.Curr, exit); err != nil {
 		return err
 	}
 	s.CollectField()

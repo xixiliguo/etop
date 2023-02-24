@@ -17,7 +17,7 @@ var (
 	CPUDEFAULTORDER     = "CPU"
 	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "Minflt", "Majflt", "Vsize", "RSS"}
 	MEMDEFAULTORDER     = "Mem"
-	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "Rchar", "Wchar", "Syscr", "Syscw", "R/s", "W/s", "CW/s"}
+	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "Rchar/s", "Wchar/s", "Syscr/s", "Syscw/s", "R/s", "W/s", "CW/s"}
 	IODEFAULTORDER      = "Disk"
 )
 

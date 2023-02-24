@@ -108,7 +108,7 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 		},
 	}
 	realData := NewSample()
-	CollectSampleFromSys(&realData)
+	CollectSampleFromSys(&realData, nil)
 	testCases = append(testCases, realData)
 	for i, testCase := range testCases {
 		var b []byte
@@ -132,7 +132,7 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 func BenchmarkSampleMarshal(b *testing.B) {
 
 	testCase := NewSample()
-	CollectSampleFromSys(&testCase)
+	CollectSampleFromSys(&testCase, nil)
 
 	b.ReportAllocs()
 	b.ResetTimer()
