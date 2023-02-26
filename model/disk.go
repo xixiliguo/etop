@@ -11,7 +11,7 @@ import (
 
 var DefaultDiskFields = []string{"Disk", "Util",
 	"Read/s", "ReadByte/s", "Write/s", "WriteByte/s",
-	"AvgQueueLength", "AvgWait", "AvgIOTime"}
+	"AvgQueueLength", "AvgIOWait", "AvgIOTime"}
 
 type Disk struct {
 	DeviceName             string
@@ -45,7 +45,7 @@ type Disk struct {
 	ReadAvgWait            float64
 	WriteAvgWait           float64
 	DiscardAvgWait         float64
-	AvgWait                float64
+	AvgIOWait              float64
 	AvgQueueLength         float64
 	AvgIOTime              float64
 	Util                   float64
@@ -75,8 +75,8 @@ func (d *Disk) GetRenderValue(config RenderConfig, field string) string {
 		s = config[field].Render(d.WriteBytePerSec)
 	case "AvgQueueLength":
 		s = config[field].Render(d.AvgQueueLength)
-	case "AvgWait":
-		s = config[field].Render(d.AvgWait)
+	case "AvgIOWait":
+		s = config[field].Render(d.AvgIOWait)
 	case "AvgIOTime":
 		s = config[field].Render(d.AvgIOTime)
 	}
@@ -128,7 +128,7 @@ func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
 		d.ReadAvgWait = float64(d.ReadTicks) / float64((d.ReadIOs))
 		d.WriteAvgWait = float64(d.WriteTicks) / float64((d.WriteIOs))
 		d.DiscardAvgWait = float64(d.DiscardTicks) / float64((d.DiscardIOs))
-		d.AvgWait = float64(d.ReadTicks+d.WriteTicks+d.DiscardTicks) / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
+		d.AvgIOWait = float64(d.ReadTicks+d.WriteTicks+d.DiscardTicks) / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
 
 		d.AvgQueueLength = float64(d.WeightedIOTicks) / 1000 / float64(interval)
 

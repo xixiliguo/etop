@@ -239,7 +239,7 @@ func genDiskDefaultConfig() {
 	diskDefaultRenderConfig["DiscardByte/s"] = Field{"DiscardByte/s", HumanReadableSize, 1, "/s", 10, false}
 
 	diskDefaultRenderConfig["AvgQueueLength"] = Field{"AvgQueueLength", Raw, 1, "", 10, false}
-	diskDefaultRenderConfig["AvgWait"] = Field{"AvgWait", Raw, 1, " ms", 10, false}
+	diskDefaultRenderConfig["AvgIOWait"] = Field{"AvgIOWait", Raw, 1, " ms", 10, false}
 	diskDefaultRenderConfig["AvgIOTime"] = Field{"AvgIOTime", Raw, 1, " ms", 10, false}
 
 }
