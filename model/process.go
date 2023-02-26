@@ -23,6 +23,7 @@ type Process struct {
 	Ppid       int
 	NumThreads int
 	StartTime  uint64
+	Processor  uint
 	PCPU
 	PMEM
 	PIO
@@ -165,6 +166,8 @@ func (p *Process) GetRenderValue(config RenderConfig, field string) string {
 	case "StartTime":
 		startTime := time.Unix(int64(p.StartTime), 0).Format(time.RFC3339)
 		s = config[field].Render(startTime)
+	case "OnCPU":
+		s = config[field].Render(p.Processor)
 	case "UserCPU", "SysCPU", "Pri", "Nice", "CPU":
 		return p.PCPU.GetRenderValue(config, field)
 	case "Minflt", "Majflt", "Vsize", "RSS", "Mem":
@@ -211,6 +214,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			Ppid:       new.PPID,
 			NumThreads: new.NumThreads,
 			StartTime:  bootTime + new.Starttime/userHZ,
+			Processor:  new.Processor,
 		}
 
 		// get cpu info

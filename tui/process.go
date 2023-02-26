@@ -13,7 +13,7 @@ import (
 var (
 	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "Mem", "R/s", "W/s"}
 	GENERALDEFAULTORDER = "CPU"
-	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "UserCPU", "SysCPU", "Pri", "Nice", "Ppid", "Thr", "StartTime"}
+	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "UserCPU", "SysCPU", "Pri", "Nice", "Ppid", "Thr", "OnCPU", "StartTime"}
 	CPUDEFAULTORDER     = "CPU"
 	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "Minflt", "Majflt", "Vsize", "RSS"}
 	MEMDEFAULTORDER     = "Mem"

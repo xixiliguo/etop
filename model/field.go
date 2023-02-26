@@ -593,6 +593,7 @@ func genProcessDefaultConfig() {
 	processDefaultRenderConfig["Ppid"] = Field{"Ppid", Raw, 0, "", 10, false}
 	processDefaultRenderConfig["Thr"] = Field{"Thr", Raw, 0, "", 10, false}
 	processDefaultRenderConfig["StartTime"] = Field{"StartTime", Raw, 0, "", 10, false}
+	processDefaultRenderConfig["OnCPU"] = Field{"OnCPU", Raw, 0, "", 10, false}
 
 	processDefaultRenderConfig["UserCPU"] = Field{"UserCPU", Raw, 1, "%", 10, false}
 	processDefaultRenderConfig["SysCPU"] = Field{"SysCPU", Raw, 1, "%", 10, false}
