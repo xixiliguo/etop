@@ -11,7 +11,7 @@ import (
 
 var DefaultDiskFields = []string{"Disk", "Util",
 	"Read/s", "ReadByte/s", "Write/s", "WriteByte/s",
-	"AvgQueueLength", "AvgIOWait", "AvgIOTime"}
+	"AvgIOSize", "AvgQueueLen", "InFlight", "AvgIOWait", "AvgIOTime"}
 
 type Disk struct {
 	DeviceName             string
@@ -73,8 +73,12 @@ func (d *Disk) GetRenderValue(config RenderConfig, field string) string {
 		s = config[field].Render(d.WritePerSec)
 	case "WriteByte/s":
 		s = config[field].Render(d.WriteBytePerSec)
-	case "AvgQueueLength":
+	case "AvgIOSize":
+		s = config[field].Render(d.AvgIOSize)
+	case "AvgQueueLen":
 		s = config[field].Render(d.AvgQueueLength)
+	case "InFlight":
+		s = config[field].Render(d.IOsInProgress)
 	case "AvgIOWait":
 		s = config[field].Render(d.AvgIOWait)
 	case "AvgIOTime":
@@ -102,6 +106,7 @@ func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
 			WriteMerges:            new.WriteMerges - old.WriteMerges,
 			WriteSectors:           new.WriteSectors - old.WriteSectors,
 			WriteTicks:             new.WriteTicks - old.WriteTicks,
+			IOsInProgress:          new.IOsInProgress,
 			IOsTotalTicks:          new.IOsTotalTicks - old.IOsTotalTicks,
 			WeightedIOTicks:        new.WeightedIOTicks - old.WeightedIOTicks,
 			DiscardIOs:             new.DiscardIOs - old.DiscardIOs,

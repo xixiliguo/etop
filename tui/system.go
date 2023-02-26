@@ -177,7 +177,7 @@ func (system *System) DrawDiskInfo() {
 		"Disk", "Util",
 		"Read/s", "ReadByte/s",
 		"Write/s", "WriteByte/s",
-		"AvgQueueLength", "AvgIOWait", "AvgIOTime",
+		"AvgIOSize", "AvgQueueLen", "InFlight", "AvgIOWait", "AvgIOTime",
 	}
 
 	for i, col := range visbleCols {
