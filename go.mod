@@ -1,6 +1,6 @@
 module github.com/xixiliguo/etop
 
-go 1.21
+go 1.20
 
 require (
 	github.com/cilium/ebpf v0.10.0
