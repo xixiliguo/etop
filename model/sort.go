@@ -68,6 +68,27 @@ func main() {
 				return i.%s > j.%s
 			}
 			`, info.Field, info.Field, info.Field)
+		if info.Field == "State" {
+			c = fmt.Sprintf(`
+			func SortBy%s(i, j Process) bool {
+				stodesc := map[string]string{
+					"R": "Running",
+					"S": "Sleeping",
+					"D": "Uninterruptible",
+					"I": "Idle",
+					"Z": "Zombie",
+					"T": "Stopped",
+					"t": "Tracing stop",
+					"X": "Dead",
+					"x": "Dead",
+					"K": "Wakekill",
+					"W": "Waking",
+					"P": "Parked",
+				}
+				return stodesc[i.%s] > stodesc[j.%s]
+			}
+			`, info.Field, info.Field, info.Field)
+		}
 		buff.WriteString(c)
 	}
 	buff.Bytes()

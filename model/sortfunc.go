@@ -46,7 +46,21 @@ func SortByComm(i, j Process) bool {
 }
 
 func SortByState(i, j Process) bool {
-	return i.State > j.State
+	stodesc := map[string]string{
+		"R": "Running",
+		"S": "Sleeping",
+		"D": "Uninterruptible",
+		"I": "Idle",
+		"Z": "Zombie",
+		"T": "Stopped",
+		"t": "Tracing stop",
+		"X": "Dead",
+		"x": "Dead",
+		"K": "Wakekill",
+		"W": "Waking",
+		"P": "Parked",
+	}
+	return stodesc[i.State] > stodesc[j.State]
 }
 
 func SortByPpid(i, j Process) bool {
