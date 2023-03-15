@@ -252,6 +252,8 @@ func main() {
 					}
 
 					log := createLogger(logFile)
+					msg := fmt.Sprintf("version: %s", version.Version)
+					log.Info(msg)
 
 					local, err := store.NewLocalStore(
 						store.WithSetDefault(path, log),
