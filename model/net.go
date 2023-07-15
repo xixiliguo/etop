@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 )
 
 var DefaultNetDevFields = []string{"Name",
-	"R/s", "Rp/s", "T/s", "Tp/s",
+	"RxPacket/s", "TxPacket/s", "RxByte/s", "TxByte/s",
 }
 
 type NetDev struct {
@@ -122,6 +123,20 @@ func (netMap NetDevMap) Collect(prev, curr *store.Sample) {
 		n.TxPacketPerSec = float64(n.TxPackets) / float64(interval)
 		netMap[name] = n
 	}
+}
+
+func (netMap NetDevMap) GetKeys() []string {
+
+	keys := []string{}
+	for k, _ := range netMap {
+		kk := k
+		if k == "lo" {
+			continue
+		}
+		keys = append(keys, kk)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func (netMap NetDevMap) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {

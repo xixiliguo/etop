@@ -212,8 +212,8 @@ func (system *System) DrawNetInfo() {
 
 	visbleCols := []string{
 		"Name",
-		"RxByte/s", "RxPacket/s",
-		"TxByte/s", "TxPacket/s",
+		"RxPacket/s", "TxPacket/s",
+		"RxByte/s", "TxByte/s",
 		"RxErrors", "RxDropped", "RxFIFO", "RxFrame",
 		"TxErrors", "TxDropped", "TxFIFO", "TxCollisions",
 	}
@@ -223,14 +223,8 @@ func (system *System) DrawNetInfo() {
 		system.net.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
 
-	names := make([]string, 0, len(system.source.Nets))
-	for n := range system.source.Nets {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-
 	r := 0
-	for _, n := range names {
+	for _, n := range system.source.Nets.GetKeys() {
 		net := system.source.Nets[n]
 		for i, col := range visbleCols {
 			system.net.SetCell(r+1,
