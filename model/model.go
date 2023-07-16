@@ -62,11 +62,12 @@ func (s *Model) CollectLiveSample(exit *store.ExitProcess) error {
 
 func (s *Model) CollectNext() error {
 
-	s.Prev = s.Curr
-	s.Curr = store.NewSample()
-	if err := s.Store.NextSample(1, &s.Curr); err != nil {
+	n := store.NewSample()
+	if err := s.Store.NextSample(1, &n); err != nil {
 		return err
 	}
+	s.Prev = s.Curr
+	s.Curr = n
 	if s.Curr.BootTime != s.Prev.BootTime {
 		//system ever reboot, skip one sample
 		s.log.Info("skip one sample since system reboot")
@@ -77,10 +78,11 @@ func (s *Model) CollectNext() error {
 }
 
 func (s *Model) CollectPrev() error {
-	s.Prev = store.NewSample()
-	if err := s.Store.NextSample(-2, &s.Prev); err != nil {
+	n := store.NewSample()
+	if err := s.Store.NextSample(-2, &n); err != nil {
 		return err
 	}
+	s.Prev = n
 	s.Curr = store.NewSample()
 	if err := s.Store.NextSample(1, &s.Curr); err != nil {
 		return err
