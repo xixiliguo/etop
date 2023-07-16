@@ -3,8 +3,11 @@ package store
 import (
 	"errors"
 	"os"
+	"path"
 	"path/filepath"
+	"sort"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -219,4 +222,107 @@ func TestJumpSampleByTimeStamp(t *testing.T) {
 	if cmp.Equal(s, d, opts...) == false {
 		t.Fatalf("data should be the same\n%s\n", cmp.Diff(s, c, opts...))
 	}
+}
+
+func getDirAndFilesName(path string) ([]string, []string) {
+	entry, _ := os.ReadDir(path)
+	dirs := []string{}
+	files := []string{}
+	for _, e := range entry {
+		if e.IsDir() {
+			dirs = append(dirs, e.Name())
+		} else {
+			files = append(files, e.Name())
+		}
+	}
+	sort.Strings(dirs)
+	sort.Strings(files)
+	return dirs, files
+}
+
+func TestCleanOldFilesByDays(t *testing.T) {
+
+	dir := t.TempDir()
+	local, err := NewLocalStore(
+		WithSetDefault(dir, slog.Default()),
+		WithWriteOnly(),
+	)
+	if err != nil {
+		t.Fatalf("NewLocalStore: %s\n", err)
+
+	}
+
+	expect := []string{}
+
+	now := time.Now()
+	for i := 0; i < 5; i++ {
+		suffix := now.AddDate(0, 0, -i).Format("20060102")
+		if i < 3 {
+			expect = append(expect, "data_"+suffix)
+			expect = append(expect, "index_"+suffix)
+		}
+		local.changeFile(suffix, true)
+	}
+	sort.Strings(expect)
+
+	local.CleanOldFiles(WriteOption{
+		RetainDay:  2,
+		RetainSize: 9999,
+	})
+	_, reFiles := getDirAndFilesName(local.Path)
+	if cmp.Equal(expect, reFiles) == false {
+		t.Fatalf("data should be the same\n%s\n", cmp.Diff(expect, reFiles))
+	}
+
+}
+
+func TestCleanOldFilesBySize(t *testing.T) {
+
+	dir := t.TempDir()
+	local, err := NewLocalStore(
+		WithSetDefault(dir, slog.Default()),
+		WithWriteOnly(),
+	)
+	if err != nil {
+		t.Fatalf("NewLocalStore: %s\n", err)
+
+	}
+
+	expect := []string{}
+
+	now := time.Now()
+	for i := 0; i < 5; i++ {
+		suffix := now.AddDate(0, 0, -i).Format("20060102")
+		if i == 0 {
+			expect = append(expect, "data_"+suffix)
+			expect = append(expect, "index_"+suffix)
+		}
+		idx, err := os.Create(path.Join(local.Path, "index_"+suffix))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := idx.Truncate(1 << 20); err != nil {
+			t.Fatal(err)
+		}
+		data, err := os.Create(path.Join(local.Path, "data_"+suffix))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := data.Truncate(5 << 20); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sort.Strings(expect)
+
+	local.CleanOldFiles(WriteOption{
+		RetainDay:  9999,
+		RetainSize: 6 << 20,
+	})
+	_, reFiles := getDirAndFilesName(local.Path)
+	if cmp.Equal(expect, reFiles) == false {
+		t.Fatalf("data should be the same\n%s\n", cmp.Diff(expect, reFiles))
+	}
+
 }

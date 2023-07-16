@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -481,28 +482,8 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 			if newSuffix == true {
 				// it is time to check if clean old data or not.
 				// oldest first.
-				if suffixs, _, size, err := getIndexAndDataInfo(local.Path); err != nil {
-					return err
-				} else {
-					if len(suffixs) > 0 {
-						if len(suffixs)-1 > opt.RetainDay || size > opt.RetainSize {
-							oldest := suffixs[0]
-							err := os.Remove("index_" + oldest)
-							if err != nil {
-								return err
-							}
-							err = os.Remove("data_" + oldest)
-							if err != nil {
-								return err
-							}
-							msg := fmt.Sprintf("total historical files: %d %s",
-								len(suffixs)-1, util.GetHumanSize(size))
-							local.Log.Info(msg)
-							msg = fmt.Sprintf("delete oldest data_%s", oldest)
-							local.Log.Info(msg)
-						}
-					}
-				}
+				local.CleanOldFiles(opt)
+
 			}
 		} else {
 			if isSkip == 0 {
@@ -523,4 +504,63 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 		}
 		time.Sleep(sleepDuration)
 	}
+}
+
+func (local *LocalStore) CleanOldFiles(opt WriteOption) {
+	suffixs, _, _, err := getIndexAndDataInfo(local.Path)
+	if err != nil {
+		msg := fmt.Sprintf("get index and data files: %s", err)
+		local.Log.Warn(msg)
+		return
+	}
+
+	oldestKeepDate := time.Now().AddDate(0, 0, -opt.RetainDay).Format("20060102")
+	for _, s := range suffixs {
+		if s < oldestKeepDate {
+			if err := os.Remove(path.Join(local.Path, "index_"+s)); err != nil {
+				local.Log.Warn(fmt.Sprintf("%s", err))
+			} else {
+				msg := fmt.Sprintf("delete oldest index_%s", s)
+				local.Log.Info(msg)
+			}
+			if err := os.Remove(path.Join(local.Path, "data_"+s)); err != nil {
+				local.Log.Warn(fmt.Sprintf("%s", err))
+			} else {
+				msg := fmt.Sprintf("delete oldest data_%s", s)
+				local.Log.Info(msg)
+			}
+		}
+	}
+
+	for {
+		suffixs, idxSize, dataSize, err := getIndexAndDataInfo(local.Path)
+		if err != nil {
+			msg := fmt.Sprintf("get index and data files: %s", err)
+			local.Log.Warn(msg)
+			return
+		}
+		if idxSize+dataSize > opt.RetainSize {
+			if len(suffixs) != 0 && suffixs[0] < time.Now().Format("20060102") {
+				s := suffixs[0]
+				suffixs = suffixs[1:]
+				if err := os.Remove(path.Join(local.Path, "index_"+s)); err != nil {
+					local.Log.Warn(fmt.Sprintf("%s", err))
+				} else {
+					msg := fmt.Sprintf("delete oldest index_%s", s)
+					local.Log.Info(msg)
+				}
+				if err := os.Remove(path.Join(local.Path, "data_"+s)); err != nil {
+					local.Log.Warn(fmt.Sprintf("%s", err))
+				} else {
+					msg := fmt.Sprintf("delete oldest data_%s", s)
+					local.Log.Info(msg)
+				}
+			} else {
+				break
+			}
+		} else {
+			break
+		}
+	}
+
 }
