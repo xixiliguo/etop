@@ -27,7 +27,7 @@ func NewHeader() *Header {
 
 func (header *Header) Update(sm *model.Model) {
 	header.text.Clear()
-	fmt.Fprintf(header.text, "%s    Elapsed: %4ds    %s    Uptime: %s    Mode: %s %s\n",
+	fmt.Fprintf(header.text, "%s    Elapsed: %ds    %s    Uptime: %-12s    Mode: %s %s\n",
 		time.Unix(sm.Curr.TimeStamp, 0),
 		sm.Curr.TimeStamp-sm.Prev.TimeStamp,
 		sm.Curr.HostName,
