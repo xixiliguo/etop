@@ -169,7 +169,7 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 		return err
 	}
 
-	title := fmt.Sprintf("%-20s", "TimeStamp")
+	title := fmt.Sprintf("%-25s", "TimeStamp")
 	for _, c := range opt.Fields {
 		width := config[c].Width
 		if len(config[c].Name) > width {
