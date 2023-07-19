@@ -128,7 +128,7 @@ func (netMap NetDevMap) Collect(prev, curr *store.Sample) {
 func (netMap NetDevMap) GetKeys() []string {
 
 	keys := []string{}
-	for k, _ := range netMap {
+	for k := range netMap {
 		kk := k
 		if k == "lo" {
 			continue
