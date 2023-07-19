@@ -135,7 +135,15 @@ func (netMap NetDevMap) GetKeys() []string {
 		}
 		keys = append(keys, kk)
 	}
-	sort.Strings(keys)
+	sort.Slice(keys, func(i, j int) bool {
+		if strings.HasPrefix(keys[i], "eth") && strings.HasPrefix(keys[j], "eth") == false {
+			return true
+		}
+		if strings.HasPrefix(keys[j], "eth") && strings.HasPrefix(keys[i], "eth") == false {
+			return false
+		}
+		return keys[i] < keys[j]
+	})
 	return keys
 }
 
@@ -146,7 +154,8 @@ func (netMap NetDevMap) Dump(timeStamp int64, config RenderConfig, opt DumpOptio
 	case "text":
 		config.SetFixWidth(true)
 	looptext:
-		for _, n := range netMap {
+		for _, dev := range netMap.GetKeys() {
+			n := netMap[dev]
 			row := strings.Builder{}
 			row.WriteString(dateTime)
 			for _, f := range opt.Fields {
@@ -166,7 +175,8 @@ func (netMap NetDevMap) Dump(timeStamp int64, config RenderConfig, opt DumpOptio
 	case "json":
 		t := []any{}
 	loopjson:
-		for _, n := range netMap {
+		for _, dev := range netMap.GetKeys() {
+			n := netMap[dev]
 			row := make(map[string]string)
 			row["Timestamp"] = dateTime
 			for _, f := range opt.Fields {

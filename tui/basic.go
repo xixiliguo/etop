@@ -95,7 +95,8 @@ func (basic *Basic) Update(sm *model.Model) {
 
 	basic.net.Clear()
 	fmt.Fprintf(basic.net, "%-7s", "Net")
-	for _, d := range sm.Nets {
+	for _, netDev := range sm.Nets.GetKeys() {
+		d := sm.Nets[netDev]
 		fmt.Fprintf(basic.net, "%-5s%10s|%-10s ",
 			d.GetRenderValue(sm.Config["netdev"], "Name"),
 			d.GetRenderValue(sm.Config["netdev"], "RxByte/s"),

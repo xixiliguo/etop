@@ -152,7 +152,7 @@ func TestNetDevMapGetKeys(t *testing.T) {
 				"bond0":   {},
 				"docker0": {},
 			},
-			want: []string{"bond0", "docker0", "eth0"},
+			want: []string{"eth0", "bond0", "docker0"},
 		},
 	}
 	for _, tt := range tests {
