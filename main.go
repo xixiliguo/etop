@@ -40,7 +40,7 @@ var (
 			Name:    "duration",
 			Aliases: []string{"d"},
 			Value:   "",
-			Usage:   "e.g 1h, 30m10s. if `DURATION` is specified, overrides --end value",
+			Usage:   "e.g 1h, 30m10s. if `DURATION` is specified, ignore --end value",
 		},
 		&cli.BoolFlag{
 			Name:    "disable-title",
@@ -379,19 +379,24 @@ func main() {
 							"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
 							"			 ",
 						Required: true,
+						Action: func(c *cli.Context, v string) error {
+							if c.String("end") == "" && c.String("duration") == "" {
+								return fmt.Errorf("either of end, duration options must be specified")
+							}
+							return nil
+						},
 					},
 					&cli.StringFlag{
-						Name:     "end",
-						Aliases:  []string{"e"},
-						Value:    "",
-						Usage:    "`TIME` indicate end point of dump, same format with --begin",
-						Required: true,
+						Name:    "end",
+						Aliases: []string{"e"},
+						Value:   "",
+						Usage:   "`TIME` indicate end point of dump, same format with --begin",
 					},
 					&cli.StringFlag{
 						Name:    "duration",
 						Aliases: []string{"d"},
 						Value:   "",
-						Usage:   "e.g 1h, 30m10s. if `DURATION` is specified, overrides --end value",
+						Usage:   "e.g 1h, 30m10s. if `DURATION` is specified, ignore --end value",
 					},
 					&cli.StringFlag{
 						Name:    "path",
