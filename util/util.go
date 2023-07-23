@@ -46,7 +46,7 @@ func ConvertToTime(s string) (timeStamp int64, err error) {
 	}
 	t, err = time.ParseInLocation("15:04", s, time.Local)
 	if err != nil {
-		return timeStamp, err
+		return timeStamp, fmt.Errorf("cannot parse %s: not support format", s)
 	}
 	y, m, d := time.Now().Date()
 	return time.Date(y, m, d, t.Hour(), t.Minute(), 0, 0, time.Local).Unix(), nil
