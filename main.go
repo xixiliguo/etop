@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -578,6 +579,94 @@ func main() {
 								fs = f
 							}
 							return dumpCommand(c, "process", fs)
+						},
+					},
+				},
+			},
+			{
+				Name:  "debug",
+				Usage: "Provides various debug feature",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "dump-store",
+						Usage: "Dump raw data of store",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "begin",
+								Aliases: []string{"b"},
+								Value:   "",
+								Usage: "`TIME` indicate start point of dump\n" +
+									"			relate value: 1h ago, 3h4m5s ago\n" +
+									"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
+									"			 ",
+								Required: true,
+								Action: func(c *cli.Context, v string) error {
+									if c.String("end") == "" && c.String("duration") == "" {
+										return fmt.Errorf("either of end, duration options must be specified")
+									}
+									return nil
+								},
+							},
+							&cli.StringFlag{
+								Name:    "end",
+								Aliases: []string{"e"},
+								Value:   "",
+								Usage:   "`TIME` indicate end point of dump, same format with --begin",
+							},
+							&cli.StringFlag{
+								Name:    "duration",
+								Aliases: []string{"d"},
+								Value:   "",
+								Usage:   "e.g 1h, 30m10s. if `DURATION` is specified, ignore --end value",
+							},
+							&cli.StringFlag{
+								Name:    "path",
+								Aliases: []string{"p"},
+								Value:   "/var/log/etop",
+								Usage:   "geneate snapshot file from `PATH`",
+							},
+						},
+						Action: func(c *cli.Context) error {
+							path := c.String("path")
+							local, err := store.NewLocalStore(
+								store.WithSetDefault(path, createLogger(os.Stdout)),
+							)
+							if err != nil {
+								return err
+							}
+							begin, err := util.ConvertToTime(c.String("begin"))
+							if err != nil {
+								return err
+							}
+							end := int64(0)
+							if duration := c.String("duration"); duration == "" {
+								end, err = util.ConvertToTime(c.String("end"))
+								if err != nil {
+									return err
+								}
+							} else {
+								d, err := time.ParseDuration(duration)
+								if err != nil {
+									return err
+								}
+								end = begin + int64(d/time.Second)
+							}
+							sample := store.NewSample()
+							if err := local.JumpSampleByTimeStamp(begin, &sample); err != nil {
+								return err
+							}
+							for begin < end {
+								b, err := json.MarshalIndent(sample, "", "	")
+								if err != nil {
+									return err
+								}
+								fmt.Printf("%s\n", b)
+								if err := local.NextSample(1, &sample); err != nil {
+									return nil
+								}
+								begin = sample.TimeStamp
+							}
+							return nil
 						},
 					},
 				},
