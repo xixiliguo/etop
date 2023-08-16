@@ -1,6 +1,6 @@
 module github.com/xixiliguo/etop
 
-go 1.20
+go 1.21
 
 require (
 	github.com/cilium/ebpf v0.10.0
@@ -11,7 +11,6 @@ require (
 	github.com/prometheus/procfs v0.9.0
 	github.com/rivo/tview v0.0.0-20230208211350-7dfff1ce7854
 	github.com/urfave/cli/v2 v2.24.4
-	golang.org/x/exp v0.0.0-20230223210539-50820d90acfd
 	golang.org/x/sys v0.5.0
 )
 

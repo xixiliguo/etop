@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,7 +16,6 @@ import (
 	"github.com/xixiliguo/etop/tui"
 	"github.com/xixiliguo/etop/util"
 	"github.com/xixiliguo/etop/version"
-	"golang.org/x/exp/slog"
 )
 
 var (
@@ -682,7 +682,7 @@ func main() {
 }
 
 func createLogger(w io.Writer) *slog.Logger {
-	th := slog.HandlerOptions{
+	th := slog.NewTextHandler(w, &slog.HandlerOptions{
 		AddSource: true,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.SourceKey {
@@ -690,6 +690,6 @@ func createLogger(w io.Writer) *slog.Logger {
 			}
 			return a
 		},
-	}.NewTextHandler(w)
+	})
 	return slog.New(th)
 }

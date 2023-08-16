@@ -2,11 +2,11 @@ package model
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"regexp"
 
 	"github.com/xixiliguo/etop/store"
-	"golang.org/x/exp/slog"
 )
 
 type Model struct {

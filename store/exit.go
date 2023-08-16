@@ -3,6 +3,7 @@ package store
 import (
 	"bytes"
 	"encoding/binary"
+	"log/slog"
 	"os"
 	"sync"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/rlimit"
 	"github.com/prometheus/procfs"
-	"golang.org/x/exp/slog"
 	"golang.org/x/sys/unix"
 )
 

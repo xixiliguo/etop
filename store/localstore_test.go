@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -12,7 +13,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/prometheus/procfs"
-	"golang.org/x/exp/slog"
 )
 
 func TestLocalStoreopenFile(t *testing.T) {

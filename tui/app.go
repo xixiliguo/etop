@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -9,7 +10,6 @@ import (
 	"github.com/xixiliguo/etop/model"
 	"github.com/xixiliguo/etop/store"
 	"github.com/xixiliguo/etop/util"
-	"golang.org/x/exp/slog"
 )
 
 const (

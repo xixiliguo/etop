@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path"
@@ -17,7 +18,6 @@ import (
 	"time"
 
 	"github.com/xixiliguo/etop/util"
-	"golang.org/x/exp/slog"
 )
 
 var (
