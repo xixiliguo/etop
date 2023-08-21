@@ -120,6 +120,7 @@ func normalizeField(module string, config model.RenderConfig, fields []string) (
 
 func dumpCommand(c *cli.Context, module string, fields []string) error {
 	path := c.String("path")
+	path, _ = filepath.Abs(path)
 	logFile, err := os.OpenFile(filepath.Join(path, "etop.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -241,6 +242,7 @@ func main() {
 						return fmt.Errorf("retainday flag shoud great than 0, but get %d\n", retainsizeFlag)
 					}
 					path := c.String("path")
+					path, _ = filepath.Abs(path)
 					if _, err := os.Stat(path); os.IsNotExist(err) {
 						if err := os.Mkdir(path, 0755); err != nil {
 							return err
@@ -629,6 +631,7 @@ func main() {
 						},
 						Action: func(c *cli.Context) error {
 							path := c.String("path")
+							path, _ = filepath.Abs(path)
 							local, err := store.NewLocalStore(
 								store.WithSetDefault(path, createLogger(os.Stdout)),
 							)
