@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -449,7 +448,9 @@ type WriteOption struct {
 func (local *LocalStore) WriteLoop(opt WriteOption) error {
 
 	interval := opt.Interval
-	msg := fmt.Sprintf("start to write sample every %s to %s", interval.String(), local.Data.Name())
+	msg := fmt.Sprintf("start to write sample every %s to %s",
+		interval.String(),
+		local.Data.Name())
 	local.Log.Info(msg)
 	isSkip := 0
 	for {
@@ -520,24 +521,13 @@ func (local *LocalStore) CleanOldFiles(opt WriteOption) {
 	}
 
 	oldestKeepDate := time.Now().AddDate(0, 0, -opt.RetainDay).Format("20060102")
-	for _, s := range suffixs {
-		if s < oldestKeepDate {
-			if err := os.Remove(path.Join(local.Path, "index_"+s)); err != nil {
-				local.Log.Warn(fmt.Sprintf("%s", err))
-			} else {
-				msg := fmt.Sprintf("delete oldest index_%s", s)
-				local.Log.Info(msg)
-			}
-			if err := os.Remove(path.Join(local.Path, "data_"+s)); err != nil {
-				local.Log.Warn(fmt.Sprintf("%s", err))
-			} else {
-				msg := fmt.Sprintf("delete oldest data_%s", s)
-				local.Log.Info(msg)
-			}
+	for _, suffixs := range suffixs {
+		if suffixs < oldestKeepDate {
+			local.DeleteSingleFile(suffixs)
 		}
 	}
 
-	for {
+	for i := 0; i < 3; i++ {
 		suffixs, idxSize, dataSize, err := getIndexAndDataInfo(local.Path)
 		if err != nil {
 			msg := fmt.Sprintf("get index and data files: %s", err)
@@ -548,24 +538,26 @@ func (local *LocalStore) CleanOldFiles(opt WriteOption) {
 			if len(suffixs) != 0 && suffixs[0] < time.Now().Format("20060102") {
 				s := suffixs[0]
 				suffixs = suffixs[1:]
-				if err := os.Remove(path.Join(local.Path, "index_"+s)); err != nil {
-					local.Log.Warn(fmt.Sprintf("%s", err))
-				} else {
-					msg := fmt.Sprintf("delete oldest index_%s", s)
-					local.Log.Info(msg)
-				}
-				if err := os.Remove(path.Join(local.Path, "data_"+s)); err != nil {
-					local.Log.Warn(fmt.Sprintf("%s", err))
-				} else {
-					msg := fmt.Sprintf("delete oldest data_%s", s)
-					local.Log.Info(msg)
-				}
+				local.DeleteSingleFile(s)
 			} else {
+				local.Log.Info("file of today was not permitted to delete")
 				break
 			}
 		} else {
 			break
 		}
 	}
+}
 
+func (local *LocalStore) DeleteSingleFile(suffix string) {
+	for _, prefix := range []string{"index", "data"} {
+		file := fmt.Sprintf("%s_%s", prefix, suffix)
+		absFile := filepath.Join(local.Path, file)
+		if err := os.Remove(absFile); err != nil {
+			local.Log.Warn(fmt.Sprintf("%s", err))
+		} else {
+			msg := fmt.Sprintf("delete oldest %s", absFile)
+			local.Log.Info(msg)
+		}
+	}
 }
