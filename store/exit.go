@@ -3,6 +3,7 @@ package store
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"log/slog"
 	"os"
 	"sync"
@@ -34,27 +35,31 @@ func (e *ExitProcess) Collect() {
 	pageSize := uint(os.Getpagesize())
 
 	if err := rlimit.RemoveMemlock(); err != nil {
-		e.log.Error("remove Memlock: ", err)
+		msg := fmt.Sprintf("remove Memlock: %s", err)
+		e.log.Error(msg)
 		return
 	}
 
 	objs := bpfObjects{}
 	if err := loadBpfObjects(&objs, nil); err != nil {
-		e.log.Error("loading objects: ", err)
+		msg := fmt.Sprintf("loading objects: %s", err)
+		e.log.Error(msg)
 		return
 	}
 	defer objs.Close()
 
 	kp, err := link.Tracepoint("sched", "sched_process_exit", objs.HandleExit, nil)
 	if err != nil {
-		e.log.Error("opening tracepoint: ", err)
+		msg := fmt.Sprintf("opening tracepoint: %s", err)
+		e.log.Error(msg)
 		return
 	}
 	defer kp.Close()
 
 	rd, err := perf.NewReader(objs.Events, os.Getpagesize())
 	if err != nil {
-		e.log.Error("creating event reader: ", err)
+		msg := fmt.Sprintf("creating event reader: %s", err)
+		e.log.Error(msg)
 		return
 	}
 	defer rd.Close()
@@ -64,17 +69,20 @@ func (e *ExitProcess) Collect() {
 	for {
 		err := rd.ReadInto(&record)
 		if err != nil {
-			e.log.Error("reading from reader: ", err)
+			msg := fmt.Sprintf("reading from reader: %s", err)
+			e.log.Error(msg)
 			return
 		}
 
 		if record.LostSamples != 0 {
-			e.log.Info("perf event lost %d samples", record.LostSamples)
+			msg := fmt.Sprintf("perf event lost %d samples", record.LostSamples)
+			e.log.Info(msg)
 			continue
 		}
 
 		if err := binary.Read(bytes.NewBuffer(record.RawSample), binary.LittleEndian, &event); err != nil {
-			e.log.Error("parsing ringbuf event: ", err)
+			msg := fmt.Sprintf("parsing ringbuf event: %s", err)
+			e.log.Error(msg)
 			continue
 		}
 

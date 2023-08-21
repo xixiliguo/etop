@@ -487,16 +487,18 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 			}
 		} else {
 			if isSkip == 0 {
-				local.Log.Warn("filesystem free space %s below %s, write sample skipped",
+				msg := fmt.Sprintf("filesystem free space %s below %s, write sample skipped",
 					util.GetHumanSize(statInfo.Bavail*uint64(statInfo.Bsize)),
 					util.GetHumanSize(MinimumFreeSpaceForStore))
+				local.Log.Warn(msg)
 			}
 			isSkip++
 		}
 
 		collectDuration := time.Now().Sub(start)
 		if collectDuration > 500*time.Millisecond {
-			local.Log.Warn("write sample take %s (larger than 500 ms)", collectDuration.String())
+			msg := fmt.Sprintf("write sample take %s (larger than 500 ms)", collectDuration.String())
+			local.Log.Warn(msg)
 		}
 		sleepDuration := time.Duration(1 * time.Second)
 		if interval-collectDuration > 1*time.Second {

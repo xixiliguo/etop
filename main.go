@@ -686,7 +686,8 @@ func createLogger(w io.Writer) *slog.Logger {
 		AddSource: true,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.SourceKey {
-				a.Value = slog.StringValue(filepath.Base(a.Value.String()))
+				source := a.Value.Any().(*slog.Source)
+				source.File = filepath.Base(source.File)
 			}
 			return a
 		},

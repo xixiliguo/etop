@@ -66,12 +66,13 @@ func NewTUI(log *slog.Logger) *TUI {
 		if key == tcell.KeyEnter {
 			timeStamp, err := util.ConvertToTime(tui.search.form.GetText())
 			if err != nil {
-				tui.log.Error("user-input time", err)
+				msg := fmt.Sprintf("user-input time: %s", err)
+				tui.log.Error(msg)
 				return
 			}
 			if err := tui.sm.CollectSampleByTime(timeStamp); err != nil {
-				msg := fmt.Sprintf("search sample by %s", time.Unix(timeStamp, 0).Format(time.RFC3339))
-				tui.log.Error(msg, err)
+				msg := fmt.Sprintf("search sample by %s: %s", time.Unix(timeStamp, 0).Format(time.RFC3339), err)
+				tui.log.Error(msg)
 				return
 			}
 			tui.header.Update(tui.sm)
@@ -108,7 +109,8 @@ func NewTUI(log *slog.Logger) *TUI {
 		if event.Rune() == 't' {
 			if tui.mode == REPORT {
 				if err := tui.sm.CollectNext(); err != nil {
-					tui.log.Error("next sample", err)
+					msg := fmt.Sprintf("next sample: %s", err)
+					tui.log.Error(msg)
 					return nil
 				}
 				tui.header.Update(tui.sm)
@@ -120,7 +122,8 @@ func NewTUI(log *slog.Logger) *TUI {
 		} else if event.Rune() == 'T' {
 			if tui.mode == REPORT {
 				if err := tui.sm.CollectPrev(); err != nil {
-					tui.log.Error("previous sample", err)
+					msg := fmt.Sprintf("previous sample: %s", err)
+					tui.log.Error(msg)
 					return nil
 				}
 				tui.header.Update(tui.sm)
