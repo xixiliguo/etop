@@ -86,7 +86,8 @@ func (basic *Basic) Update(sm *model.Model) {
 
 	basic.disk.Clear()
 	fmt.Fprintf(basic.disk, "%-7s", "Disk")
-	for _, d := range sm.Disks {
+	for _, disk := range sm.Disks.GetKeys() {
+		d := sm.Disks[disk]
 		fmt.Fprintf(basic.disk, "%-5s%10s|%-10s ",
 			d.GetRenderValue(sm.Config["disk"], "Disk"),
 			d.GetRenderValue(sm.Config["disk"], "ReadByte/s"),

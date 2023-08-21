@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -185,14 +184,8 @@ func (system *System) DrawDiskInfo() {
 		system.disk.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
 	}
 
-	names := make([]string, 0, len(system.source.Disks))
-	for n := range system.source.Disks {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-
 	r := 0
-	for _, n := range names {
+	for _, n := range system.source.Disks.GetKeys() {
 		disk := system.source.Disks[n]
 		for i, col := range visbleCols {
 			system.disk.SetCell(r+1,

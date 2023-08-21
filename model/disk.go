@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -144,6 +145,18 @@ func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
 
 }
 
+func (diskMap DiskMap) GetKeys() []string {
+
+	keys := []string{}
+	for k := range diskMap {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+	return keys
+}
+
 func (diskMap DiskMap) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
 
 	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
@@ -151,7 +164,8 @@ func (diskMap DiskMap) Dump(timeStamp int64, config RenderConfig, opt DumpOption
 	case "text":
 		config.SetFixWidth(true)
 	looptext:
-		for _, d := range diskMap {
+		for _, disk := range diskMap.GetKeys() {
+			d := diskMap[disk]
 			row := strings.Builder{}
 			row.WriteString(dateTime)
 			for _, f := range opt.Fields {
@@ -171,7 +185,8 @@ func (diskMap DiskMap) Dump(timeStamp int64, config RenderConfig, opt DumpOption
 	case "json":
 		t := []any{}
 	loopjson:
-		for _, d := range diskMap {
+		for _, disk := range diskMap.GetKeys() {
+			d := diskMap[disk]
 			row := make(map[string]string)
 			row["Timestamp"] = dateTime
 			for _, f := range opt.Fields {
