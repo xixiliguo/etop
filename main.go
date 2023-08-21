@@ -316,6 +316,7 @@ func main() {
 							path = tempPath
 						}
 					}
+					path, _ = filepath.Abs(path)
 					if c.Bool("stat") == true {
 
 						local, err := store.NewLocalStore(

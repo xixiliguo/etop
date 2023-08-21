@@ -196,6 +196,9 @@ func (local *LocalStore) FileStatInfo() (result string, err error) {
 	if err != nil {
 		return
 	}
+	if len(suffixs) == 0 {
+		return fmt.Sprintf("no data at %s", local.Path), nil
+	}
 
 	result += fmt.Sprintf("%-5s: %s\n", "Path", local.Path)
 	result += fmt.Sprintf("%-5s: %d files %s\n", "Index", len(suffixs), util.GetHumanSize(indexSize))
