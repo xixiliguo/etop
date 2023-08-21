@@ -36,9 +36,6 @@ nfpms:
     contents:
       - src: rpm/etop.service
         dst: /usr/lib/systemd/system/etop.service
-
-      - dst: /var/log/etop/etop.log
-        type: ghost
     scripts:
       postinstall: "rpm/postinstall.sh"
       preremove: "rpm/preremove.sh"
