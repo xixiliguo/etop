@@ -408,7 +408,7 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 		if err := local.changeFile(suffix, true); err != nil {
 			return newSuffix, err
 		}
-		msg := fmt.Sprintf("switch and write data into data_%s", suffix)
+		msg := fmt.Sprintf("switch and write data into %s", local.Data.Name())
 		local.Log.Info(msg)
 		newSuffix = true
 	}
