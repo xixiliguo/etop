@@ -316,12 +316,17 @@ func (process *Process) update() {
 	}
 	for r := 0; r < len(visbleData); r++ {
 		for i, col := range process.visibleColumns {
+			width := 0
+			if col == "Comm" {
+				width = 16
+			}
 			process.processView.SetCell(r+1,
 				i,
 				tview.NewTableCell(visbleData[r].
 					GetRenderValue(process.source.Config["process"], col)).
 					SetExpansion(1).
-					SetAlign(tview.AlignLeft))
+					SetAlign(tview.AlignLeft).
+					SetMaxWidth(width))
 		}
 	}
 }

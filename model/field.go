@@ -588,7 +588,7 @@ func genSoftnetDefaultConfig() {
 func genProcessDefaultConfig() {
 
 	processDefaultRenderConfig["Pid"] = Field{"Pid", Raw, 0, "", 10, false}
-	processDefaultRenderConfig["Comm"] = Field{"Comm", Raw, 0, "", 35, false}
+	processDefaultRenderConfig["Comm"] = Field{"Comm", Raw, 0, "", 16, false}
 	processDefaultRenderConfig["State"] = Field{"State", Raw, 0, "", 10, false}
 	processDefaultRenderConfig["Ppid"] = Field{"Ppid", Raw, 0, "", 10, false}
 	processDefaultRenderConfig["Thr"] = Field{"Thr", Raw, 0, "", 10, false}

@@ -169,7 +169,11 @@ func (tui *TUI) Run(path string, beginTime string) error {
 		return err
 	}
 
-	sm.Config["process"].Update("Comm", model.Field{"Comm", model.Raw, 0, "", 35, true})
+	for name, v := range sm.Config {
+		if name == "process" {
+			v.SetFixWidth(true)
+		}
+	}
 	if err != nil {
 		return err
 	}
