@@ -149,6 +149,7 @@ func newVmstat(file string) (VmStat, error) {
 type ProcSample struct {
 	procfs.ProcStat
 	procfs.ProcIO
+	CmdLine string
 }
 
 func NewSample() Sample {
@@ -295,6 +296,8 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess) error {
 		if p.ProcIO, err = proc.IO(); err != nil {
 			continue
 		}
+		cmdLines, _ := proc.CmdLine()
+		p.CmdLine = strings.Join(cmdLines, " ")
 		s.ProcSamples[p.PID] = p
 	}
 	if exit != nil {

@@ -20,6 +20,7 @@ var RenderAndField = []struct {
 	{"Thr", "NumThreads"},
 	{"StartTime", "StartTime"},
 	{"OnCPU", "Processor"},
+	{"CmdLine", "CmdLine"},
 	{"UserCPU", "UTime"},
 	{"SysCPU", "STime"},
 	{"Pri", "Priority"},

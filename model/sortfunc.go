@@ -10,6 +10,7 @@ var SortMap = map[string]sortFunc{
 	"Thr":       SortByNumThreads,
 	"StartTime": SortByStartTime,
 	"OnCPU":     SortByProcessor,
+	"CmdLine":   SortByCmdLine,
 	"UserCPU":   SortByUTime,
 	"SysCPU":    SortBySTime,
 	"Pri":       SortByPriority,
@@ -77,6 +78,10 @@ func SortByStartTime(i, j Process) bool {
 
 func SortByProcessor(i, j Process) bool {
 	return i.Processor > j.Processor
+}
+
+func SortByCmdLine(i, j Process) bool {
+	return i.CmdLine > j.CmdLine
 }
 
 func SortByUTime(i, j Process) bool {
