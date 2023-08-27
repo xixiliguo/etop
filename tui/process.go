@@ -2,10 +2,11 @@ package tui
 
 import (
 	"fmt"
-	"regexp"
 	"slices"
 	"sort"
 
+	"github.com/antonmedv/expr"
+	"github.com/antonmedv/expr/vm"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/xixiliguo/etop/model"
@@ -40,6 +41,7 @@ type Process struct {
 	searchView         *tview.InputField
 	searchDisplay      bool
 	searchText         string
+	searchprogram      *vm.Program
 	prevVisibleColumns []string
 	visibleColumns     []string
 	defaultOrder       string
@@ -112,9 +114,25 @@ func NewProcess(tui *TUI) *Process {
 		SetFieldWidth(30).
 		SetFieldBackgroundColor(tcell.ColorBlack).
 		SetLabelColor(tcell.ColorBlue).
-		SetChangedFunc(func(text string) {
-			process.searchText = text
-			process.update()
+		SetDoneFunc(func(key tcell.Key) {
+			if key == tcell.KeyEnter {
+				input := process.searchView.GetText()
+				if input == "" {
+					process.searchText = ""
+					process.searchprogram = nil
+					process.update()
+					return
+				}
+				program, err := expr.Compile(input, expr.Env(model.Process{}), expr.AsBool())
+				if err == nil {
+					process.searchText = input
+					process.searchprogram = program
+					process.update()
+				} else {
+					process.tui.status.Clear()
+					fmt.Fprintf(process.tui.status, "%s", err)
+				}
+			}
 		}).
 		SetTitle("Search     ESC to close").
 		SetBorder(true).
@@ -289,12 +307,17 @@ func (process *Process) setSortContent(visleCol []string, order string) {
 func (process *Process) update() {
 	process.processView.Clear()
 	process.processView.SetOffset(0, 0)
+	title := "Process"
+	if process.searchText != "" {
+		title += " Filter: " + process.searchText
+	}
+	process.lower.SetTitle(title)
 
 	process.visbleData = process.visbleData[:0]
 	if process.searchText != "" {
 		for _, s := range process.source.Processes {
-			matched, _ := regexp.MatchString(process.searchText, s.Comm)
-			if matched {
+			output, _ := expr.Run(process.searchprogram, s)
+			if output.(bool) {
 				process.visbleData = append(process.visbleData, s)
 			}
 		}
