@@ -26,6 +26,7 @@ type TUI struct {
 	process *Process
 	system  *System
 	detail  *tview.Pages
+	status  *tview.TextView
 	search  *InputDialog
 	help    *Help
 	log     *slog.Logger
@@ -40,13 +41,17 @@ func NewTUI(log *slog.Logger) *TUI {
 		base:        tview.NewFlex(),
 		header:      NewHeader(),
 		basic:       NewBasic(),
-		process:     NewProcess(),
 		system:      NewSystem(),
 		detail:      tview.NewPages(),
+		status:      tview.NewTextView(),
 		search:      NewInputDialog(),
 		help:        NewHelp(),
 		log:         log,
 	}
+
+	tui.process = NewProcess(tui)
+
+	tui.status.SetBorder(true)
 
 	tui.detail.AddPage("Process", tui.process, true, true)
 	tui.detail.AddPage("System", tui.system, true, false)
@@ -88,7 +93,8 @@ func NewTUI(log *slog.Logger) *TUI {
 	tui.base.SetDirection(tview.FlexRow).
 		AddItem(tui.header, 3, 1, false).
 		AddItem(tui.basic, 8, 1, false).
-		AddItem(tui.detail, 0, 1, true)
+		AddItem(tui.detail, 0, 1, true).
+		AddItem(tui.status, 3, 0, false)
 
 	tui.pages.AddPage("base", tui.base, true, true).
 		AddPage("search", tui.search, true, false).

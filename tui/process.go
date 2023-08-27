@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 
 	"github.com/gdamore/tcell/v2"
@@ -23,30 +24,34 @@ var (
 
 type Process struct {
 	*tview.Box
-	layout         *tview.Flex
-	upper          *tview.Flex
-	lower          *tview.Flex
-	regions        []string
-	currRegionIdx  int
-	header         *tview.TextView
-	processView    *tview.Table
-	processDisplay bool
-	sortView       *tview.List
-	sortField      string
-	descOrder      bool
-	sortDisplay    bool
-	searchView     *tview.InputField
-	searchDisplay  bool
-	searchText     string
-	visibleColumns []string
-	defaultOrder   string
-	source         *model.Model
+	tui                *TUI
+	layout             *tview.Flex
+	upper              *tview.Flex
+	lower              *tview.Flex
+	regions            []string
+	currRegionIdx      int
+	header             *tview.TextView
+	processView        *tview.Table
+	processDisplay     bool
+	sortView           *tview.List
+	sortField          string
+	descOrder          bool
+	sortDisplay        bool
+	searchView         *tview.InputField
+	searchDisplay      bool
+	searchText         string
+	prevVisibleColumns []string
+	visibleColumns     []string
+	defaultOrder       string
+	visbleData         []model.Process
+	source             *model.Model
 }
 
-func NewProcess() *Process {
+func NewProcess(tui *TUI) *Process {
 
 	process := &Process{
 		Box:            tview.NewBox(),
+		tui:            tui,
 		layout:         tview.NewFlex(),
 		upper:          tview.NewFlex(),
 		lower:          tview.NewFlex(),
@@ -72,8 +77,15 @@ func NewProcess() *Process {
 	process.header.SetRegions(true).Highlight("g")
 
 	process.processView.
-		SetFixed(1, 1)
-
+		SetFixed(1, 2).
+		SetSelectable(true, false).
+		SetSelectionChangedFunc(func(row int, column int) {
+			process.tui.status.Clear()
+			idx := row - 1
+			if 0 <= idx && idx < len(process.visbleData) {
+				fmt.Fprintf(process.tui.status, "%s", process.visbleData[idx].CmdLine)
+			}
+		})
 	process.lower.
 		SetBorder(true).
 		SetTitle("Process").
@@ -164,7 +176,7 @@ func (process *Process) setRegionAndSwitchView(region string) {
 		}
 	}
 	process.header.Highlight(region)
-
+	process.prevVisibleColumns = process.visibleColumns
 	switch region {
 	case "g":
 		process.setVisibleColumns(GENERALLAYOUT, GENERALDEFAULTORDER)
@@ -278,27 +290,30 @@ func (process *Process) update() {
 	process.processView.Clear()
 	process.processView.SetOffset(0, 0)
 
-	visbleData := []model.Process{}
+	process.visbleData = process.visbleData[:0]
 	if process.searchText != "" {
 		for _, s := range process.source.Processes {
 			matched, _ := regexp.MatchString(process.searchText, s.Comm)
 			if matched {
-				visbleData = append(visbleData, s)
+				process.visbleData = append(process.visbleData, s)
 			}
 		}
 	} else {
 		for _, p := range process.source.Processes {
-			visbleData = append(visbleData, p)
+			process.visbleData = append(process.visbleData, p)
 		}
 	}
 
 	if process.sortField != "" {
-		sort.SliceStable(visbleData, func(i, j int) bool {
-			return model.SortMap[process.sortField](visbleData[i], visbleData[j])
+		sort.SliceStable(process.visbleData, func(i, j int) bool {
+			return model.SortMap[process.sortField](process.visbleData[i], process.visbleData[j])
 		})
 		if process.descOrder == false {
-			for i := 0; i < len(visbleData)/2; i++ {
-				visbleData[i], visbleData[len(visbleData)-1-i] = visbleData[len(visbleData)-1-i], visbleData[i]
+			for i := 0; i < len(process.visbleData)/2; i++ {
+				process.visbleData[i],
+					process.visbleData[len(process.visbleData)-1-i] =
+					process.visbleData[len(process.visbleData)-1-i],
+					process.visbleData[i]
 			}
 		}
 	}
@@ -312,9 +327,9 @@ func (process *Process) update() {
 				orderFlag = "▲"
 			}
 		}
-		process.processView.SetCell(0, i, tview.NewTableCell(col+orderFlag).SetTextColor(tcell.ColorBlue))
+		process.processView.SetCell(0, i, tview.NewTableCell(col+orderFlag).SetTextColor(tcell.ColorBlue).SetSelectable(false))
 	}
-	for r := 0; r < len(visbleData); r++ {
+	for r := 0; r < len(process.visbleData); r++ {
 		for i, col := range process.visibleColumns {
 			width := 0
 			if col == "Comm" {
@@ -322,11 +337,15 @@ func (process *Process) update() {
 			}
 			process.processView.SetCell(r+1,
 				i,
-				tview.NewTableCell(visbleData[r].
+				tview.NewTableCell(process.visbleData[r].
 					GetRenderValue(process.source.Config["process"], col)).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft).
 					SetMaxWidth(width))
 		}
+	}
+
+	if slices.Compare(process.prevVisibleColumns, process.visibleColumns) != 0 {
+		process.processView.Select(1, 0)
 	}
 }
