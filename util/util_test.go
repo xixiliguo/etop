@@ -27,6 +27,16 @@ func TestGetHumanSize(t *testing.T) {
 	}
 }
 
+func BenchmarkGetHumanSize(b *testing.B) {
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		GetHumanSize(579)
+	}
+
+}
+
 func TestConvertToTime(t *testing.T) {
 	y, m, d := time.Now().Date()
 	testCases := []struct {

@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -23,7 +24,7 @@ func GetHumanSize[T int | int64 | uint64 | uint | uint32 | float64](size T) stri
 		fsize = fsize / 1024
 		i++
 	}
-	return fmt.Sprintf("%.1f %s", fsize, unitMap[i])
+	return strconv.FormatFloat(fsize, 'f', 1, 64) + unitMap[i]
 }
 
 func ConvertToTime(s string) (timeStamp int64, err error) {
