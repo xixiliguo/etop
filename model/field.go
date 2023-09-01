@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/xixiliguo/etop/util"
 )
@@ -12,6 +13,26 @@ const (
 	Raw Format = iota
 	HumanReadableSize
 )
+
+var space = [17]string{
+	"",
+	" ",
+	"  ",
+	"   ",
+	"    ",
+	"     ",
+	"      ",
+	"       ",
+	"        ",
+	"         ",
+	"          ",
+	"           ",
+	"            ",
+	"             ",
+	"              ",
+	"               ",
+	"                ",
+}
 
 type Field struct {
 	Name      string
@@ -29,37 +50,38 @@ func (f Field) Render(value any) string {
 		if f.Format == HumanReadableSize {
 			s = util.GetHumanSize(v)
 		} else {
-			s = fmt.Sprintf("%d", v)
+			s = strconv.FormatUint(v, 10)
 		}
 	case uint:
 		if f.Format == HumanReadableSize {
 			s = util.GetHumanSize(v)
 		} else {
-			s = fmt.Sprintf("%d", v)
+			s = strconv.FormatUint(uint64(v), 10)
 		}
 	case uint32:
 		if f.Format == HumanReadableSize {
 			s = util.GetHumanSize(v)
 		} else {
-			s = fmt.Sprintf("%d", v)
+			s = strconv.FormatUint(uint64(v), 10)
 		}
 	case int:
 		if f.Format == HumanReadableSize {
 			s = util.GetHumanSize(v)
 		} else {
-			s = fmt.Sprintf("%d", v)
+			s = strconv.FormatInt(int64(v), 10)
+
 		}
 	case int64:
 		if f.Format == HumanReadableSize {
 			s = util.GetHumanSize(v)
 		} else {
-			s = fmt.Sprintf("%d", v)
+			s = strconv.FormatInt(v, 10)
 		}
 	case float64:
 		if f.Format == HumanReadableSize {
 			s = util.GetHumanSize(v)
 		} else {
-			s = fmt.Sprintf("%.*f", f.Precision, v)
+			s = strconv.FormatFloat(v, 'f', f.Precision, 64)
 		}
 	case string:
 		s = v
@@ -74,7 +96,14 @@ func (f Field) Render(value any) string {
 		if len(f.Name) > width {
 			width = len(f.Name)
 		}
-		s = fmt.Sprintf("%-*s", width, s)
+
+		if padding := width - len(s); padding > 0 {
+			if padding <= 16 {
+				s += space[padding]
+			} else {
+				s = fmt.Sprintf("%-*s", width, s)
+			}
+		}
 	}
 	return s
 }
