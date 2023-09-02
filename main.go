@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -126,12 +124,12 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		return err
 	}
 	local, err := store.NewLocalStore(
-		store.WithSetDefault(path, createLogger(logFile)),
+		store.WithSetDefault(path, util.CreateLogger(logFile, false)),
 	)
 	if err != nil {
 		return err
 	}
-	sm, err := model.NewSysModel(local, createLogger(logFile))
+	sm, err := model.NewSysModel(local, util.CreateLogger(logFile, false))
 	if err != nil {
 		return err
 	}
@@ -254,7 +252,7 @@ func main() {
 						return err
 					}
 
-					log := createLogger(logFile)
+					log := util.CreateLogger(logFile, false)
 					msg := fmt.Sprintf("version: %s", version.Version)
 					log.Info(msg)
 
@@ -322,7 +320,7 @@ func main() {
 					if c.Bool("stat") == true {
 
 						local, err := store.NewLocalStore(
-							store.WithSetDefault(path, createLogger(os.Stdout)),
+							store.WithSetDefault(path, util.CreateLogger(os.Stdout, false)),
 						)
 						if err != nil {
 							return err
@@ -334,12 +332,8 @@ func main() {
 						fmt.Println(result)
 						return nil
 					}
-					logFile, err := os.OpenFile(filepath.Join(path, "etop.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-					if err != nil {
-						return err
-					}
 
-					t := tui.NewTUI(createLogger(logFile))
+					t := tui.NewTUI()
 					if err := t.Run(path, c.String("begin")); err != nil {
 						return err
 					}
@@ -363,7 +357,7 @@ func main() {
 						fmt.Printf("interval shoud great than 0, but get %d\n", internal)
 						os.Exit(1)
 					}
-					t := tui.NewTUI(createLogger(os.Stdout))
+					t := tui.NewTUI()
 					if err := t.RunWithLive(time.Duration(internal) * time.Second); err != nil {
 						return err
 					}
@@ -431,7 +425,7 @@ func main() {
 						time.Unix(begin, 0),
 						time.Unix(end, 0))
 					local, err := store.NewLocalStore(
-						store.WithSetDefault(c.String("path"), createLogger(os.Stdout)),
+						store.WithSetDefault(c.String("path"), util.CreateLogger(os.Stdout, false)),
 					)
 					if err != nil {
 						return err
@@ -633,7 +627,7 @@ func main() {
 							path := c.String("path")
 							path, _ = filepath.Abs(path)
 							local, err := store.NewLocalStore(
-								store.WithSetDefault(path, createLogger(os.Stdout)),
+								store.WithSetDefault(path, util.CreateLogger(os.Stdout, false)),
 							)
 							if err != nil {
 								return err
@@ -683,18 +677,4 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func createLogger(w io.Writer) *slog.Logger {
-	th := slog.NewTextHandler(w, &slog.HandlerOptions{
-		AddSource: true,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.SourceKey {
-				source := a.Value.Any().(*slog.Source)
-				source.File = filepath.Base(source.File)
-			}
-			return a
-		},
-	})
-	return slog.New(th)
 }

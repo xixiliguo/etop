@@ -34,7 +34,7 @@ type TUI struct {
 	sm      *model.Model
 }
 
-func NewTUI(log *slog.Logger) *TUI {
+func NewTUI() *TUI {
 	tui := &TUI{
 		Application: tview.NewApplication(),
 		pages:       tview.NewPages(),
@@ -46,8 +46,9 @@ func NewTUI(log *slog.Logger) *TUI {
 		status:      tview.NewTextView(),
 		search:      NewInputDialog(),
 		help:        NewHelp(),
-		log:         log,
 	}
+
+	tui.log = util.CreateLogger(tui.status, true)
 
 	tui.process = NewProcess(tui)
 
@@ -72,11 +73,13 @@ func NewTUI(log *slog.Logger) *TUI {
 			timeStamp, err := util.ConvertToTime(tui.search.form.GetText())
 			if err != nil {
 				msg := fmt.Sprintf("user-input time: %s", err)
+				tui.status.Clear()
 				tui.log.Error(msg)
 				return
 			}
 			if err := tui.sm.CollectSampleByTime(timeStamp); err != nil {
 				msg := fmt.Sprintf("search sample by %s: %s", time.Unix(timeStamp, 0).Format(time.RFC3339), err)
+				tui.status.Clear()
 				tui.log.Error(msg)
 				return
 			}
@@ -116,6 +119,7 @@ func NewTUI(log *slog.Logger) *TUI {
 			if tui.mode == REPORT {
 				if err := tui.sm.CollectNext(); err != nil {
 					msg := fmt.Sprintf("next sample: %s", err)
+					tui.status.Clear()
 					tui.log.Error(msg)
 					return nil
 				}
@@ -129,6 +133,7 @@ func NewTUI(log *slog.Logger) *TUI {
 			if tui.mode == REPORT {
 				if err := tui.sm.CollectPrev(); err != nil {
 					msg := fmt.Sprintf("previous sample: %s", err)
+					tui.status.Clear()
 					tui.log.Error(msg)
 					return nil
 				}

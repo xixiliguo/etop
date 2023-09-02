@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -130,4 +131,29 @@ func ArchiveToTarFile(subFiles []string, tarFileName string) error {
 		return err
 	}
 	return nil
+}
+
+func CreateLogger(w io.Writer, onlyMsg bool) *slog.Logger {
+	hOpt := &slog.HandlerOptions{
+		AddSource: true,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.SourceKey {
+				source := a.Value.Any().(*slog.Source)
+				source.File = filepath.Base(source.File)
+			}
+			return a
+		},
+	}
+	if onlyMsg {
+		hOpt = &slog.HandlerOptions{
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.TimeKey {
+					return slog.Attr{}
+				}
+				return a
+			},
+		}
+	}
+	th := slog.NewTextHandler(w, hOpt)
+	return slog.New(th)
 }
