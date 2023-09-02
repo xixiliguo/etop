@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/xixiliguo/etop/util"
 )
@@ -22,29 +24,39 @@ import (
 var (
 	DefaultPath                     = "/var/log/etop"
 	ErrOutOfRange                   = errors.New("data is out of range")
+	ErrIndexCorrupt                 = errors.New("corrupt index")
+	ErrDataCorrupt                  = errors.New("corrupt data")
 	MinimumFreeSpaceForStore uint64 = 500 * (1 << 20) // 500MB
 )
 
 // Index represent short info for one sample, so that speed up to find
 // specifed sample.
 type Index struct {
-	TimeStamp int64 // unix time when sample was generated
-	Offset    int64 // offset of file where sample is exist
-	Len       int64 // length of one sample
+	TimeStamp int64  // unix time when sample was generated
+	Offset    int64  // offset of file where sample is exist
+	Len       int64  // length of one sample
+	DataCRC   uint32 // crc for data
+	IndexCRC  uint32 // crc for whole index, except IndexCRC field
 }
 
+var sizeIndex = binary.Size(Index{})
+
 func (idx *Index) Marshal() []byte {
-	b := make([]byte, 24)
+	b := make([]byte, sizeIndex)
 	binary.LittleEndian.PutUint64(b[0:], uint64(idx.TimeStamp))
 	binary.LittleEndian.PutUint64(b[8:], uint64(idx.Offset))
 	binary.LittleEndian.PutUint64(b[16:], uint64(idx.Len))
-	return b[:]
+	binary.LittleEndian.PutUint32(b[24:], idx.DataCRC)
+	binary.LittleEndian.PutUint32(b[28:], idx.IndexCRC)
+	return b
 }
 
 func (idx *Index) Unmarshal(b []byte) {
 	idx.TimeStamp = int64(binary.LittleEndian.Uint64(b[0:]))
 	idx.Offset = int64(binary.LittleEndian.Uint64(b[8:]))
 	idx.Len = int64(binary.LittleEndian.Uint64(b[16:]))
+	idx.DataCRC = binary.LittleEndian.Uint32(b[24:])
+	idx.IndexCRC = binary.LittleEndian.Uint32(b[28:])
 }
 
 // Store is interface which operate file/network which include sample data.
@@ -152,14 +164,17 @@ func getIndexFrames(path string) ([]Index, error) {
 	for _, file := range idxFiles {
 
 		if f, err := os.Open(filepath.Join(path, file)); err == nil {
-			buf := make([]byte, 24)
+			buf := make([]byte, sizeIndex)
 			for {
 				n, err := f.Read(buf)
 				if err == io.EOF {
 					break
 				}
-				if err != nil || n != 24 {
+				if err != nil {
 					return nil, err
+				}
+				if n != sizeIndex {
+					return nil, fmt.Errorf("request %d byte, but got %d", sizeIndex, n)
 				}
 				index := Index{}
 				index.Unmarshal(buf)
@@ -380,6 +395,9 @@ func (local *LocalStore) JumpSampleByTimeStamp(timestamp int64, sample *Sample) 
 
 func (local *LocalStore) getSample(target int, sample *Sample) error {
 	idx := local.idxs[target]
+	if idx.IndexCRC != crc32.ChecksumIEEE((*[32]byte)(unsafe.Pointer(&idx))[:28]) {
+		return fmt.Errorf("%s timestamp %d: %w", local.Index.Name(), idx.TimeStamp, ErrIndexCorrupt)
+	}
 	buff := make([]byte, idx.Len)
 	n, err := local.Data.ReadAt(buff, idx.Offset)
 	if err != nil {
@@ -388,6 +406,10 @@ func (local *LocalStore) getSample(target int, sample *Sample) error {
 
 	if n != int(idx.Len) {
 		return fmt.Errorf("got %d bytes, but want %d\n", n, idx.Len)
+	}
+
+	if idx.DataCRC != crc32.ChecksumIEEE(buff) {
+		return fmt.Errorf("%s offset %d len %d: %w", local.Data.Name(), idx.Offset, idx.Len, ErrDataCorrupt)
 	}
 
 	if err := sample.Unmarshal(buff); err != nil {
@@ -420,17 +442,31 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 		return newSuffix, err
 	}
 
+	if info, err := local.Data.Stat(); err != nil {
+		return newSuffix, err
+	} else {
+		if s := info.Size(); s != local.DataOffset {
+			local.Log.Error("Data file length mismatch, expect %d, but got %d", local.DataOffset, s)
+			local.DataOffset = s
+		}
+	}
+
 	idx := Index{
 		TimeStamp: s.TimeStamp,
 		Offset:    local.DataOffset,
 		Len:       int64(len(compressed)),
 	}
-	_, err = local.Index.Write(idx.Marshal())
+
+	_, err = local.Data.Write(compressed)
+
 	if err != nil {
 		return newSuffix, err
 	}
-	_, err = local.Data.Write(compressed)
 
+	idx.DataCRC = crc32.ChecksumIEEE(compressed)
+	idx.IndexCRC = crc32.ChecksumIEEE((*[32]byte)(unsafe.Pointer(&idx))[:28])
+
+	_, err = local.Index.Write(idx.Marshal())
 	if err != nil {
 		return newSuffix, err
 	}
