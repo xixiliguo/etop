@@ -9,7 +9,20 @@ import (
 	"github.com/xixiliguo/etop/store"
 )
 
-var DefaultMEMFields = []string{"Total", "Free", "Avail"}
+var DefaultMEMFields = []string{
+	"MemTotal", "MemFree", "MemAvailable",
+	"Buffers", "Cached", "SwapCached", "Active",
+	"Inactive", "ActiveAnon", "InactiveAnon", "Unevictable",
+	"Mlocked", "SwapTotal", "SwapFree", "Dirty",
+	"Writeback", "AnonPages", "Mapped", "Shmem",
+	"Slab", "SReclaimable", "SUnreclaim", "KernelStack",
+	"PageTables", "NFSUnstable", "Bounce", "WritebackTmp",
+	"CommitLimit", "CommittedAS", "VmallocTotal", "VmallocUsed",
+	"VmallocChunk", "HardwareCorrupted", "AnonHugePages", "ShmemHugePages",
+	"ShmemPmdMapped", "CmaTotal", "CmaFree", "HugePagesTotal",
+	"HugePagesFree", "HugePagesRsvd", "HugePagesSurp", "Hugepagesize",
+	"DirectMap4k", "DirectMap2M", "DirectMap1G",
+}
 
 type MEM struct {
 	MemTotal          uint64

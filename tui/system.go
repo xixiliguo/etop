@@ -83,9 +83,7 @@ func (system *System) DrawCPUInfo() {
 	system.cpu.Clear()
 	system.cpu.SetOffset(0, 0)
 
-	visbleCols := []string{"Index", "User", "Nice",
-		"System", "Idle", "Iowait", "IRQ",
-		"SoftIRQ", "Steal", "Guest", "GuestNice"}
+	visbleCols := model.DefaultCPUFields
 
 	for i, col := range visbleCols {
 		if col == "Index" {
@@ -109,19 +107,7 @@ func (system *System) DrawMEMInfo() {
 	system.mem.Clear()
 	system.mem.SetOffset(0, 0)
 
-	items := []string{"MemTotal", "MemFree", "MemAvailable",
-		"Buffers", "Cached", "SwapCached", "Active",
-		"Inactive", "ActiveAnon", "InactiveAnon", "Unevictable",
-		"Mlocked", "SwapTotal", "SwapFree", "Dirty",
-		"Writeback", "AnonPages", "Mapped", "Shmem",
-		"Slab", "SReclaimable", "SUnreclaim", "KernelStack",
-		"PageTables", "NFSUnstable", "Bounce", "WritebackTmp",
-		"CommitLimit", "CommittedAS", "VmallocTotal", "VmallocUsed",
-		"VmallocChunk", "HardwareCorrupted", "AnonHugePages", "ShmemHugePages",
-		"ShmemPmdMapped", "CmaTotal", "CmaFree", "HugePagesTotal",
-		"HugePagesFree", "HugePagesRsvd", "HugePagesSurp", "Hugepagesize",
-		"DirectMap4k", "DirectMap2M", "DirectMap1G",
-	}
+	items := model.DefaultMEMFields
 	for i, v := range []string{"Field", "Value"} {
 		system.mem.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorBlue))
 	}
@@ -145,10 +131,7 @@ func (system *System) DrawVMInfo() {
 	system.vm.Clear()
 	system.vm.SetOffset(0, 0)
 
-	items := []string{"PageIn", "PageOut",
-		"SwapIn", "SwapOut",
-		"PageScanKswapd", "PageScanDirect",
-		"PageStealKswapd", "PageStealDirect", "OOMKill"}
+	items := model.DefaultVmFields
 	for i, v := range []string{"Field", "Value"} {
 		system.vm.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorBlue))
 	}
@@ -172,12 +155,7 @@ func (system *System) DrawDiskInfo() {
 	system.disk.Clear()
 	system.disk.SetOffset(0, 0)
 
-	visbleCols := []string{
-		"Disk", "Util",
-		"Read/s", "ReadByte/s",
-		"Write/s", "WriteByte/s",
-		"AvgIOSize", "AvgQueueLen", "InFlight", "AvgIOWait", "AvgIOTime",
-	}
+	visbleCols := model.DefaultDiskFields
 
 	for i, col := range visbleCols {
 
@@ -203,13 +181,7 @@ func (system *System) DrawNetInfo() {
 	system.net.Clear()
 	system.net.SetOffset(0, 0)
 
-	visbleCols := []string{
-		"Name",
-		"RxPacket/s", "TxPacket/s",
-		"RxByte/s", "TxByte/s",
-		"RxErrors", "RxDropped", "RxFIFO", "RxFrame",
-		"TxErrors", "TxDropped", "TxFIFO", "TxCollisions",
-	}
+	visbleCols := model.DefaultNetDevFields
 
 	for i, col := range visbleCols {
 

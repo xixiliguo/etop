@@ -281,6 +281,8 @@ func genNetDevDefaultConfig() {
 	netDevDefaultRenderConfig["RxPackets"] = Field{"RxPackets", Raw, 0, "", 10, false}
 	netDevDefaultRenderConfig["RxErrors"] = Field{"RxErrors", Raw, 0, "", 10, false}
 	netDevDefaultRenderConfig["RxDropped"] = Field{"RxDropped", Raw, 0, "", 10, false}
+	netDevDefaultRenderConfig["RxFIFO"] = Field{"RxFIFO", Raw, 0, "", 10, false}
+	netDevDefaultRenderConfig["RxFrame"] = Field{"RxFrame", Raw, 0, "", 10, false}
 	netDevDefaultRenderConfig["RxCompressed"] = Field{"RxCompressed", Raw, 0, "", 10, false}
 	netDevDefaultRenderConfig["RxMulticast"] = Field{"RxMulticast", Raw, 0, "", 10, false}
 	netDevDefaultRenderConfig["TxBytes"] = Field{"TxBytes", Raw, 0, "", 10, false}

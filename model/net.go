@@ -10,8 +10,12 @@ import (
 	"github.com/xixiliguo/etop/store"
 )
 
-var DefaultNetDevFields = []string{"Name",
-	"RxPacket/s", "TxPacket/s", "RxByte/s", "TxByte/s",
+var DefaultNetDevFields = []string{
+	"Name",
+	"RxPacket/s", "TxPacket/s",
+	"RxByte/s", "TxByte/s",
+	"RxErrors", "RxDropped", "RxFIFO", "RxFrame",
+	"TxErrors", "TxDropped", "TxFIFO", "TxCollisions",
 }
 
 type NetDev struct {

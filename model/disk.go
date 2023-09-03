@@ -10,9 +10,11 @@ import (
 	"github.com/xixiliguo/etop/store"
 )
 
-var DefaultDiskFields = []string{"Disk", "Util",
+var DefaultDiskFields = []string{
+	"Disk", "Util",
 	"Read/s", "ReadByte/s", "Write/s", "WriteByte/s",
-	"AvgIOSize", "AvgQueueLen", "InFlight", "AvgIOWait", "AvgIOTime"}
+	"AvgIOSize", "AvgQueueLen", "InFlight", "AvgIOWait", "AvgIOTime",
+}
 
 type Disk struct {
 	DeviceName             string

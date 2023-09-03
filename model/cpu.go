@@ -11,9 +11,11 @@ import (
 	"github.com/xixiliguo/etop/store"
 )
 
-var DefaultCPUFields = []string{"Index", "User", "Nice",
+var DefaultCPUFields = []string{
+	"Index", "User", "Nice",
 	"System", "Idle", "Iowait", "IRQ",
-	"SoftIRQ", "Steal", "Guest", "GuestNice"}
+	"SoftIRQ", "Steal", "Guest", "GuestNice",
+}
 
 type CPU struct {
 	Index     string
