@@ -85,7 +85,11 @@ func NewProcess(tui *TUI) *Process {
 			process.tui.status.Clear()
 			idx := row - 1
 			if 0 <= idx && idx < len(process.visbleData) {
-				fmt.Fprintf(process.tui.status, "%s", process.visbleData[idx].CmdLine)
+				extra := process.visbleData[idx].CmdLine
+				if extra == "" {
+					extra = process.visbleData[idx].Comm
+				}
+				fmt.Fprintf(process.tui.status, "%s", extra)
 			}
 		})
 	process.lower.
@@ -111,7 +115,7 @@ func NewProcess(tui *TUI) *Process {
 
 	process.searchView.
 		SetLabel(">  ").
-		SetFieldWidth(30).
+		SetFieldWidth(0).
 		SetFieldBackgroundColor(tcell.ColorBlack).
 		SetLabelColor(tcell.ColorBlue).
 		SetDoneFunc(func(key tcell.Key) {
