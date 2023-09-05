@@ -60,7 +60,7 @@ type PMEM struct {
 	MajFlt   uint
 	VSize    uint
 	RSS      int
-	MemUsage int
+	MemUsage float64
 }
 
 func (m *PMEM) GetRenderValue(config RenderConfig, field string) string {
@@ -232,7 +232,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.MajFlt = new.MajFlt - old.MajFlt
 		p.VSize = new.VSize
 		p.RSS = new.RSS * curr.PageSize
-		p.MemUsage = p.RSS * 100 / 1024 / int(*curr.MemTotal)
+		p.MemUsage = float64(p.RSS) * 100 / 1024 / float64(*curr.MemTotal)
 
 		p.RChar = new.RChar - old.RChar
 		p.WChar = new.WChar - old.WChar
