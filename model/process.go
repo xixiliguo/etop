@@ -15,6 +15,12 @@ const (
 )
 
 var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "Mem", "R/s", "W/s"}
+var AllProcessFields = []string{"Pid", "Comm", "State", "Ppid", "Thr", "StartTime", "OnCPU", "CmdLine",
+	"UserCPU", "SysCPU", "Pri", "Nice", "CPU",
+	"Minflt", "Majflt", "Vsize", "RSS", "Mem",
+	"Rchar/s", "Wchar/s",
+	"Syscr/s", "Syscw/s",
+	"R/s", "W/s", "CW/s", "Disk"}
 
 type Process struct {
 	Pid        int

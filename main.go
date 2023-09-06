@@ -569,9 +569,17 @@ func main() {
 								Name:  "top",
 								Value: 0,
 								Usage: "show top `N` info",
+							},
+							&cli.BoolFlag{
+								Name:  "all",
+								Value: false,
+								Usage: "dump all fields",
 							}),
 						Action: func(c *cli.Context) error {
 							fs := model.DefaultProcessFields
+							if c.Bool("all") == true {
+								fs = model.AllProcessFields
+							}
 							if f := c.StringSlice("fields"); len(f) != 0 {
 								fs = f
 							}
