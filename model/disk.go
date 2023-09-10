@@ -1,11 +1,8 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
-	"time"
 
 	"github.com/xixiliguo/etop/store"
 )
@@ -157,52 +154,4 @@ func (diskMap DiskMap) GetKeys() []string {
 		return keys[i] < keys[j]
 	})
 	return keys
-}
-
-func (diskMap DiskMap) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
-
-	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
-	switch opt.Format {
-	case "text":
-		config.SetFixWidth(true)
-	looptext:
-		for _, disk := range diskMap.GetKeys() {
-			d := diskMap[disk]
-			row := strings.Builder{}
-			row.WriteString(dateTime)
-			for _, f := range opt.Fields {
-				renderValue := d.GetRenderValue(config, f)
-				if f == opt.SelectField && opt.Filter != nil {
-					if opt.Filter.MatchString(renderValue) == false {
-						continue looptext
-					}
-				}
-				row.WriteString(" ")
-				row.WriteString(renderValue)
-			}
-			row.WriteString("\n")
-
-			opt.Output.WriteString(row.String())
-		}
-	case "json":
-		t := []any{}
-	loopjson:
-		for _, disk := range diskMap.GetKeys() {
-			d := diskMap[disk]
-			row := make(map[string]string)
-			row["Timestamp"] = dateTime
-			for _, f := range opt.Fields {
-				renderValue := d.GetRenderValue(config, f)
-				if f == opt.SelectField && opt.Filter != nil {
-					if opt.Filter.MatchString(renderValue) == false {
-						continue loopjson
-					}
-				}
-				row[config[f].Name] = renderValue
-			}
-			t = append(t, row)
-		}
-		b, _ := json.Marshal(t)
-		opt.Output.Write(b)
-	}
 }

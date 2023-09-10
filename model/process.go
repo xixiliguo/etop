@@ -1,10 +1,7 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/xixiliguo/etop/store"
@@ -269,77 +266,6 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 	}
 
 	return processes, threads
-}
-
-func (processMap ProcessMap) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
-
-	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
-
-	processList := []Process{}
-	for _, p := range processMap {
-		processList = append(processList, p)
-	}
-
-	sort.SliceStable(processList, func(i, j int) bool {
-		return SortMap[opt.SortField](processList[i], processList[j])
-	})
-	if opt.AscendingOrder == true {
-		for i := 0; i < len(processList)/2; i++ {
-			processList[i], processList[len(processList)-1-i] = processList[len(processList)-1-i], processList[i]
-		}
-	}
-
-	switch opt.Format {
-	case "text":
-		config.SetFixWidth(true)
-		cnt := 0
-	looptext:
-		for _, p := range processList {
-			row := strings.Builder{}
-			row.WriteString(dateTime)
-			for _, f := range opt.Fields {
-				renderValue := p.GetRenderValue(config, f)
-				if f == opt.SelectField && opt.Filter != nil {
-					if opt.Filter.MatchString(renderValue) == false {
-						continue looptext
-					}
-				}
-				row.WriteString(" ")
-				row.WriteString(renderValue)
-			}
-			row.WriteString("\n")
-
-			opt.Output.WriteString(row.String())
-			cnt++
-			if opt.Top > 0 && opt.Top == cnt {
-				break
-			}
-		}
-	case "json":
-		t := []any{}
-		cnt := 0
-	loopjson:
-		for _, p := range processList {
-			row := make(map[string]string)
-			row["Timestamp"] = dateTime
-			for _, f := range opt.Fields {
-				renderValue := p.GetRenderValue(config, f)
-				if f == opt.SelectField && opt.Filter != nil {
-					if opt.Filter.MatchString(renderValue) == false {
-						continue loopjson
-					}
-				}
-				row[config[f].Name] = renderValue
-			}
-			t = append(t, row)
-			cnt++
-			if opt.Top > 0 && opt.Top == cnt {
-				break
-			}
-		}
-		b, _ := json.Marshal(t)
-		opt.Output.Write(b)
-	}
 }
 
 func SubWithInterval[T int | int64 | float64](curr, prev, interval T) T {

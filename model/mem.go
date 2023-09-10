@@ -1,10 +1,7 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/xixiliguo/etop/store"
 )
@@ -249,45 +246,4 @@ func getValueOrDefault[T uint64 | float64](m *T) T {
 		return 0
 	}
 	return *m
-}
-
-func (m *MEM) Dump(timeStamp int64, config RenderConfig, opt DumpOption) {
-
-	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
-	switch opt.Format {
-	case "text":
-		config.SetFixWidth(true)
-		row := strings.Builder{}
-		row.WriteString(dateTime)
-		for _, f := range opt.Fields {
-			renderValue := m.GetRenderValue(config, f)
-			if f == opt.SelectField && opt.Filter != nil {
-				if opt.Filter.MatchString(renderValue) == false {
-					continue
-				}
-			}
-			row.WriteString(" ")
-			row.WriteString(renderValue)
-		}
-		row.WriteString("\n")
-		opt.Output.WriteString(row.String())
-
-	case "json":
-
-		row := make(map[string]string)
-		row["Timestamp"] = dateTime
-		for _, f := range opt.Fields {
-			renderValue := m.GetRenderValue(config, f)
-			if f == opt.SelectField && opt.Filter != nil {
-				if opt.Filter.MatchString(renderValue) == false {
-					continue
-				}
-			}
-			row[config[f].Name] = renderValue
-		}
-
-		b, _ := json.Marshal(row)
-		opt.Output.Write(b)
-	}
-
 }

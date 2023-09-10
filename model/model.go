@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"sort"
 
 	"github.com/xixiliguo/etop/store"
 )
@@ -181,6 +182,7 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 	if opt.DisableTitle == false {
 		opt.Output.WriteString(title)
 	}
+	config.SetFixWidth(true)
 	cnt := 0
 	for opt.End >= s.Curr.TimeStamp {
 		if opt.DisableTitle == false && opt.RepeatTitle != 0 && cnt%opt.RepeatTitle == 0 {
@@ -188,25 +190,57 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 		}
 		switch opt.Module {
 		case "system":
-			s.Sys.Dump(s.Curr.TimeStamp, config, opt)
+			dumpText(s.Curr.TimeStamp, config, opt, &s.Sys)
 		case "cpu":
-			s.CPUs.Dump(s.Curr.TimeStamp, config, opt)
+			for _, c := range s.CPUs {
+				dumpText(s.Curr.TimeStamp, config, opt, &c)
+			}
 		case "memory":
-			s.MEM.Dump(s.Curr.TimeStamp, config, opt)
+			dumpText(s.Curr.TimeStamp, config, opt, &s.MEM)
 		case "vm":
-			s.Vm.Dump(s.Curr.TimeStamp, config, opt)
+			dumpText(s.Curr.TimeStamp, config, opt, &s.Vm)
 		case "disk":
-			s.Disks.Dump(s.Curr.TimeStamp, config, opt)
+			for _, disk := range s.Disks.GetKeys() {
+				d := s.Disks[disk]
+				dumpText(s.Curr.TimeStamp, config, opt, &d)
+			}
 		case "netdev":
-			s.Nets.Dump(s.Curr.TimeStamp, config, opt)
+			for _, dev := range s.Nets.GetKeys() {
+				n := s.Nets[dev]
+				dumpText(s.Curr.TimeStamp, config, opt, &n)
+			}
 		case "network":
-			s.NetStat.Dump(s.Curr.TimeStamp, config, opt)
+			dumpText(s.Curr.TimeStamp, config, opt, &s.NetStat)
 		case "networkprotocol":
-			s.NetProtocols.Dump(s.Curr.TimeStamp, config, opt)
+			for _, n := range s.NetProtocols {
+				dumpText(s.Curr.TimeStamp, config, opt, &n)
+			}
 		case "softnet":
-			s.Softnets.Dump(s.Curr.TimeStamp, config, opt)
+			for _, soft := range s.Softnets {
+				dumpText(s.Curr.TimeStamp, config, opt, &soft)
+			}
 		case "process":
-			s.Processes.Dump(s.Curr.TimeStamp, config, opt)
+			processList := []Process{}
+			for _, p := range s.Processes {
+				processList = append(processList, p)
+			}
+
+			sort.SliceStable(processList, func(i, j int) bool {
+				return SortMap[opt.SortField](processList[i], processList[j])
+			})
+			if opt.AscendingOrder == true {
+				for i := 0; i < len(processList)/2; i++ {
+					processList[i], processList[len(processList)-1-i] = processList[len(processList)-1-i], processList[i]
+				}
+			}
+			cnt := 0
+			for _, p := range processList {
+				dumpText(s.Curr.TimeStamp, config, opt, &p)
+				cnt++
+				if opt.Top > 0 && opt.Top == cnt {
+					break
+				}
+			}
 		}
 		if err := s.CollectNext(); err != nil {
 			if err == store.ErrOutOfRange {
@@ -226,35 +260,115 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 		return err
 	}
 
-	opt.Output.WriteString("[")
+	opt.Output.WriteString("[\n")
 	first := true
 	for opt.End >= s.Curr.TimeStamp {
 		if first == true {
 			first = false
 		} else {
-			opt.Output.WriteString("\n,")
+			opt.Output.WriteString(",\n\n")
 		}
 		switch opt.Module {
 		case "system":
-			s.Sys.Dump(s.Curr.TimeStamp, config, opt)
+			dumpJson(s.Curr.TimeStamp, config, opt, &s.Sys)
 		case "cpu":
-			s.CPUs.Dump(s.Curr.TimeStamp, config, opt)
+			opt.Output.WriteString("[")
+			first := true
+			for _, c := range s.CPUs {
+				if first == true {
+					first = false
+				} else {
+					opt.Output.WriteString(",\n")
+				}
+				dumpJson(s.Curr.TimeStamp, config, opt, &c)
+			}
+			opt.Output.WriteString("]")
 		case "memory":
-			s.MEM.Dump(s.Curr.TimeStamp, config, opt)
+			dumpJson(s.Curr.TimeStamp, config, opt, &s.MEM)
 		case "vm":
-			s.Vm.Dump(s.Curr.TimeStamp, config, opt)
+			dumpJson(s.Curr.TimeStamp, config, opt, &s.Vm)
 		case "disk":
-			s.Disks.Dump(s.Curr.TimeStamp, config, opt)
+			opt.Output.WriteString("[")
+			first := true
+			for _, disk := range s.Disks.GetKeys() {
+				d := s.Disks[disk]
+				if first == true {
+					first = false
+				} else {
+					opt.Output.WriteString(",\n")
+				}
+				dumpJson(s.Curr.TimeStamp, config, opt, &d)
+			}
+			opt.Output.WriteString("]")
 		case "netdev":
-			s.Nets.Dump(s.Curr.TimeStamp, config, opt)
+			opt.Output.WriteString("[")
+			first := true
+			for _, dev := range s.Nets.GetKeys() {
+				n := s.Nets[dev]
+				if first == true {
+					first = false
+				} else {
+					opt.Output.WriteString(",\n")
+				}
+				dumpJson(s.Curr.TimeStamp, config, opt, &n)
+			}
+			opt.Output.WriteString("]")
 		case "network":
-			s.NetStat.Dump(s.Curr.TimeStamp, config, opt)
+			dumpJson(s.Curr.TimeStamp, config, opt, &s.NetStat)
 		case "networkprotocol":
-			s.NetProtocols.Dump(s.Curr.TimeStamp, config, opt)
+			opt.Output.WriteString("[")
+			first := true
+			for _, n := range s.NetProtocols {
+				if first == true {
+					first = false
+				} else {
+					opt.Output.WriteString(",\n")
+				}
+				dumpJson(s.Curr.TimeStamp, config, opt, &n)
+			}
+			opt.Output.WriteString("]")
 		case "softnet":
-			s.Softnets.Dump(s.Curr.TimeStamp, config, opt)
+			opt.Output.WriteString("[")
+			first := true
+			for _, soft := range s.Softnets {
+				if first == true {
+					first = false
+				} else {
+					opt.Output.WriteString(",\n")
+				}
+				dumpJson(s.Curr.TimeStamp, config, opt, &soft)
+			}
+			opt.Output.WriteString("]")
 		case "process":
-			s.Processes.Dump(s.Curr.TimeStamp, config, opt)
+			processList := []Process{}
+			for _, p := range s.Processes {
+				processList = append(processList, p)
+			}
+
+			sort.SliceStable(processList, func(i, j int) bool {
+				return SortMap[opt.SortField](processList[i], processList[j])
+			})
+			if opt.AscendingOrder == true {
+				for i := 0; i < len(processList)/2; i++ {
+					processList[i], processList[len(processList)-1-i] = processList[len(processList)-1-i], processList[i]
+				}
+			}
+			cnt := 0
+			opt.Output.WriteString("[")
+			first := true
+			for _, p := range processList {
+				if first == true {
+					first = false
+				} else {
+					opt.Output.WriteString(",\n")
+				}
+				dumpJson(s.Curr.TimeStamp, config, opt, &p)
+				cnt++
+				if opt.Top > 0 && opt.Top == cnt {
+					break
+				}
+			}
+			opt.Output.WriteString("]")
 		}
 		if err := s.CollectNext(); err != nil {
 			if err == store.ErrOutOfRange {
@@ -264,7 +378,7 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 			return err
 		}
 	}
-	opt.Output.WriteString("]\n")
+	opt.Output.WriteString("\n]\n")
 	return nil
 
 }
