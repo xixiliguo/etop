@@ -3,6 +3,7 @@ package model
 import (
 	"bytes"
 	"encoding/json"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -64,4 +65,47 @@ func dumpJson(timeStamp int64, config RenderConfig, opt DumpOption, m Render) {
 	}
 	b, _ := json.Marshal(buf)
 	opt.Output.Write(b)
+}
+
+func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, config RenderConfig, opt DumpOption, m Render) {
+
+	buf := bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufferPool.Put(buf)
+
+	for _, f := range opt.Fields {
+		renderValue := m.GetRenderValue(config, f)
+		if f == opt.SelectField && opt.Filter != nil {
+			if opt.Filter.MatchString(renderValue) == false {
+				return
+			}
+		}
+		cfg := OMConfig[f]
+		buf.WriteString("# TYPE" + " " + cfg.Name + " " + typToString[cfg.Typ] + "\n")
+		if cfg.Unit != "" {
+			buf.WriteString("# UNIT" + " " + cfg.Name + " " + cfg.Unit + "\n")
+		}
+		if cfg.Help != "" {
+			buf.WriteString("# HELP" + " " + cfg.Name + " " + cfg.Help + "\n")
+		}
+		buf.WriteString(cfg.Name)
+		if len(cfg.Labels) != 0 {
+			buf.WriteString("{")
+			first := true
+			for _, l := range cfg.Labels {
+				if first == true {
+					first = false
+				} else {
+					buf.WriteString(",")
+				}
+				m.GetRenderValue(config, l)
+			}
+			buf.WriteString("}")
+		}
+
+		buf.WriteString(" " + renderValue)
+		buf.WriteString(" " + strconv.FormatInt(timeStamp, 10))
+		buf.WriteString("\n")
+	}
+	buf.WriteTo(opt.Output)
 }

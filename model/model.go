@@ -11,14 +11,15 @@ import (
 )
 
 type Model struct {
-	Config map[string]RenderConfig
-	Mode   string
-	Store  store.Store
-	log    *slog.Logger
-	Prev   store.Sample
-	Curr   store.Sample
-	Sys    System
-	CPUs   CPUSlice
+	Config   map[string]RenderConfig
+	OMConfig map[string]OpenMetricRenderConfig
+	Mode     string
+	Store    store.Store
+	log      *slog.Logger
+	Prev     store.Sample
+	Curr     store.Sample
+	Sys      System
+	CPUs     CPUSlice
 	MEM
 	Vm
 	Disks DiskMap
@@ -32,6 +33,7 @@ type Model struct {
 func NewSysModel(s *store.LocalStore, log *slog.Logger) (*Model, error) {
 	p := &Model{
 		Config:       DefaultRenderConfig,
+		OMConfig:     DefaultOMRenderConfig,
 		Mode:         "report",
 		Store:        s,
 		log:          log,
@@ -159,6 +161,9 @@ func (s *Model) Dump(opt DumpOption) error {
 		return s.dumpText(s.Config[opt.Module], opt)
 	case "json":
 		return s.dumpJson(s.Config[opt.Module], opt)
+	case "openmetrics":
+		s.Config[opt.Module].SetRawData()
+		return s.dumpOpenMetrics(s.OMConfig[opt.Module], s.Config[opt.Module], opt)
 	default:
 		return fmt.Errorf("no support output format: %s", opt.Format)
 	}
@@ -379,6 +384,82 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 		}
 	}
 	opt.Output.WriteString("\n]\n")
+	return nil
+
+}
+
+func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, config RenderConfig, opt DumpOption) error {
+
+	if err := s.CollectSampleByTime(opt.Begin); err != nil {
+		return err
+	}
+
+	for opt.End >= s.Curr.TimeStamp {
+
+		switch opt.Module {
+		case "system":
+			dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &s.Sys)
+		case "cpu":
+			for _, c := range s.CPUs {
+				dumpText(s.Curr.TimeStamp, config, opt, &c)
+			}
+		case "memory":
+			dumpText(s.Curr.TimeStamp, config, opt, &s.MEM)
+		case "vm":
+			dumpText(s.Curr.TimeStamp, config, opt, &s.Vm)
+		case "disk":
+			for _, disk := range s.Disks.GetKeys() {
+				d := s.Disks[disk]
+				dumpText(s.Curr.TimeStamp, config, opt, &d)
+			}
+		case "netdev":
+			for _, dev := range s.Nets.GetKeys() {
+				n := s.Nets[dev]
+				dumpText(s.Curr.TimeStamp, config, opt, &n)
+			}
+		case "network":
+			dumpText(s.Curr.TimeStamp, config, opt, &s.NetStat)
+		case "networkprotocol":
+			for _, n := range s.NetProtocols {
+				dumpText(s.Curr.TimeStamp, config, opt, &n)
+			}
+		case "softnet":
+			for _, soft := range s.Softnets {
+				dumpText(s.Curr.TimeStamp, config, opt, &soft)
+			}
+		case "process":
+			processList := []Process{}
+			for _, p := range s.Processes {
+				processList = append(processList, p)
+			}
+
+			sort.SliceStable(processList, func(i, j int) bool {
+				return SortMap[opt.SortField](processList[i], processList[j])
+			})
+			if opt.AscendingOrder == true {
+				for i := 0; i < len(processList)/2; i++ {
+					processList[i], processList[len(processList)-1-i] = processList[len(processList)-1-i], processList[i]
+				}
+			}
+			cnt := 0
+			for _, p := range processList {
+				dumpText(s.Curr.TimeStamp, config, opt, &p)
+				cnt++
+				if opt.Top > 0 && opt.Top == cnt {
+					break
+				}
+			}
+		}
+		if err := s.CollectNext(); err != nil {
+			if err == store.ErrOutOfRange {
+				opt.Output.WriteString("# EOF\n")
+				return nil
+			}
+			return err
+		}
+
+	}
+	opt.Output.WriteString("# EOF\n")
 	return nil
 
 }

@@ -81,7 +81,7 @@ var (
 			Name:    "output-format",
 			Aliases: []string{"O"},
 			Value:   "text",
-			Usage:   "output format, available value are text, json",
+			Usage:   "output format, available value are text, json, openmetrics",
 		},
 		&cli.BoolFlag{
 			Name:    "raw",
