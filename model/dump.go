@@ -74,6 +74,9 @@ func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, config Ren
 	defer bufferPool.Put(buf)
 
 	for _, f := range opt.Fields {
+		if _, ok := OMConfig[f]; !ok {
+			continue
+		}
 		renderValue := m.GetRenderValue(config, f)
 		if f == opt.SelectField && opt.Filter != nil {
 			if opt.Filter.MatchString(renderValue) == false {
@@ -98,7 +101,7 @@ func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, config Ren
 				} else {
 					buf.WriteString(",")
 				}
-				m.GetRenderValue(config, l)
+				buf.WriteString(l + "=" + `"` + m.GetRenderValue(config, l) + `"`)
 			}
 			buf.WriteString("}")
 		}

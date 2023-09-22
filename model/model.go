@@ -401,16 +401,16 @@ func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, config RenderCo
 			dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &s.Sys)
 		case "cpu":
 			for _, c := range s.CPUs {
-				dumpText(s.Curr.TimeStamp, config, opt, &c)
+				dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &c)
 			}
 		case "memory":
-			dumpText(s.Curr.TimeStamp, config, opt, &s.MEM)
+			dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &s.MEM)
 		case "vm":
-			dumpText(s.Curr.TimeStamp, config, opt, &s.Vm)
+			dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &s.Vm)
 		case "disk":
 			for _, disk := range s.Disks.GetKeys() {
 				d := s.Disks[disk]
-				dumpText(s.Curr.TimeStamp, config, opt, &d)
+				dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &d)
 			}
 		case "netdev":
 			for _, dev := range s.Nets.GetKeys() {
