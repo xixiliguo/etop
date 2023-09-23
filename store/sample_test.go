@@ -1,8 +1,10 @@
 package store
 
 import (
+	"os"
 	"testing"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/prometheus/procfs"
@@ -132,14 +134,33 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 func BenchmarkSampleMarshal(b *testing.B) {
 
 	testCase := NewSample()
-	CollectSampleFromSys(&testCase, nil)
+	src, _ := os.ReadFile("testdata/sample.data")
+	testCase.Unmarshal(src)
 
+	before, _ := cbor.Marshal(&testCase)
 	b.ReportAllocs()
 	b.ResetTimer()
 	size := 0
+
 	for n := 0; n < b.N; n++ {
 		re, _ := testCase.Marshal()
 		size += len(re)
 	}
-	b.ReportMetric(float64(size)/float64(b.N), "size/op")
+
+	b.ReportMetric(float64(size)/float64(b.N), "compressed/op")
+	b.ReportMetric(float64(len(before)), "uncompressed/op")
+}
+
+func BenchmarkSampleUnmarshal(b *testing.B) {
+
+	src, _ := os.ReadFile("testdata/sample.data")
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		testCase := NewSample()
+		err := testCase.Unmarshal(src)
+		if err != nil {
+			b.Errorf("sample Unmarshal: %s", err)
+		}
+	}
 }

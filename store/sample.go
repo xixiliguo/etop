@@ -15,6 +15,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var (
+	enc, _ = zstd.NewWriter(nil)
+	dec, _ = zstd.NewReader(nil)
+)
+
 // Sample represent all system info and process info.
 type Sample struct {
 	TimeStamp    int64  // unix time when sample was generated
@@ -171,13 +176,11 @@ func (s *Sample) Marshal() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	enc, _ := zstd.NewWriter(nil)
 	return enc.EncodeAll(b, make([]byte, 0, len(b))), nil
 }
 
 func (s *Sample) Unmarshal(b []byte) error {
 
-	dec, _ := zstd.NewReader(nil)
 	uncompressed, err := dec.DecodeAll(b, make([]byte, 0, len(b)))
 	if err != nil {
 		return err
