@@ -35,8 +35,7 @@ type Index struct {
 	TimeStamp int64  // unix time when sample was generated
 	Offset    int64  // offset of file where sample is exist
 	Len       int64  // length of one sample
-	DataCRC   uint32 // crc for data
-	IndexCRC  uint32 // crc for whole index, except IndexCRC field
+	CRC       uint32 // crc for whole index, except CRC self
 }
 
 var sizeIndex = binary.Size(Index{})
@@ -46,8 +45,7 @@ func (idx *Index) Marshal() []byte {
 	binary.LittleEndian.PutUint64(b[0:], uint64(idx.TimeStamp))
 	binary.LittleEndian.PutUint64(b[8:], uint64(idx.Offset))
 	binary.LittleEndian.PutUint64(b[16:], uint64(idx.Len))
-	binary.LittleEndian.PutUint32(b[24:], idx.DataCRC)
-	binary.LittleEndian.PutUint32(b[28:], idx.IndexCRC)
+	binary.LittleEndian.PutUint32(b[24:], idx.CRC)
 	return b
 }
 
@@ -55,8 +53,7 @@ func (idx *Index) Unmarshal(b []byte) {
 	idx.TimeStamp = int64(binary.LittleEndian.Uint64(b[0:]))
 	idx.Offset = int64(binary.LittleEndian.Uint64(b[8:]))
 	idx.Len = int64(binary.LittleEndian.Uint64(b[16:]))
-	idx.DataCRC = binary.LittleEndian.Uint32(b[24:])
-	idx.IndexCRC = binary.LittleEndian.Uint32(b[28:])
+	idx.CRC = binary.LittleEndian.Uint32(b[24:])
 }
 
 // Store is interface which operate file/network which include sample data.
@@ -395,21 +392,17 @@ func (local *LocalStore) JumpSampleByTimeStamp(timestamp int64, sample *Sample) 
 
 func (local *LocalStore) getSample(target int, sample *Sample) error {
 	idx := local.idxs[target]
-	if idx.IndexCRC != crc32.ChecksumIEEE((*[32]byte)(unsafe.Pointer(&idx))[:28]) {
+	if idx.CRC != crc32.ChecksumIEEE((*[28]byte)(unsafe.Pointer(&idx))[:24]) {
 		return fmt.Errorf("%s timestamp %d: %w", local.Index.Name(), idx.TimeStamp, ErrIndexCorrupt)
 	}
 	buff := make([]byte, idx.Len)
 	n, err := local.Data.ReadAt(buff, idx.Offset)
 	if err != nil {
-		return err
+		return fmt.Errorf("offset %d read %d bytes at %s: %w", idx.Offset, idx.Len, local.Data.Name(), err)
 	}
 
 	if n != int(idx.Len) {
 		return fmt.Errorf("got %d bytes, but want %d\n", n, idx.Len)
-	}
-
-	if idx.DataCRC != crc32.ChecksumIEEE(buff) {
-		return fmt.Errorf("%s offset %d len %d: %w", local.Data.Name(), idx.Offset, idx.Len, ErrDataCorrupt)
 	}
 
 	if err := sample.Unmarshal(buff); err != nil {
@@ -463,8 +456,7 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 		return newSuffix, err
 	}
 
-	idx.DataCRC = crc32.ChecksumIEEE(compressed)
-	idx.IndexCRC = crc32.ChecksumIEEE((*[32]byte)(unsafe.Pointer(&idx))[:28])
+	idx.CRC = crc32.ChecksumIEEE((*[28]byte)(unsafe.Pointer(&idx))[:24])
 
 	_, err = local.Index.Write(idx.Marshal())
 	if err != nil {
