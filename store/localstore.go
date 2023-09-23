@@ -439,7 +439,8 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 		return newSuffix, err
 	} else {
 		if s := info.Size(); s != local.DataOffset {
-			local.Log.Error("Data file length mismatch, expect %d, but got %d", local.DataOffset, s)
+			msg := fmt.Sprintf("Data file length mismatch, expect %d, but got %d", local.DataOffset, s)
+			local.Log.Error(msg)
 			local.DataOffset = s
 		}
 	}
