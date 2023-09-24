@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
-	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -145,18 +144,16 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 func getIndexFrames(path string) ([]Index, error) {
 
 	idxFiles := []string{}
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	if ds, err := os.ReadDir(path); err == nil {
+		for _, d := range ds {
+			if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "index_") {
+				idxFiles = append(idxFiles, d.Name())
+			}
 		}
-		if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "index_") {
-			idxFiles = append(idxFiles, d.Name())
-		}
-		return nil
-	})
-	if err != nil {
+	} else {
 		return nil, err
 	}
+
 	idxs := []Index{}
 	for _, file := range idxFiles {
 
@@ -226,29 +223,31 @@ func (local *LocalStore) FileStatInfo() (result string, err error) {
 func getIndexAndDataInfo(path string) (suffixs []string, indexSize int64, dataSize int64, err error) {
 	indexNum := 0
 	dataNum := 0
-	err = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "index_") {
-			indexNum++
-			if info, err := d.Info(); err == nil {
-				indexSize += info.Size()
-			} else {
-				return err
+
+	if ds, err := os.ReadDir(path); err == nil {
+		for _, d := range ds {
+			if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "index_") {
+				indexNum++
+				if info, err := d.Info(); err == nil {
+					indexSize += info.Size()
+				} else {
+					return suffixs, indexSize, dataSize, err
+				}
+			}
+			if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "data_") {
+				dataNum++
+				suffixs = append(suffixs, strings.TrimLeft(d.Name(), "data_"))
+				if info, err := d.Info(); err == nil {
+					dataSize += info.Size()
+				} else {
+					return suffixs, indexSize, dataSize, err
+				}
 			}
 		}
-		if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "data_") {
-			dataNum++
-			suffixs = append(suffixs, strings.TrimLeft(d.Name(), "data_"))
-			if info, err := d.Info(); err == nil {
-				dataSize += info.Size()
-			} else {
-				return err
-			}
-		}
-		return nil
-	})
+	} else {
+		return suffixs, indexSize, dataSize, err
+	}
+
 	if indexNum != dataNum {
 		return suffixs, indexSize, dataSize,
 			fmt.Errorf("%d index files is not equal to %d data files", indexNum, dataNum)
