@@ -46,7 +46,10 @@ func BenchmarkRender(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for n := 0; n < b.N; n++ {
-				testCase.f.Render(testCase.input)
+				re := testCase.f.Render(testCase.input)
+				if re == "" {
+					b.Fatalf("should not emplty string\n")
+				}
 			}
 		})
 	}

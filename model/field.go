@@ -3,8 +3,7 @@ package model
 import (
 	"fmt"
 	"strconv"
-
-	"github.com/xixiliguo/etop/util"
+	"unsafe"
 )
 
 type Format int
@@ -13,26 +12,6 @@ const (
 	Raw Format = iota
 	HumanReadableSize
 )
-
-var space = [17]string{
-	"",
-	" ",
-	"  ",
-	"   ",
-	"    ",
-	"     ",
-	"      ",
-	"       ",
-	"        ",
-	"         ",
-	"          ",
-	"           ",
-	"            ",
-	"             ",
-	"              ",
-	"               ",
-	"                ",
-}
 
 type Field struct {
 	Name      string
@@ -43,53 +22,73 @@ type Field struct {
 	FixWidth  bool
 }
 
+func appendReadableSize(dst []byte, fsize float64) []byte {
+	unitMap := []string{"B", "KB", "MB", "GB", "TB", "PB"}
+	i := 0
+	unitsLimit := len(unitMap) - 1
+	for fsize >= 1024 && i < unitsLimit {
+		fsize = fsize / 1024
+		i++
+	}
+	dst = strconv.AppendFloat(dst, fsize, 'f', 1, 64)
+	dst = append(dst, unitMap[i]...)
+	return dst
+}
+
 func (f Field) Render(value any) string {
-	s := ""
+	buf := make([]byte, 0, 16)
 	switch v := value.(type) {
 	case uint64:
 		if f.Format == HumanReadableSize {
-			s = util.GetHumanSize(v)
+			f := float64(v)
+			buf = appendReadableSize(buf, f)
 		} else {
-			s = strconv.FormatUint(v, 10)
+			buf = strconv.AppendUint(buf, uint64(v), 10)
 		}
 	case uint:
 		if f.Format == HumanReadableSize {
-			s = util.GetHumanSize(v)
+			f := float64(v)
+			buf = appendReadableSize(buf, f)
 		} else {
-			s = strconv.FormatUint(uint64(v), 10)
+			buf = strconv.AppendUint(buf, uint64(v), 10)
 		}
 	case uint32:
 		if f.Format == HumanReadableSize {
-			s = util.GetHumanSize(v)
+			f := float64(v)
+			buf = appendReadableSize(buf, f)
 		} else {
-			s = strconv.FormatUint(uint64(v), 10)
+			buf = strconv.AppendUint(buf, uint64(v), 10)
 		}
 	case int:
 		if f.Format == HumanReadableSize {
-			s = util.GetHumanSize(v)
+			f := float64(v)
+			buf = appendReadableSize(buf, f)
 		} else {
-			s = strconv.FormatInt(int64(v), 10)
-
+			buf = strconv.AppendInt(buf, int64(v), 10)
 		}
 	case int64:
 		if f.Format == HumanReadableSize {
-			s = util.GetHumanSize(v)
+			f := float64(v)
+			buf = appendReadableSize(buf, f)
 		} else {
-			s = strconv.FormatInt(v, 10)
+			buf = strconv.AppendInt(buf, int64(v), 10)
 		}
 	case float64:
 		if f.Format == HumanReadableSize {
-			s = util.GetHumanSize(v)
+			buf = appendReadableSize(buf, v)
 		} else {
-			s = strconv.FormatFloat(v, 'f', f.Precision, 64)
+			buf = strconv.AppendFloat(buf, v, 'f', f.Precision, 64)
 		}
 	case string:
-		s = v
+		if f.Suffix == "" && f.FixWidth == false {
+			return v
+		}
+		buf = append(buf, v...)
 	default:
 		return fmt.Sprintf("%T is unknown type", v)
 	}
 
-	s += f.Suffix
+	buf = append(buf, f.Suffix...)
 
 	if f.FixWidth == true {
 		width := f.Width
@@ -97,15 +96,21 @@ func (f Field) Render(value any) string {
 			width = len(f.Name)
 		}
 
-		if padding := width - len(s); padding > 0 {
+		if padding := width - len(buf); padding > 0 {
+
+			cache := "                "
 			if padding <= 16 {
-				s += space[padding]
+				buf = append(buf,
+					unsafe.Slice(unsafe.StringData(cache), len(cache))[:padding]...)
 			} else {
-				s = fmt.Sprintf("%-*s", width, s)
+				for padding != 0 {
+					buf = append(buf, ' ')
+					padding--
+				}
 			}
 		}
 	}
-	return s
+	return string(buf)
 }
 
 type RenderConfig map[string]Field
