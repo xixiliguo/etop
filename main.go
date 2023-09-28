@@ -98,24 +98,6 @@ var (
 	}
 )
 
-func normalizeField(module string, config model.RenderConfig, fields []string) (normalizedFields []string, err error) {
-
-	if len(fields) == 1 {
-		switch module {
-		case "network":
-			if v, ok := model.DefaultNetStatFields[fields[0]]; ok {
-				return v, nil
-			}
-		}
-	}
-	for _, f := range fields {
-		if _, ok := config[f]; !ok {
-			return nil, fmt.Errorf("%s is not available field for module %s", f, module)
-		}
-	}
-	return fields, nil
-}
-
 func dumpCommand(c *cli.Context, module string, fields []string) error {
 	path := c.String("path")
 	path, _ = filepath.Abs(path)
@@ -152,14 +134,6 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		end = begin + int64(d/time.Second)
 	}
 
-	fields, err = normalizeField(module, sm.Config[module], fields)
-	if err != nil {
-		return err
-	}
-
-	if c.Bool("raw") == true {
-		sm.Config[module].SetRawData()
-	}
 	output := os.Stdout
 
 	out := c.String("output")

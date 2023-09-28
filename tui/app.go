@@ -180,11 +180,6 @@ func (tui *TUI) Run(path string, beginTime string) error {
 		return err
 	}
 
-	for name, v := range sm.Config {
-		if name == "process" {
-			v.SetFixWidth(true)
-		}
-	}
 	if err != nil {
 		return err
 	}
@@ -212,7 +207,6 @@ func (tui *TUI) RunWithLive(interval time.Duration) error {
 		return err
 	}
 	sm.Mode = "live"
-	sm.Config["process"].Update("Comm", model.Field{"Comm", model.Raw, 0, "", 35, true})
 
 	tui.sm = sm
 	go func() {

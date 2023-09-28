@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -23,27 +21,58 @@ type System struct {
 	ContextSwitchPerSec float64
 }
 
-func (sys *System) GetRenderValue(config RenderConfig, field string) string {
-	s := fmt.Sprintf("no %s for system stat", field)
+func (sys *System) DefaultConfig(field string) Field {
+
+	cfg := Field{}
 	switch field {
 	case "Load1":
-		s = config[field].Render(sys.Load1)
+		cfg = Field{"Load1", Raw, 0, "", 10, false}
 	case "Load5":
-		s = config[field].Render(sys.Load5)
+		cfg = Field{"Load5", Raw, 0, "", 10, false}
 	case "Load15":
-		s = config[field].Render(sys.Load15)
+		cfg = Field{"Load15", Raw, 0, "", 10, false}
 	case "Processes":
-		s = config[field].Render(sys.Processes)
+		cfg = Field{"Process", Raw, 0, "", 10, false}
 	case "Threads":
-		s = config[field].Render(sys.Threads)
+		cfg = Field{"Thread", Raw, 0, "", 10, false}
 	case "ProcessesRunning":
-		s = config[field].Render(sys.ProcessesRunning)
+		cfg = Field{"Running", Raw, 0, "", 10, false}
 	case "ProcessesBlocked":
-		s = config[field].Render(sys.ProcessesBlocked)
+		cfg = Field{"Blocked", Raw, 0, "", 10, false}
 	case "ClonePerSec":
-		s = config[field].Render(sys.ClonePerSec)
+		cfg = Field{"Clone", Raw, 1, "/s", 10, false}
 	case "ContextSwitchPerSec":
-		s = config[field].Render(sys.ContextSwitchPerSec)
+		cfg = Field{"CtxSw", Raw, 1, "/s", 10, false}
+	}
+	return cfg
+}
+
+func (sys *System) GetRenderValue(field string, opt FieldOpt) string {
+
+	cfg := sys.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "Load1":
+		s = cfg.Render(sys.Load1)
+	case "Load5":
+		s = cfg.Render(sys.Load5)
+	case "Load15":
+		s = cfg.Render(sys.Load15)
+	case "Processes":
+		s = cfg.Render(sys.Processes)
+	case "Threads":
+		s = cfg.Render(sys.Threads)
+	case "ProcessesRunning":
+		s = cfg.Render(sys.ProcessesRunning)
+	case "ProcessesBlocked":
+		s = cfg.Render(sys.ProcessesBlocked)
+	case "ClonePerSec":
+		s = cfg.Render(sys.ClonePerSec)
+	case "ContextSwitchPerSec":
+		s = cfg.Render(sys.ContextSwitchPerSec)
+	default:
+		s = "no " + field + " for cpu stat"
 	}
 	return s
 }

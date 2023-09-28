@@ -11,7 +11,6 @@ import (
 )
 
 type Model struct {
-	Config   map[string]RenderConfig
 	OMConfig map[string]OpenMetricRenderConfig
 	Mode     string
 	Store    store.Store
@@ -32,7 +31,6 @@ type Model struct {
 
 func NewSysModel(s *store.LocalStore, log *slog.Logger) (*Model, error) {
 	p := &Model{
-		Config:       DefaultRenderConfig,
 		OMConfig:     DefaultOMRenderConfig,
 		Mode:         "report",
 		Store:        s,
@@ -156,20 +154,54 @@ type DumpOption struct {
 
 func (s *Model) Dump(opt DumpOption) error {
 
+	for _, c := range opt.Fields {
+		name, _ := getNameAndWidthOfField(opt, c)
+		if name == "" {
+			return fmt.Errorf("%s is not available field for module %s", c, opt.Module)
+		}
+	}
+
 	switch opt.Format {
 	case "text":
-		return s.dumpText(s.Config[opt.Module], opt)
+		return s.dumpText(opt)
 	case "json":
-		return s.dumpJson(s.Config[opt.Module], opt)
+		return s.dumpJson(opt)
 	case "openmetrics":
-		s.Config[opt.Module].SetRawData()
-		return s.dumpOpenMetrics(s.OMConfig[opt.Module], s.Config[opt.Module], opt)
+		return s.dumpOpenMetrics(s.OMConfig[opt.Module], opt)
 	default:
 		return fmt.Errorf("no support output format: %s", opt.Format)
 	}
 }
 
-func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
+func getNameAndWidthOfField(opt DumpOption, f string) (string, int) {
+	var s Render
+	switch opt.Module {
+	case "system":
+		s = &System{}
+	case "cpu":
+		s = &CPU{}
+	case "memory":
+		s = &MEM{}
+	case "vm":
+		s = &Vm{}
+	case "disk":
+		s = &Disk{}
+	case "netdev":
+		s = &NetDev{}
+	case "network":
+		s = &NetStat{}
+	case "networkprotocol":
+		s = &NetProtocol{}
+	case "softnet":
+		s = &Softnet{}
+	case "process":
+		s = &Process{}
+	}
+	cfg := s.DefaultConfig(f)
+	return cfg.Name, cfg.Width
+}
+
+func (s *Model) dumpText(opt DumpOption) error {
 
 	if err := s.CollectSampleByTime(opt.Begin); err != nil {
 		return err
@@ -177,17 +209,16 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 
 	title := fmt.Sprintf("%-25s", "TimeStamp")
 	for _, c := range opt.Fields {
-		width := config[c].Width
-		if len(config[c].Name) > width {
-			width = len(config[c].Name)
+		name, width := getNameAndWidthOfField(opt, c)
+		if len(name) > width {
+			width = len(name)
 		}
-		title += fmt.Sprintf(" %-*s", width, config[c].Name)
+		title += fmt.Sprintf(" %-*s", width, name)
 	}
 	title += "\n"
 	if opt.DisableTitle == false {
 		opt.Output.WriteString(title)
 	}
-	config.SetFixWidth(true)
 	cnt := 0
 	for opt.End >= s.Curr.TimeStamp {
 		if opt.DisableTitle == false && opt.RepeatTitle != 0 && cnt%opt.RepeatTitle == 0 {
@@ -195,34 +226,34 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 		}
 		switch opt.Module {
 		case "system":
-			dumpText(s.Curr.TimeStamp, config, opt, &s.Sys)
+			dumpText(s.Curr.TimeStamp, opt, &s.Sys)
 		case "cpu":
 			for _, c := range s.CPUs {
-				dumpText(s.Curr.TimeStamp, config, opt, &c)
+				dumpText(s.Curr.TimeStamp, opt, &c)
 			}
 		case "memory":
-			dumpText(s.Curr.TimeStamp, config, opt, &s.MEM)
+			dumpText(s.Curr.TimeStamp, opt, &s.MEM)
 		case "vm":
-			dumpText(s.Curr.TimeStamp, config, opt, &s.Vm)
+			dumpText(s.Curr.TimeStamp, opt, &s.Vm)
 		case "disk":
 			for _, disk := range s.Disks.GetKeys() {
 				d := s.Disks[disk]
-				dumpText(s.Curr.TimeStamp, config, opt, &d)
+				dumpText(s.Curr.TimeStamp, opt, &d)
 			}
 		case "netdev":
 			for _, dev := range s.Nets.GetKeys() {
 				n := s.Nets[dev]
-				dumpText(s.Curr.TimeStamp, config, opt, &n)
+				dumpText(s.Curr.TimeStamp, opt, &n)
 			}
 		case "network":
-			dumpText(s.Curr.TimeStamp, config, opt, &s.NetStat)
+			dumpText(s.Curr.TimeStamp, opt, &s.NetStat)
 		case "networkprotocol":
 			for _, n := range s.NetProtocols {
-				dumpText(s.Curr.TimeStamp, config, opt, &n)
+				dumpText(s.Curr.TimeStamp, opt, &n)
 			}
 		case "softnet":
 			for _, soft := range s.Softnets {
-				dumpText(s.Curr.TimeStamp, config, opt, &soft)
+				dumpText(s.Curr.TimeStamp, opt, &soft)
 			}
 		case "process":
 			processList := []Process{}
@@ -240,7 +271,7 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 			}
 			cnt := 0
 			for _, p := range processList {
-				dumpText(s.Curr.TimeStamp, config, opt, &p)
+				dumpText(s.Curr.TimeStamp, opt, &p)
 				cnt++
 				if opt.Top > 0 && opt.Top == cnt {
 					break
@@ -259,7 +290,7 @@ func (s *Model) dumpText(config RenderConfig, opt DumpOption) error {
 
 }
 
-func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
+func (s *Model) dumpJson(opt DumpOption) error {
 
 	if err := s.CollectSampleByTime(opt.Begin); err != nil {
 		return err
@@ -275,7 +306,7 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 		}
 		switch opt.Module {
 		case "system":
-			dumpJson(s.Curr.TimeStamp, config, opt, &s.Sys)
+			dumpJson(s.Curr.TimeStamp, opt, &s.Sys)
 		case "cpu":
 			opt.Output.WriteString("[")
 			first := true
@@ -285,13 +316,13 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 				} else {
 					opt.Output.WriteString(",\n")
 				}
-				dumpJson(s.Curr.TimeStamp, config, opt, &c)
+				dumpJson(s.Curr.TimeStamp, opt, &c)
 			}
 			opt.Output.WriteString("]")
 		case "memory":
-			dumpJson(s.Curr.TimeStamp, config, opt, &s.MEM)
+			dumpJson(s.Curr.TimeStamp, opt, &s.MEM)
 		case "vm":
-			dumpJson(s.Curr.TimeStamp, config, opt, &s.Vm)
+			dumpJson(s.Curr.TimeStamp, opt, &s.Vm)
 		case "disk":
 			opt.Output.WriteString("[")
 			first := true
@@ -302,7 +333,7 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 				} else {
 					opt.Output.WriteString(",\n")
 				}
-				dumpJson(s.Curr.TimeStamp, config, opt, &d)
+				dumpJson(s.Curr.TimeStamp, opt, &d)
 			}
 			opt.Output.WriteString("]")
 		case "netdev":
@@ -315,11 +346,11 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 				} else {
 					opt.Output.WriteString(",\n")
 				}
-				dumpJson(s.Curr.TimeStamp, config, opt, &n)
+				dumpJson(s.Curr.TimeStamp, opt, &n)
 			}
 			opt.Output.WriteString("]")
 		case "network":
-			dumpJson(s.Curr.TimeStamp, config, opt, &s.NetStat)
+			dumpJson(s.Curr.TimeStamp, opt, &s.NetStat)
 		case "networkprotocol":
 			opt.Output.WriteString("[")
 			first := true
@@ -329,7 +360,7 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 				} else {
 					opt.Output.WriteString(",\n")
 				}
-				dumpJson(s.Curr.TimeStamp, config, opt, &n)
+				dumpJson(s.Curr.TimeStamp, opt, &n)
 			}
 			opt.Output.WriteString("]")
 		case "softnet":
@@ -341,7 +372,7 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 				} else {
 					opt.Output.WriteString(",\n")
 				}
-				dumpJson(s.Curr.TimeStamp, config, opt, &soft)
+				dumpJson(s.Curr.TimeStamp, opt, &soft)
 			}
 			opt.Output.WriteString("]")
 		case "process":
@@ -367,7 +398,7 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 				} else {
 					opt.Output.WriteString(",\n")
 				}
-				dumpJson(s.Curr.TimeStamp, config, opt, &p)
+				dumpJson(s.Curr.TimeStamp, opt, &p)
 				cnt++
 				if opt.Top > 0 && opt.Top == cnt {
 					break
@@ -388,7 +419,7 @@ func (s *Model) dumpJson(config RenderConfig, opt DumpOption) error {
 
 }
 
-func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, config RenderConfig, opt DumpOption) error {
+func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, opt DumpOption) error {
 
 	if err := s.CollectSampleByTime(opt.Begin); err != nil {
 		return err
@@ -398,34 +429,34 @@ func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, config RenderCo
 
 		switch opt.Module {
 		case "system":
-			dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &s.Sys)
+			dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &s.Sys)
 		case "cpu":
 			for _, c := range s.CPUs {
-				dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &c)
+				dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &c)
 			}
 		case "memory":
-			dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &s.MEM)
+			dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &s.MEM)
 		case "vm":
-			dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &s.Vm)
+			dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &s.Vm)
 		case "disk":
 			for _, disk := range s.Disks.GetKeys() {
 				d := s.Disks[disk]
-				dumpOpenMetric(s.Curr.TimeStamp, omconfig, config, opt, &d)
+				dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &d)
 			}
 		case "netdev":
 			for _, dev := range s.Nets.GetKeys() {
 				n := s.Nets[dev]
-				dumpText(s.Curr.TimeStamp, config, opt, &n)
+				dumpText(s.Curr.TimeStamp, opt, &n)
 			}
 		case "network":
-			dumpText(s.Curr.TimeStamp, config, opt, &s.NetStat)
+			dumpText(s.Curr.TimeStamp, opt, &s.NetStat)
 		case "networkprotocol":
 			for _, n := range s.NetProtocols {
-				dumpText(s.Curr.TimeStamp, config, opt, &n)
+				dumpText(s.Curr.TimeStamp, opt, &n)
 			}
 		case "softnet":
 			for _, soft := range s.Softnets {
-				dumpText(s.Curr.TimeStamp, config, opt, &soft)
+				dumpText(s.Curr.TimeStamp, opt, &soft)
 			}
 		case "process":
 			processList := []Process{}
@@ -443,7 +474,7 @@ func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, config RenderCo
 			}
 			cnt := 0
 			for _, p := range processList {
-				dumpText(s.Curr.TimeStamp, config, opt, &p)
+				dumpText(s.Curr.TimeStamp, opt, &p)
 				cnt++
 				if opt.Top > 0 && opt.Top == cnt {
 					break

@@ -28,31 +28,65 @@ type CPU struct {
 	GuestNice float64
 }
 
-func (c *CPU) GetRenderValue(config RenderConfig, field string) string {
-	s := fmt.Sprintf("no %s for cpu stat", field)
+func (c *CPU) DefaultConfig(field string) Field {
+	cfg := Field{}
 	switch field {
 	case "Index":
-		s = config[field].Render(c.Index)
+		cfg = Field{"Index", Raw, 0, "", 10, false}
 	case "User":
-		s = config[field].Render(c.User)
+		cfg = Field{"User", Raw, 1, "%", 10, false}
 	case "Nice":
-		s = config[field].Render(c.Nice)
+		cfg = Field{"Nice", Raw, 1, "%", 10, false}
 	case "System":
-		s = config[field].Render(c.System)
+		cfg = Field{"System", Raw, 1, "%", 10, false}
 	case "Idle":
-		s = config[field].Render(c.Idle)
+		cfg = Field{"Idle", Raw, 1, "%", 10, false}
 	case "Iowait":
-		s = config[field].Render(c.Iowait)
+		cfg = Field{"Iowait", Raw, 1, "%", 10, false}
 	case "IRQ":
-		s = config[field].Render(c.IRQ)
+		cfg = Field{"IRQ", Raw, 1, "%", 10, false}
 	case "SoftIRQ":
-		s = config[field].Render(c.SoftIRQ)
+		cfg = Field{"SoftIRQ", Raw, 1, "%", 10, false}
 	case "Steal":
-		s = config[field].Render(c.Steal)
+		cfg = Field{"Steal", Raw, 1, "%", 10, false}
 	case "Guest":
-		s = config[field].Render(c.Guest)
+		cfg = Field{"Guest", Raw, 1, "%", 10, false}
 	case "GuestNice":
-		s = config[field].Render(c.GuestNice)
+		cfg = Field{"GuestNice", Raw, 1, "%", 10, false}
+	}
+	return cfg
+}
+
+func (c *CPU) GetRenderValue(field string, opt FieldOpt) string {
+
+	cfg := c.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "Index":
+		s = cfg.Render(c.Index)
+	case "User":
+		s = cfg.Render(c.User)
+	case "Nice":
+		s = cfg.Render(c.Nice)
+	case "System":
+		s = cfg.Render(c.System)
+	case "Idle":
+		s = cfg.Render(c.Idle)
+	case "Iowait":
+		s = cfg.Render(c.Iowait)
+	case "IRQ":
+		s = cfg.Render(c.IRQ)
+	case "SoftIRQ":
+		s = cfg.Render(c.SoftIRQ)
+	case "Steal":
+		s = cfg.Render(c.Steal)
+	case "Guest":
+		s = cfg.Render(c.Guest)
+	case "GuestNice":
+		s = cfg.Render(c.GuestNice)
+	default:
+		s = "no " + field + " for cpu stat"
 	}
 	return s
 }

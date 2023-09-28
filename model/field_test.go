@@ -14,7 +14,7 @@ func TestRender(t *testing.T) {
 		{"Render float", Field{"User", Raw, 1, "%", 10, false}, 1.27, "1.3%"},
 		{"Render int with suffix", Field{"MemTotal", Raw, 0, " KB", 10, false}, 1024, "1024 KB"},
 		{"Render int with suffix and width", Field{"MemTotal", Raw, 0, " KB", 10, true}, 1024, "1024 KB   "},
-		{"Render readablesize", Field{"ReadByte/s", HumanReadableSize, 1, "/s", 10, false}, 3457, "3.4KB/s"},
+		{"Render readablesize", Field{"ReadByte/s", HumanReadableSize, 1, "/s", 10, false}, 3457, "3.4 KB/s"},
 		{"Render string", Field{"Comm", Raw, 0, "", 16, false}, "systemd", "systemd"},
 		{"Render short string", Field{"Comm", Raw, 0, "", 16, true}, "sh", "sh              "},
 	}
@@ -36,8 +36,9 @@ func BenchmarkRender(b *testing.B) {
 		{"Render float", Field{"User", Raw, 1, "%", 10, false}, 1.27, "1.3%"},
 		{"Render int with suffix", Field{"MemTotal", Raw, 0, " KB", 10, false}, 1024, "1024 KB"},
 		{"Render int with suffix and width", Field{"MemTotal", Raw, 0, " KB", 10, true}, 1024, "1024 KB   "},
-		{"Render readablesize", Field{"ReadByte/s", HumanReadableSize, 1, "/s", 10, false}, 3457, "3.4KB/s"},
+		{"Render readablesize", Field{"ReadByte/s", HumanReadableSize, 1, "/s", 10, false}, 3457, "3.4 KB/s"},
 		{"Render string", Field{"Comm", Raw, 0, "", 16, false}, "systemd", "systemd"},
+		{"Render short string and width", Field{"Comm", Raw, 0, "", 16, true}, "sh", "sh              "},
 	}
 
 	for _, testCase := range testCases {

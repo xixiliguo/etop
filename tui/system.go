@@ -96,7 +96,7 @@ func (system *System) DrawCPUInfo() {
 		for i, col := range visbleCols {
 			system.cpu.SetCell(r+1,
 				i,
-				tview.NewTableCell(c.GetRenderValue(system.source.Config["cpu"], col)).
+				tview.NewTableCell(c.GetRenderValue(col, model.FieldOpt{})).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}
@@ -120,7 +120,7 @@ func (system *System) DrawMEMInfo() {
 				SetAlign(tview.AlignLeft))
 		system.mem.SetCell(i+1,
 			1,
-			tview.NewTableCell(system.source.MEM.GetRenderValue(system.source.Config["memory"], item)).
+			tview.NewTableCell(system.source.MEM.GetRenderValue(item, model.FieldOpt{})).
 				SetExpansion(0).
 				SetAlign(tview.AlignRight))
 	}
@@ -144,7 +144,7 @@ func (system *System) DrawVMInfo() {
 				SetAlign(tview.AlignLeft))
 		system.vm.SetCell(i+1,
 			1,
-			tview.NewTableCell(system.source.Vm.GetRenderValue(system.source.Config["vm"], item)).
+			tview.NewTableCell(system.source.Vm.GetRenderValue(item, model.FieldOpt{})).
 				SetExpansion(0).
 				SetAlign(tview.AlignRight))
 	}
@@ -168,7 +168,7 @@ func (system *System) DrawDiskInfo() {
 		for i, col := range visbleCols {
 			system.disk.SetCell(r+1,
 				i,
-				tview.NewTableCell(disk.GetRenderValue(system.source.Config["disk"], col)).
+				tview.NewTableCell(disk.GetRenderValue(col, model.FieldOpt{})).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}
@@ -194,7 +194,7 @@ func (system *System) DrawNetInfo() {
 		for i, col := range visbleCols {
 			system.net.SetCell(r+1,
 				i,
-				tview.NewTableCell(net.GetRenderValue(system.source.Config["netdev"], col)).
+				tview.NewTableCell(net.GetRenderValue(col, model.FieldOpt{})).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}

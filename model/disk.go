@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/xixiliguo/etop/store"
@@ -53,36 +52,72 @@ type Disk struct {
 
 type DiskMap map[string]Disk
 
-func (d *Disk) GetRenderValue(config RenderConfig, field string) string {
-
-	s := fmt.Sprintf("no %s for disk stat", field)
+func (d *Disk) DefaultConfig(field string) Field {
+	cfg := Field{}
 	switch field {
 	case "Disk":
-		s = config[field].Render(d.DeviceName)
+		cfg = Field{"Disk", Raw, 0, "", 10, false}
 	case "Util":
-		s = config[field].Render(d.Util)
+		cfg = Field{"Util", Raw, 1, "%", 10, false}
 	case "Read":
-		s = config[field].Render(d.ReadIOs)
+		cfg = Field{"Read", Raw, 0, "", 10, false}
 	case "Read/s":
-		s = config[field].Render(d.ReadPerSec)
+		cfg = Field{"Read/s", Raw, 0, "/s", 10, false}
 	case "ReadByte/s":
-		s = config[field].Render(d.ReadBytePerSec)
+		cfg = Field{"ReadByte/s", HumanReadableSize, 1, "/s", 10, false}
 	case "Write":
-		s = config[field].Render(d.WriteIOs)
+		cfg = Field{"Write", Raw, 0, "", 10, false}
 	case "Write/s":
-		s = config[field].Render(d.WritePerSec)
+		cfg = Field{"Write/s", Raw, 0, "/s", 10, false}
 	case "WriteByte/s":
-		s = config[field].Render(d.WriteBytePerSec)
+		cfg = Field{"WriteByte/s", HumanReadableSize, 1, "/s", 10, false}
 	case "AvgIOSize":
-		s = config[field].Render(d.AvgIOSize)
+		cfg = Field{"AvgIOSize", HumanReadableSize, 1, "", 10, false}
 	case "AvgQueueLen":
-		s = config[field].Render(d.AvgQueueLength)
+		cfg = Field{"AvgQueueLen", Raw, 1, "", 10, false}
 	case "InFlight":
-		s = config[field].Render(d.IOsInProgress)
+		cfg = Field{"InFlight", Raw, 1, "", 10, false}
 	case "AvgIOWait":
-		s = config[field].Render(d.AvgIOWait)
+		cfg = Field{"AvgIOWait", Raw, 1, " ms", 10, false}
 	case "AvgIOTime":
-		s = config[field].Render(d.AvgIOTime)
+		cfg = Field{"AvgIOTime", Raw, 1, " ms", 10, false}
+	}
+	return cfg
+}
+func (d *Disk) GetRenderValue(field string, opt FieldOpt) string {
+
+	cfg := d.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "Disk":
+		s = cfg.Render(d.DeviceName)
+	case "Util":
+		s = cfg.Render(d.Util)
+	case "Read":
+		s = cfg.Render(d.ReadIOs)
+	case "Read/s":
+		s = cfg.Render(d.ReadPerSec)
+	case "ReadByte/s":
+		s = cfg.Render(d.ReadBytePerSec)
+	case "Write":
+		s = cfg.Render(d.WriteIOs)
+	case "Write/s":
+		s = cfg.Render(d.WritePerSec)
+	case "WriteByte/s":
+		s = cfg.Render(d.WriteBytePerSec)
+	case "AvgIOSize":
+		s = cfg.Render(d.AvgIOSize)
+	case "AvgQueueLen":
+		s = cfg.Render(d.AvgQueueLength)
+	case "InFlight":
+		s = cfg.Render(d.IOsInProgress)
+	case "AvgIOWait":
+		s = cfg.Render(d.AvgIOWait)
+	case "AvgIOTime":
+		s = cfg.Render(d.AvgIOTime)
+	default:
+		s = "no " + field + " for disk stat"
 	}
 	return s
 }

@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -20,25 +18,52 @@ type Softnet struct {
 	SoftnetBacklogLen uint32
 }
 
-func (softnet *Softnet) GetRenderValue(config RenderConfig, field string) string {
-	s := fmt.Sprintf("no %s for softnet stat", field)
+func (softnet *Softnet) DefaultConfig(field string) Field {
+	cfg := Field{}
 	switch field {
 	case "CPU":
-		s = config[field].Render(softnet.CPU)
+		cfg = Field{"CPU", Raw, 0, "", 10, false}
 	case "Processed":
-		s = config[field].Render(softnet.Processed)
+		cfg = Field{"Processed", Raw, 0, "", 10, false}
 	case "Dropped":
-		s = config[field].Render(softnet.Dropped)
+		cfg = Field{"Dropped", Raw, 0, "", 10, false}
 	case "TimeSqueezed":
-		s = config[field].Render(softnet.TimeSqueezed)
+		cfg = Field{"TimeSqueezed", Raw, 0, "", 10, false}
 	case "CPUCollision":
-		s = config[field].Render(softnet.CPUCollision)
+		cfg = Field{"CPUCollision", Raw, 0, "", 10, false}
 	case "ReceivedRps":
-		s = config[field].Render(softnet.ReceivedRps)
+		cfg = Field{"ReceivedRps", Raw, 0, "", 10, false}
 	case "FlowLimitCount":
-		s = config[field].Render(softnet.FlowLimitCount)
+		cfg = Field{"FlowLimitCount", Raw, 0, "", 10, false}
 	case "SoftnetBacklogLen":
-		s = config[field].Render(softnet.SoftnetBacklogLen)
+		cfg = Field{"SoftnetBacklogLen", Raw, 0, "", 10, false}
+	}
+	return cfg
+}
+
+func (softnet *Softnet) GetRenderValue(field string, opt FieldOpt) string {
+	cfg := softnet.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "CPU":
+		s = cfg.Render(softnet.CPU)
+	case "Processed":
+		s = cfg.Render(softnet.Processed)
+	case "Dropped":
+		s = cfg.Render(softnet.Dropped)
+	case "TimeSqueezed":
+		s = cfg.Render(softnet.TimeSqueezed)
+	case "CPUCollision":
+		s = cfg.Render(softnet.CPUCollision)
+	case "ReceivedRps":
+		s = cfg.Render(softnet.ReceivedRps)
+	case "FlowLimitCount":
+		s = cfg.Render(softnet.FlowLimitCount)
+	case "SoftnetBacklogLen":
+		s = cfg.Render(softnet.SoftnetBacklogLen)
+	default:
+		s = "no " + field + " for softnet stat"
 	}
 	return s
 }

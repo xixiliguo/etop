@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -326,600 +324,1200 @@ type NetStat struct {
 	IpExtReasmOverlaps   float64
 }
 
-func (n *NetStat) GetRenderValue(config RenderConfig, field string) string {
-
-	s := fmt.Sprintf("no %s for network stat", field)
+func (n *NetStat) DefaultConfig(field string) Field {
+	cfg := Field{}
 	switch field {
 	case "IpInReceives":
-		s = config[field].Render(n.IpInReceives)
+		cfg = Field{"IpInReceives", Raw, 0, "", 10, false}
 	case "IpInHdrErrors":
-		s = config[field].Render(n.IpInHdrErrors)
+		cfg = Field{"IpInHdrErrors", Raw, 0, "", 10, false}
 	case "IpInAddrErrors":
-		s = config[field].Render(n.IpInAddrErrors)
+		cfg = Field{"IpInAddrErrors", Raw, 0, "", 10, false}
 	case "IpForwDatagrams":
-		s = config[field].Render(n.IpForwDatagrams)
+		cfg = Field{"IpForwDatagrams", Raw, 0, "", 10, false}
 	case "IpInUnknownProtos":
-		s = config[field].Render(n.IpInUnknownProtos)
+		cfg = Field{"IpInUnknownProtos", Raw, 0, "", 10, false}
 	case "IpInDiscards":
-		s = config[field].Render(n.IpInDiscards)
+		cfg = Field{"IpInDiscards", Raw, 0, "", 10, false}
 	case "IpInDelivers":
-		s = config[field].Render(n.IpInDelivers)
+		cfg = Field{"IpInDelivers", Raw, 0, "", 10, false}
 	case "IpOutRequests":
-		s = config[field].Render(n.IpOutRequests)
+		cfg = Field{"IpOutRequests", Raw, 0, "", 10, false}
 	case "IpOutDiscards":
-		s = config[field].Render(n.IpOutDiscards)
+		cfg = Field{"IpOutDiscards", Raw, 0, "", 10, false}
 	case "IpOutNoRoutes":
-		s = config[field].Render(n.IpOutNoRoutes)
+		cfg = Field{"IpOutNoRoutes", Raw, 0, "", 10, false}
 	case "IpReasmTimeout":
-		s = config[field].Render(n.IpReasmTimeout)
+		cfg = Field{"IpReasmTimeout", Raw, 0, "", 10, false}
 	case "IpReasmReqds":
-		s = config[field].Render(n.IpReasmReqds)
+		cfg = Field{"IpReasmReqds", Raw, 0, "", 10, false}
 	case "IpReasmOKs":
-		s = config[field].Render(n.IpReasmOKs)
+		cfg = Field{"IpReasmOKs", Raw, 0, "", 10, false}
 	case "IpReasmFails":
-		s = config[field].Render(n.IpReasmFails)
+		cfg = Field{"IpReasmFails", Raw, 0, "", 10, false}
 	case "IpFragOKs":
-		s = config[field].Render(n.IpFragOKs)
+		cfg = Field{"IpFragOKs", Raw, 0, "", 10, false}
 	case "IpFragFails":
-		s = config[field].Render(n.IpFragFails)
+		cfg = Field{"IpFragFails", Raw, 0, "", 10, false}
 	case "IpFragCreates":
-		s = config[field].Render(n.IpFragCreates)
+		cfg = Field{"IpFragCreates", Raw, 0, "", 10, false}
 	case "IcmpInMsgs":
-		s = config[field].Render(n.IcmpInMsgs)
+		cfg = Field{"IcmpInMsgs", Raw, 0, "", 10, false}
 	case "IcmpInErrors":
-		s = config[field].Render(n.IcmpInErrors)
+		cfg = Field{"IcmpInErrors", Raw, 0, "", 10, false}
 	case "IcmpInCsumErrors":
-		s = config[field].Render(n.IcmpInCsumErrors)
+		cfg = Field{"IcmpInCsumErrors", Raw, 0, "", 10, false}
 	case "IcmpInDestUnreachs":
-		s = config[field].Render(n.IcmpInDestUnreachs)
+		cfg = Field{"IcmpInDestUnreachs", Raw, 0, "", 10, false}
 	case "IcmpInTimeExcds":
-		s = config[field].Render(n.IcmpInTimeExcds)
+		cfg = Field{"IcmpInTimeExcds", Raw, 0, "", 10, false}
 	case "IcmpInParmProbs":
-		s = config[field].Render(n.IcmpInParmProbs)
+		cfg = Field{"IcmpInParmProbs", Raw, 0, "", 10, false}
 	case "IcmpInSrcQuenchs":
-		s = config[field].Render(n.IcmpInSrcQuenchs)
+		cfg = Field{"IcmpInSrcQuenchs", Raw, 0, "", 10, false}
 	case "IcmpInRedirects":
-		s = config[field].Render(n.IcmpInRedirects)
+		cfg = Field{"IcmpInRedirects", Raw, 0, "", 10, false}
 	case "IcmpInEchos":
-		s = config[field].Render(n.IcmpInEchos)
+		cfg = Field{"IcmpInEchos", Raw, 0, "", 10, false}
 	case "IcmpInEchoReps":
-		s = config[field].Render(n.IcmpInEchoReps)
+		cfg = Field{"IcmpInEchoReps", Raw, 0, "", 10, false}
 	case "IcmpInTimestamps":
-		s = config[field].Render(n.IcmpInTimestamps)
+		cfg = Field{"IcmpInTimestamps", Raw, 0, "", 10, false}
 	case "IcmpInTimestampReps":
-		s = config[field].Render(n.IcmpInTimestampReps)
+		cfg = Field{"IcmpInTimestampReps", Raw, 0, "", 10, false}
 	case "IcmpInAddrMasks":
-		s = config[field].Render(n.IcmpInAddrMasks)
+		cfg = Field{"IcmpInAddrMasks", Raw, 0, "", 10, false}
 	case "IcmpInAddrMaskReps":
-		s = config[field].Render(n.IcmpInAddrMaskReps)
+		cfg = Field{"IcmpInAddrMaskReps", Raw, 0, "", 10, false}
 	case "IcmpOutMsgs":
-		s = config[field].Render(n.IcmpOutMsgs)
+		cfg = Field{"IcmpOutMsgs", Raw, 0, "", 10, false}
 	case "IcmpOutErrors":
-		s = config[field].Render(n.IcmpOutErrors)
+		cfg = Field{"IcmpOutErrors", Raw, 0, "", 10, false}
 	case "IcmpOutDestUnreachs":
-		s = config[field].Render(n.IcmpOutDestUnreachs)
+		cfg = Field{"IcmpOutDestUnreachs", Raw, 0, "", 10, false}
 	case "IcmpOutTimeExcds":
-		s = config[field].Render(n.IcmpOutTimeExcds)
+		cfg = Field{"IcmpOutTimeExcds", Raw, 0, "", 10, false}
 	case "IcmpOutParmProbs":
-		s = config[field].Render(n.IcmpOutParmProbs)
+		cfg = Field{"IcmpOutParmProbs", Raw, 0, "", 10, false}
 	case "IcmpOutSrcQuenchs":
-		s = config[field].Render(n.IcmpOutSrcQuenchs)
+		cfg = Field{"IcmpOutSrcQuenchs", Raw, 0, "", 10, false}
 	case "IcmpOutRedirects":
-		s = config[field].Render(n.IcmpOutRedirects)
+		cfg = Field{"IcmpOutRedirects", Raw, 0, "", 10, false}
 	case "IcmpOutEchos":
-		s = config[field].Render(n.IcmpOutEchos)
+		cfg = Field{"IcmpOutEchos", Raw, 0, "", 10, false}
 	case "IcmpOutEchoReps":
-		s = config[field].Render(n.IcmpOutEchoReps)
+		cfg = Field{"IcmpOutEchoReps", Raw, 0, "", 10, false}
 	case "IcmpOutTimestamps":
-		s = config[field].Render(n.IcmpOutTimestamps)
+		cfg = Field{"IcmpOutTimestamps", Raw, 0, "", 10, false}
 	case "IcmpOutTimestampReps":
-		s = config[field].Render(n.IcmpOutTimestampReps)
+		cfg = Field{"IcmpOutTimestampReps", Raw, 0, "", 10, false}
 	case "IcmpOutAddrMasks":
-		s = config[field].Render(n.IcmpOutAddrMasks)
+		cfg = Field{"IcmpOutAddrMasks", Raw, 0, "", 10, false}
 	case "IcmpOutAddrMaskReps":
-		s = config[field].Render(n.IcmpOutAddrMaskReps)
+		cfg = Field{"IcmpOutAddrMaskReps", Raw, 0, "", 10, false}
 	case "IcmpInType3":
-		s = config[field].Render(n.IcmpInType3)
+		cfg = Field{"IcmpInType3", Raw, 0, "", 10, false}
 	case "IcmpOutType3":
-		s = config[field].Render(n.IcmpOutType3)
+		cfg = Field{"IcmpOutType3", Raw, 0, "", 10, false}
 	case "TcpActiveOpens":
-		s = config[field].Render(n.TcpActiveOpens)
+		cfg = Field{"TcpActiveOpens", Raw, 0, "", 10, false}
 	case "TcpPassiveOpens":
-		s = config[field].Render(n.TcpPassiveOpens)
+		cfg = Field{"TcpPassiveOpens", Raw, 0, "", 10, false}
 	case "TcpAttemptFails":
-		s = config[field].Render(n.TcpAttemptFails)
+		cfg = Field{"TcpAttemptFails", Raw, 0, "", 10, false}
 	case "TcpEstabResets":
-		s = config[field].Render(n.TcpEstabResets)
+		cfg = Field{"TcpEstabResets", Raw, 0, "", 10, false}
 	case "TcpCurrEstab":
-		s = config[field].Render(n.TcpCurrEstab)
+		cfg = Field{"TcpCurrEstab", Raw, 0, "", 10, false}
 	case "TcpInSegs":
-		s = config[field].Render(n.TcpInSegs)
+		cfg = Field{"TcpInSegs", Raw, 0, "", 10, false}
 	case "TcpOutSegs":
-		s = config[field].Render(n.TcpOutSegs)
+		cfg = Field{"TcpOutSegs", Raw, 0, "", 10, false}
 	case "TcpRetransSegs":
-		s = config[field].Render(n.TcpRetransSegs)
+		cfg = Field{"TcpRetransSegs", Raw, 0, "", 10, false}
 	case "TcpInErrs":
-		s = config[field].Render(n.TcpInErrs)
+		cfg = Field{"TcpInErrs", Raw, 0, "", 10, false}
 	case "TcpOutRsts":
-		s = config[field].Render(n.TcpOutRsts)
+		cfg = Field{"TcpOutRsts", Raw, 0, "", 10, false}
 	case "TcpInCsumErrors":
-		s = config[field].Render(n.TcpInCsumErrors)
+		cfg = Field{"TcpInCsumErrors", Raw, 0, "", 10, false}
 	case "UdpInDatagrams":
-		s = config[field].Render(n.UdpInDatagrams)
+		cfg = Field{"UdpInDatagrams", Raw, 0, "", 10, false}
 	case "UdpNoPorts":
-		s = config[field].Render(n.UdpNoPorts)
+		cfg = Field{"UdpNoPorts", Raw, 0, "", 10, false}
 	case "UdpInErrors":
-		s = config[field].Render(n.UdpInErrors)
+		cfg = Field{"UdpInErrors", Raw, 0, "", 10, false}
 	case "UdpOutDatagrams":
-		s = config[field].Render(n.UdpOutDatagrams)
+		cfg = Field{"UdpOutDatagrams", Raw, 0, "", 10, false}
 	case "UdpRcvbufErrors":
-		s = config[field].Render(n.UdpRcvbufErrors)
+		cfg = Field{"UdpRcvbufErrors", Raw, 0, "", 10, false}
 	case "UdpSndbufErrors":
-		s = config[field].Render(n.UdpSndbufErrors)
+		cfg = Field{"UdpSndbufErrors", Raw, 0, "", 10, false}
 	case "UdpInCsumErrors":
-		s = config[field].Render(n.UdpInCsumErrors)
+		cfg = Field{"UdpInCsumErrors", Raw, 0, "", 10, false}
 	case "UdpIgnoredMulti":
-		s = config[field].Render(n.UdpIgnoredMulti)
+		cfg = Field{"UdpIgnoredMulti", Raw, 0, "", 10, false}
 	case "UdpLiteInDatagrams":
-		s = config[field].Render(n.UdpLiteInDatagrams)
+		cfg = Field{"UdpLiteInDatagrams", Raw, 0, "", 10, false}
 	case "UdpLiteNoPorts":
-		s = config[field].Render(n.UdpLiteNoPorts)
+		cfg = Field{"UdpLiteNoPorts", Raw, 0, "", 10, false}
 	case "UdpLiteInErrors":
-		s = config[field].Render(n.UdpLiteInErrors)
+		cfg = Field{"UdpLiteInErrors", Raw, 0, "", 10, false}
 	case "UdpLiteOutDatagrams":
-		s = config[field].Render(n.UdpLiteOutDatagrams)
+		cfg = Field{"UdpLiteOutDatagrams", Raw, 0, "", 10, false}
 	case "UdpLiteRcvbufErrors":
-		s = config[field].Render(n.UdpLiteRcvbufErrors)
+		cfg = Field{"UdpLiteRcvbufErrors", Raw, 0, "", 10, false}
 	case "UdpLiteSndbufErrors":
-		s = config[field].Render(n.UdpLiteSndbufErrors)
+		cfg = Field{"UdpLiteSndbufErrors", Raw, 0, "", 10, false}
 	case "UdpLiteInCsumErrors":
-		s = config[field].Render(n.UdpLiteInCsumErrors)
+		cfg = Field{"UdpLiteInCsumErrors", Raw, 0, "", 10, false}
 	case "UdpLiteIgnoredMulti":
-		s = config[field].Render(n.UdpLiteIgnoredMulti)
+		cfg = Field{"UdpLiteIgnoredMulti", Raw, 0, "", 10, false}
 	case "Ip6InReceives":
-		s = config[field].Render(n.Ip6InReceives)
+		cfg = Field{"Ip6InReceives", Raw, 0, "", 10, false}
 	case "Ip6InHdrErrors":
-		s = config[field].Render(n.Ip6InHdrErrors)
+		cfg = Field{"Ip6InHdrErrors", Raw, 0, "", 10, false}
 	case "Ip6InTooBigErrors":
-		s = config[field].Render(n.Ip6InTooBigErrors)
+		cfg = Field{"Ip6InTooBigErrors", Raw, 0, "", 10, false}
 	case "Ip6InNoRoutes":
-		s = config[field].Render(n.Ip6InNoRoutes)
+		cfg = Field{"Ip6InNoRoutes", Raw, 0, "", 10, false}
 	case "Ip6InAddrErrors":
-		s = config[field].Render(n.Ip6InAddrErrors)
+		cfg = Field{"Ip6InAddrErrors", Raw, 0, "", 10, false}
 	case "Ip6InUnknownProtos":
-		s = config[field].Render(n.Ip6InUnknownProtos)
+		cfg = Field{"Ip6InUnknownProtos", Raw, 0, "", 10, false}
 	case "Ip6InTruncatedPkts":
-		s = config[field].Render(n.Ip6InTruncatedPkts)
+		cfg = Field{"Ip6InTruncatedPkts", Raw, 0, "", 10, false}
 	case "Ip6InDiscards":
-		s = config[field].Render(n.Ip6InDiscards)
+		cfg = Field{"Ip6InDiscards", Raw, 0, "", 10, false}
 	case "Ip6InDelivers":
-		s = config[field].Render(n.Ip6InDelivers)
+		cfg = Field{"Ip6InDelivers", Raw, 0, "", 10, false}
 	case "Ip6OutForwDatagrams":
-		s = config[field].Render(n.Ip6OutForwDatagrams)
+		cfg = Field{"Ip6OutForwDatagrams", Raw, 0, "", 10, false}
 	case "Ip6OutRequests":
-		s = config[field].Render(n.Ip6OutRequests)
+		cfg = Field{"Ip6OutRequests", Raw, 0, "", 10, false}
 	case "Ip6OutDiscards":
-		s = config[field].Render(n.Ip6OutDiscards)
+		cfg = Field{"Ip6OutDiscards", Raw, 0, "", 10, false}
 	case "Ip6OutNoRoutes":
-		s = config[field].Render(n.Ip6OutNoRoutes)
+		cfg = Field{"Ip6OutNoRoutes", Raw, 0, "", 10, false}
 	case "Ip6ReasmTimeout":
-		s = config[field].Render(n.Ip6ReasmTimeout)
+		cfg = Field{"Ip6ReasmTimeout", Raw, 0, "", 10, false}
 	case "Ip6ReasmReqds":
-		s = config[field].Render(n.Ip6ReasmReqds)
+		cfg = Field{"Ip6ReasmReqds", Raw, 0, "", 10, false}
 	case "Ip6ReasmOKs":
-		s = config[field].Render(n.Ip6ReasmOKs)
+		cfg = Field{"Ip6ReasmOKs", Raw, 0, "", 10, false}
 	case "Ip6ReasmFails":
-		s = config[field].Render(n.Ip6ReasmFails)
+		cfg = Field{"Ip6ReasmFails", Raw, 0, "", 10, false}
 	case "Ip6FragOKs":
-		s = config[field].Render(n.Ip6FragOKs)
+		cfg = Field{"Ip6FragOKs", Raw, 0, "", 10, false}
 	case "Ip6FragFails":
-		s = config[field].Render(n.Ip6FragFails)
+		cfg = Field{"Ip6FragFails", Raw, 0, "", 10, false}
 	case "Ip6FragCreates":
-		s = config[field].Render(n.Ip6FragCreates)
+		cfg = Field{"Ip6FragCreates", Raw, 0, "", 10, false}
 	case "Ip6InMcastPkts":
-		s = config[field].Render(n.Ip6InMcastPkts)
+		cfg = Field{"Ip6InMcastPkts", Raw, 0, "", 10, false}
 	case "Ip6OutMcastPkts":
-		s = config[field].Render(n.Ip6OutMcastPkts)
+		cfg = Field{"Ip6OutMcastPkts", Raw, 0, "", 10, false}
 	case "Ip6InOctets":
-		s = config[field].Render(n.Ip6InOctets)
+		cfg = Field{"Ip6InOctets", Raw, 0, "", 10, false}
 	case "Ip6OutOctets":
-		s = config[field].Render(n.Ip6OutOctets)
+		cfg = Field{"Ip6OutOctets", Raw, 0, "", 10, false}
 	case "Ip6InMcastOctets":
-		s = config[field].Render(n.Ip6InMcastOctets)
+		cfg = Field{"Ip6InMcastOctets", Raw, 0, "", 10, false}
 	case "Ip6OutMcastOctets":
-		s = config[field].Render(n.Ip6OutMcastOctets)
+		cfg = Field{"Ip6OutMcastOctets", Raw, 0, "", 10, false}
 	case "Ip6InBcastOctets":
-		s = config[field].Render(n.Ip6InBcastOctets)
+		cfg = Field{"Ip6InBcastOctets", Raw, 0, "", 10, false}
 	case "Ip6OutBcastOctets":
-		s = config[field].Render(n.Ip6OutBcastOctets)
+		cfg = Field{"Ip6OutBcastOctets", Raw, 0, "", 10, false}
 	case "Ip6InNoECTPkts":
-		s = config[field].Render(n.Ip6InNoECTPkts)
+		cfg = Field{"Ip6InNoECTPkts", Raw, 0, "", 10, false}
 	case "Ip6InECT1Pkts":
-		s = config[field].Render(n.Ip6InECT1Pkts)
+		cfg = Field{"Ip6InECT1Pkts", Raw, 0, "", 10, false}
 	case "Ip6InECT0Pkts":
-		s = config[field].Render(n.Ip6InECT0Pkts)
+		cfg = Field{"Ip6InECT0Pkts", Raw, 0, "", 10, false}
 	case "Ip6InCEPkts":
-		s = config[field].Render(n.Ip6InCEPkts)
+		cfg = Field{"Ip6InCEPkts", Raw, 0, "", 10, false}
 	case "Icmp6InMsgs":
-		s = config[field].Render(n.Icmp6InMsgs)
+		cfg = Field{"Icmp6InMsgs", Raw, 0, "", 10, false}
 	case "Icmp6InErrors":
-		s = config[field].Render(n.Icmp6InErrors)
+		cfg = Field{"Icmp6InErrors", Raw, 0, "", 10, false}
 	case "Icmp6OutMsgs":
-		s = config[field].Render(n.Icmp6OutMsgs)
+		cfg = Field{"Icmp6OutMsgs", Raw, 0, "", 10, false}
 	case "Icmp6OutErrors":
-		s = config[field].Render(n.Icmp6OutErrors)
+		cfg = Field{"Icmp6OutErrors", Raw, 0, "", 10, false}
 	case "Icmp6InCsumErrors":
-		s = config[field].Render(n.Icmp6InCsumErrors)
+		cfg = Field{"Icmp6InCsumErrors", Raw, 0, "", 10, false}
 	case "Icmp6InDestUnreachs":
-		s = config[field].Render(n.Icmp6InDestUnreachs)
+		cfg = Field{"Icmp6InDestUnreachs", Raw, 0, "", 10, false}
 	case "Icmp6InPktTooBigs":
-		s = config[field].Render(n.Icmp6InPktTooBigs)
+		cfg = Field{"Icmp6InPktTooBigs", Raw, 0, "", 10, false}
 	case "Icmp6InTimeExcds":
-		s = config[field].Render(n.Icmp6InTimeExcds)
+		cfg = Field{"Icmp6InTimeExcds", Raw, 0, "", 10, false}
 	case "Icmp6InParmProblems":
-		s = config[field].Render(n.Icmp6InParmProblems)
+		cfg = Field{"Icmp6InParmProblems", Raw, 0, "", 10, false}
 	case "Icmp6InEchos":
-		s = config[field].Render(n.Icmp6InEchos)
+		cfg = Field{"Icmp6InEchos", Raw, 0, "", 10, false}
 	case "Icmp6InEchoReplies":
-		s = config[field].Render(n.Icmp6InEchoReplies)
+		cfg = Field{"Icmp6InEchoReplies", Raw, 0, "", 10, false}
 	case "Icmp6InGroupMembQueries":
-		s = config[field].Render(n.Icmp6InGroupMembQueries)
+		cfg = Field{"Icmp6InGroupMembQueries", Raw, 0, "", 10, false}
 	case "Icmp6InGroupMembResponses":
-		s = config[field].Render(n.Icmp6InGroupMembResponses)
+		cfg = Field{"Icmp6InGroupMembResponses", Raw, 0, "", 10, false}
 	case "Icmp6InGroupMembReductions":
-		s = config[field].Render(n.Icmp6InGroupMembReductions)
+		cfg = Field{"Icmp6InGroupMembReductions", Raw, 0, "", 10, false}
 	case "Icmp6InRouterSolicits":
-		s = config[field].Render(n.Icmp6InRouterSolicits)
+		cfg = Field{"Icmp6InRouterSolicits", Raw, 0, "", 10, false}
 	case "Icmp6InRouterAdvertisements":
-		s = config[field].Render(n.Icmp6InRouterAdvertisements)
+		cfg = Field{"Icmp6InRouterAdvertisements", Raw, 0, "", 10, false}
 	case "Icmp6InNeighborSolicits":
-		s = config[field].Render(n.Icmp6InNeighborSolicits)
+		cfg = Field{"Icmp6InNeighborSolicits", Raw, 0, "", 10, false}
 	case "Icmp6InNeighborAdvertisements":
-		s = config[field].Render(n.Icmp6InNeighborAdvertisements)
+		cfg = Field{"Icmp6InNeighborAdvertisements", Raw, 0, "", 10, false}
 	case "Icmp6InRedirects":
-		s = config[field].Render(n.Icmp6InRedirects)
+		cfg = Field{"Icmp6InRedirects", Raw, 0, "", 10, false}
 	case "Icmp6InMLDv2Reports":
-		s = config[field].Render(n.Icmp6InMLDv2Reports)
+		cfg = Field{"Icmp6InMLDv2Reports", Raw, 0, "", 10, false}
 	case "Icmp6OutDestUnreachs":
-		s = config[field].Render(n.Icmp6OutDestUnreachs)
+		cfg = Field{"Icmp6OutDestUnreachs", Raw, 0, "", 10, false}
 	case "Icmp6OutPktTooBigs":
-		s = config[field].Render(n.Icmp6OutPktTooBigs)
+		cfg = Field{"Icmp6OutPktTooBigs", Raw, 0, "", 10, false}
 	case "Icmp6OutTimeExcds":
-		s = config[field].Render(n.Icmp6OutTimeExcds)
+		cfg = Field{"Icmp6OutTimeExcds", Raw, 0, "", 10, false}
 	case "Icmp6OutParmProblems":
-		s = config[field].Render(n.Icmp6OutParmProblems)
+		cfg = Field{"Icmp6OutParmProblems", Raw, 0, "", 10, false}
 	case "Icmp6OutEchos":
-		s = config[field].Render(n.Icmp6OutEchos)
+		cfg = Field{"Icmp6OutEchos", Raw, 0, "", 10, false}
 	case "Icmp6OutEchoReplies":
-		s = config[field].Render(n.Icmp6OutEchoReplies)
+		cfg = Field{"Icmp6OutEchoReplies", Raw, 0, "", 10, false}
 	case "Icmp6OutGroupMembQueries":
-		s = config[field].Render(n.Icmp6OutGroupMembQueries)
+		cfg = Field{"Icmp6OutGroupMembQueries", Raw, 0, "", 10, false}
 	case "Icmp6OutGroupMembResponses":
-		s = config[field].Render(n.Icmp6OutGroupMembResponses)
+		cfg = Field{"Icmp6OutGroupMembResponses", Raw, 0, "", 10, false}
 	case "Icmp6OutGroupMembReductions":
-		s = config[field].Render(n.Icmp6OutGroupMembReductions)
+		cfg = Field{"Icmp6OutGroupMembReductions", Raw, 0, "", 10, false}
 	case "Icmp6OutRouterSolicits":
-		s = config[field].Render(n.Icmp6OutRouterSolicits)
+		cfg = Field{"Icmp6OutRouterSolicits", Raw, 0, "", 10, false}
 	case "Icmp6OutRouterAdvertisements":
-		s = config[field].Render(n.Icmp6OutRouterAdvertisements)
+		cfg = Field{"Icmp6OutRouterAdvertisements", Raw, 0, "", 10, false}
 	case "Icmp6OutNeighborSolicits":
-		s = config[field].Render(n.Icmp6OutNeighborSolicits)
+		cfg = Field{"Icmp6OutNeighborSolicits", Raw, 0, "", 10, false}
 	case "Icmp6OutNeighborAdvertisements":
-		s = config[field].Render(n.Icmp6OutNeighborAdvertisements)
+		cfg = Field{"Icmp6OutNeighborAdvertisements", Raw, 0, "", 10, false}
 	case "Icmp6OutRedirects":
-		s = config[field].Render(n.Icmp6OutRedirects)
+		cfg = Field{"Icmp6OutRedirects", Raw, 0, "", 10, false}
 	case "Icmp6OutMLDv2Reports":
-		s = config[field].Render(n.Icmp6OutMLDv2Reports)
+		cfg = Field{"Icmp6OutMLDv2Reports", Raw, 0, "", 10, false}
 	case "Icmp6InType1":
-		s = config[field].Render(n.Icmp6InType1)
+		cfg = Field{"Icmp6InType1", Raw, 0, "", 10, false}
 	case "Icmp6InType134":
-		s = config[field].Render(n.Icmp6InType134)
+		cfg = Field{"Icmp6InType134", Raw, 0, "", 10, false}
 	case "Icmp6InType135":
-		s = config[field].Render(n.Icmp6InType135)
+		cfg = Field{"Icmp6InType135", Raw, 0, "", 10, false}
 	case "Icmp6InType136":
-		s = config[field].Render(n.Icmp6InType136)
+		cfg = Field{"Icmp6InType136", Raw, 0, "", 10, false}
 	case "Icmp6InType143":
-		s = config[field].Render(n.Icmp6InType143)
+		cfg = Field{"Icmp6InType143", Raw, 0, "", 10, false}
 	case "Icmp6OutType133":
-		s = config[field].Render(n.Icmp6OutType133)
+		cfg = Field{"Icmp6OutType133", Raw, 0, "", 10, false}
 	case "Icmp6OutType135":
-		s = config[field].Render(n.Icmp6OutType135)
+		cfg = Field{"Icmp6OutType135", Raw, 0, "", 10, false}
 	case "Icmp6OutType136":
-		s = config[field].Render(n.Icmp6OutType136)
+		cfg = Field{"Icmp6OutType136", Raw, 0, "", 10, false}
 	case "Icmp6OutType143":
-		s = config[field].Render(n.Icmp6OutType143)
+		cfg = Field{"Icmp6OutType143", Raw, 0, "", 10, false}
 	case "Udp6InDatagrams":
-		s = config[field].Render(n.Udp6InDatagrams)
+		cfg = Field{"Udp6InDatagrams", Raw, 0, "", 10, false}
 	case "Udp6NoPorts":
-		s = config[field].Render(n.Udp6NoPorts)
+		cfg = Field{"Udp6NoPorts", Raw, 0, "", 10, false}
 	case "Udp6InErrors":
-		s = config[field].Render(n.Udp6InErrors)
+		cfg = Field{"Udp6InErrors", Raw, 0, "", 10, false}
 	case "Udp6OutDatagrams":
-		s = config[field].Render(n.Udp6OutDatagrams)
+		cfg = Field{"Udp6OutDatagrams", Raw, 0, "", 10, false}
 	case "Udp6RcvbufErrors":
-		s = config[field].Render(n.Udp6RcvbufErrors)
+		cfg = Field{"Udp6RcvbufErrors", Raw, 0, "", 10, false}
 	case "Udp6SndbufErrors":
-		s = config[field].Render(n.Udp6SndbufErrors)
+		cfg = Field{"Udp6SndbufErrors", Raw, 0, "", 10, false}
 	case "Udp6InCsumErrors":
-		s = config[field].Render(n.Udp6InCsumErrors)
+		cfg = Field{"Udp6InCsumErrors", Raw, 0, "", 10, false}
 	case "Udp6IgnoredMulti":
-		s = config[field].Render(n.Udp6IgnoredMulti)
+		cfg = Field{"Udp6IgnoredMulti", Raw, 0, "", 10, false}
 	case "UdpLite6InDatagrams":
-		s = config[field].Render(n.UdpLite6InDatagrams)
+		cfg = Field{"UdpLite6InDatagrams", Raw, 0, "", 10, false}
 	case "UdpLite6NoPorts":
-		s = config[field].Render(n.UdpLite6NoPorts)
+		cfg = Field{"UdpLite6NoPorts", Raw, 0, "", 10, false}
 	case "UdpLite6InErrors":
-		s = config[field].Render(n.UdpLite6InErrors)
+		cfg = Field{"UdpLite6InErrors", Raw, 0, "", 10, false}
 	case "UdpLite6OutDatagrams":
-		s = config[field].Render(n.UdpLite6OutDatagrams)
+		cfg = Field{"UdpLite6OutDatagrams", Raw, 0, "", 10, false}
 	case "UdpLite6RcvbufErrors":
-		s = config[field].Render(n.UdpLite6RcvbufErrors)
+		cfg = Field{"UdpLite6RcvbufErrors", Raw, 0, "", 10, false}
 	case "UdpLite6SndbufErrors":
-		s = config[field].Render(n.UdpLite6SndbufErrors)
+		cfg = Field{"UdpLite6SndbufErrors", Raw, 0, "", 10, false}
 	case "UdpLite6InCsumErrors":
-		s = config[field].Render(n.UdpLite6InCsumErrors)
+		cfg = Field{"UdpLite6InCsumErrors", Raw, 0, "", 10, false}
 	case "TcpExtSyncookiesSent":
-		s = config[field].Render(n.TcpExtSyncookiesSent)
+		cfg = Field{"TcpExtSyncookiesSent", Raw, 0, "", 10, false}
 	case "TcpExtSyncookiesRecv":
-		s = config[field].Render(n.TcpExtSyncookiesRecv)
+		cfg = Field{"TcpExtSyncookiesRecv", Raw, 0, "", 10, false}
 	case "TcpExtSyncookiesFailed":
-		s = config[field].Render(n.TcpExtSyncookiesFailed)
+		cfg = Field{"TcpExtSyncookiesFailed", Raw, 0, "", 10, false}
 	case "TcpExtEmbryonicRsts":
-		s = config[field].Render(n.TcpExtEmbryonicRsts)
+		cfg = Field{"TcpExtEmbryonicRsts", Raw, 0, "", 10, false}
 	case "TcpExtPruneCalled":
-		s = config[field].Render(n.TcpExtPruneCalled)
+		cfg = Field{"TcpExtPruneCalled", Raw, 0, "", 10, false}
 	case "TcpExtRcvPruned":
-		s = config[field].Render(n.TcpExtRcvPruned)
+		cfg = Field{"TcpExtRcvPruned", Raw, 0, "", 10, false}
 	case "TcpExtOfoPruned":
-		s = config[field].Render(n.TcpExtOfoPruned)
+		cfg = Field{"TcpExtOfoPruned", Raw, 0, "", 10, false}
 	case "TcpExtOutOfWindowIcmps":
-		s = config[field].Render(n.TcpExtOutOfWindowIcmps)
+		cfg = Field{"TcpExtOutOfWindowIcmps", Raw, 0, "", 10, false}
 	case "TcpExtLockDroppedIcmps":
-		s = config[field].Render(n.TcpExtLockDroppedIcmps)
+		cfg = Field{"TcpExtLockDroppedIcmps", Raw, 0, "", 10, false}
 	case "TcpExtArpFilter":
-		s = config[field].Render(n.TcpExtArpFilter)
+		cfg = Field{"TcpExtArpFilter", Raw, 0, "", 10, false}
 	case "TcpExtTW":
-		s = config[field].Render(n.TcpExtTW)
+		cfg = Field{"TcpExtTW", Raw, 0, "", 10, false}
 	case "TcpExtTWRecycled":
-		s = config[field].Render(n.TcpExtTWRecycled)
+		cfg = Field{"TcpExtTWRecycled", Raw, 0, "", 10, false}
 	case "TcpExtTWKilled":
-		s = config[field].Render(n.TcpExtTWKilled)
+		cfg = Field{"TcpExtTWKilled", Raw, 0, "", 10, false}
 	case "TcpExtPAWSActive":
-		s = config[field].Render(n.TcpExtPAWSActive)
+		cfg = Field{"TcpExtPAWSActive", Raw, 0, "", 10, false}
 	case "TcpExtPAWSEstab":
-		s = config[field].Render(n.TcpExtPAWSEstab)
+		cfg = Field{"TcpExtPAWSEstab", Raw, 0, "", 10, false}
 	case "TcpExtDelayedACKs":
-		s = config[field].Render(n.TcpExtDelayedACKs)
+		cfg = Field{"TcpExtDelayedACKs", Raw, 0, "", 10, false}
 	case "TcpExtDelayedACKLocked":
-		s = config[field].Render(n.TcpExtDelayedACKLocked)
+		cfg = Field{"TcpExtDelayedACKLocked", Raw, 0, "", 10, false}
 	case "TcpExtDelayedACKLost":
-		s = config[field].Render(n.TcpExtDelayedACKLost)
+		cfg = Field{"TcpExtDelayedACKLost", Raw, 0, "", 10, false}
 	case "TcpExtListenOverflows":
-		s = config[field].Render(n.TcpExtListenOverflows)
+		cfg = Field{"TcpExtListenOverflows", Raw, 0, "", 10, false}
 	case "TcpExtListenDrops":
-		s = config[field].Render(n.TcpExtListenDrops)
+		cfg = Field{"TcpExtListenDrops", Raw, 0, "", 10, false}
 	case "TcpExtTCPHPHits":
-		s = config[field].Render(n.TcpExtTCPHPHits)
+		cfg = Field{"TcpExtTCPHPHits", Raw, 0, "", 10, false}
 	case "TcpExtTCPPureAcks":
-		s = config[field].Render(n.TcpExtTCPPureAcks)
+		cfg = Field{"TcpExtTCPPureAcks", Raw, 0, "", 10, false}
 	case "TcpExtTCPHPAcks":
-		s = config[field].Render(n.TcpExtTCPHPAcks)
+		cfg = Field{"TcpExtTCPHPAcks", Raw, 0, "", 10, false}
 	case "TcpExtTCPRenoRecovery":
-		s = config[field].Render(n.TcpExtTCPRenoRecovery)
+		cfg = Field{"TcpExtTCPRenoRecovery", Raw, 0, "", 10, false}
 	case "TcpExtTCPSackRecovery":
-		s = config[field].Render(n.TcpExtTCPSackRecovery)
+		cfg = Field{"TcpExtTCPSackRecovery", Raw, 0, "", 10, false}
 	case "TcpExtTCPSACKReneging":
-		s = config[field].Render(n.TcpExtTCPSACKReneging)
+		cfg = Field{"TcpExtTCPSACKReneging", Raw, 0, "", 10, false}
 	case "TcpExtTCPSACKReorder":
-		s = config[field].Render(n.TcpExtTCPSACKReorder)
+		cfg = Field{"TcpExtTCPSACKReorder", Raw, 0, "", 10, false}
 	case "TcpExtTCPRenoReorder":
-		s = config[field].Render(n.TcpExtTCPRenoReorder)
+		cfg = Field{"TcpExtTCPRenoReorder", Raw, 0, "", 10, false}
 	case "TcpExtTCPTSReorder":
-		s = config[field].Render(n.TcpExtTCPTSReorder)
+		cfg = Field{"TcpExtTCPTSReorder", Raw, 0, "", 10, false}
 	case "TcpExtTCPFullUndo":
-		s = config[field].Render(n.TcpExtTCPFullUndo)
+		cfg = Field{"TcpExtTCPFullUndo", Raw, 0, "", 10, false}
 	case "TcpExtTCPPartialUndo":
-		s = config[field].Render(n.TcpExtTCPPartialUndo)
+		cfg = Field{"TcpExtTCPPartialUndo", Raw, 0, "", 10, false}
 	case "TcpExtTCPDSACKUndo":
-		s = config[field].Render(n.TcpExtTCPDSACKUndo)
+		cfg = Field{"TcpExtTCPDSACKUndo", Raw, 0, "", 10, false}
 	case "TcpExtTCPLossUndo":
-		s = config[field].Render(n.TcpExtTCPLossUndo)
+		cfg = Field{"TcpExtTCPLossUndo", Raw, 0, "", 10, false}
 	case "TcpExtTCPLostRetransmit":
-		s = config[field].Render(n.TcpExtTCPLostRetransmit)
+		cfg = Field{"TcpExtTCPLostRetransmit", Raw, 0, "", 10, false}
 	case "TcpExtTCPRenoFailures":
-		s = config[field].Render(n.TcpExtTCPRenoFailures)
+		cfg = Field{"TcpExtTCPRenoFailures", Raw, 0, "", 10, false}
 	case "TcpExtTCPSackFailures":
-		s = config[field].Render(n.TcpExtTCPSackFailures)
+		cfg = Field{"TcpExtTCPSackFailures", Raw, 0, "", 10, false}
 	case "TcpExtTCPLossFailures":
-		s = config[field].Render(n.TcpExtTCPLossFailures)
+		cfg = Field{"TcpExtTCPLossFailures", Raw, 0, "", 10, false}
 	case "TcpExtTCPFastRetrans":
-		s = config[field].Render(n.TcpExtTCPFastRetrans)
+		cfg = Field{"TcpExtTCPFastRetrans", Raw, 0, "", 10, false}
 	case "TcpExtTCPSlowStartRetrans":
-		s = config[field].Render(n.TcpExtTCPSlowStartRetrans)
+		cfg = Field{"TcpExtTCPSlowStartRetrans", Raw, 0, "", 10, false}
 	case "TcpExtTCPTimeouts":
-		s = config[field].Render(n.TcpExtTCPTimeouts)
+		cfg = Field{"TcpExtTCPTimeouts", Raw, 0, "", 10, false}
 	case "TcpExtTCPLossProbes":
-		s = config[field].Render(n.TcpExtTCPLossProbes)
+		cfg = Field{"TcpExtTCPLossProbes", Raw, 0, "", 10, false}
 	case "TcpExtTCPLossProbeRecovery":
-		s = config[field].Render(n.TcpExtTCPLossProbeRecovery)
+		cfg = Field{"TcpExtTCPLossProbeRecovery", Raw, 0, "", 10, false}
 	case "TcpExtTCPRenoRecoveryFail":
-		s = config[field].Render(n.TcpExtTCPRenoRecoveryFail)
+		cfg = Field{"TcpExtTCPRenoRecoveryFail", Raw, 0, "", 10, false}
 	case "TcpExtTCPSackRecoveryFail":
-		s = config[field].Render(n.TcpExtTCPSackRecoveryFail)
+		cfg = Field{"TcpExtTCPSackRecoveryFail", Raw, 0, "", 10, false}
 	case "TcpExtTCPRcvCollapsed":
-		s = config[field].Render(n.TcpExtTCPRcvCollapsed)
+		cfg = Field{"TcpExtTCPRcvCollapsed", Raw, 0, "", 10, false}
 	case "TcpExtTCPDSACKOldSent":
-		s = config[field].Render(n.TcpExtTCPDSACKOldSent)
+		cfg = Field{"TcpExtTCPDSACKOldSent", Raw, 0, "", 10, false}
 	case "TcpExtTCPDSACKOfoSent":
-		s = config[field].Render(n.TcpExtTCPDSACKOfoSent)
+		cfg = Field{"TcpExtTCPDSACKOfoSent", Raw, 0, "", 10, false}
 	case "TcpExtTCPDSACKRecv":
-		s = config[field].Render(n.TcpExtTCPDSACKRecv)
+		cfg = Field{"TcpExtTCPDSACKRecv", Raw, 0, "", 10, false}
 	case "TcpExtTCPDSACKOfoRecv":
-		s = config[field].Render(n.TcpExtTCPDSACKOfoRecv)
+		cfg = Field{"TcpExtTCPDSACKOfoRecv", Raw, 0, "", 10, false}
 	case "TcpExtTCPAbortOnData":
-		s = config[field].Render(n.TcpExtTCPAbortOnData)
+		cfg = Field{"TcpExtTCPAbortOnData", Raw, 0, "", 10, false}
 	case "TcpExtTCPAbortOnClose":
-		s = config[field].Render(n.TcpExtTCPAbortOnClose)
+		cfg = Field{"TcpExtTCPAbortOnClose", Raw, 0, "", 10, false}
 	case "TcpExtTCPAbortOnMemory":
-		s = config[field].Render(n.TcpExtTCPAbortOnMemory)
+		cfg = Field{"TcpExtTCPAbortOnMemory", Raw, 0, "", 10, false}
 	case "TcpExtTCPAbortOnTimeout":
-		s = config[field].Render(n.TcpExtTCPAbortOnTimeout)
+		cfg = Field{"TcpExtTCPAbortOnTimeout", Raw, 0, "", 10, false}
 	case "TcpExtTCPAbortOnLinger":
-		s = config[field].Render(n.TcpExtTCPAbortOnLinger)
+		cfg = Field{"TcpExtTCPAbortOnLinger", Raw, 0, "", 10, false}
 	case "TcpExtTCPAbortFailed":
-		s = config[field].Render(n.TcpExtTCPAbortFailed)
+		cfg = Field{"TcpExtTCPAbortFailed", Raw, 0, "", 10, false}
 	case "TcpExtTCPMemoryPressures":
-		s = config[field].Render(n.TcpExtTCPMemoryPressures)
+		cfg = Field{"TcpExtTCPMemoryPressures", Raw, 0, "", 10, false}
 	case "TcpExtTCPMemoryPressuresChrono":
-		s = config[field].Render(n.TcpExtTCPMemoryPressuresChrono)
+		cfg = Field{"TcpExtTCPMemoryPressuresChrono", Raw, 0, "", 10, false}
 	case "TcpExtTCPSACKDiscard":
-		s = config[field].Render(n.TcpExtTCPSACKDiscard)
+		cfg = Field{"TcpExtTCPSACKDiscard", Raw, 0, "", 10, false}
 	case "TcpExtTCPDSACKIgnoredOld":
-		s = config[field].Render(n.TcpExtTCPDSACKIgnoredOld)
+		cfg = Field{"TcpExtTCPDSACKIgnoredOld", Raw, 0, "", 10, false}
 	case "TcpExtTCPDSACKIgnoredNoUndo":
-		s = config[field].Render(n.TcpExtTCPDSACKIgnoredNoUndo)
+		cfg = Field{"TcpExtTCPDSACKIgnoredNoUndo", Raw, 0, "", 10, false}
 	case "TcpExtTCPSpuriousRTOs":
-		s = config[field].Render(n.TcpExtTCPSpuriousRTOs)
+		cfg = Field{"TcpExtTCPSpuriousRTOs", Raw, 0, "", 10, false}
 	case "TcpExtTCPMD5NotFound":
-		s = config[field].Render(n.TcpExtTCPMD5NotFound)
+		cfg = Field{"TcpExtTCPMD5NotFound", Raw, 0, "", 10, false}
 	case "TcpExtTCPMD5Unexpected":
-		s = config[field].Render(n.TcpExtTCPMD5Unexpected)
+		cfg = Field{"TcpExtTCPMD5Unexpected", Raw, 0, "", 10, false}
 	case "TcpExtTCPMD5Failure":
-		s = config[field].Render(n.TcpExtTCPMD5Failure)
+		cfg = Field{"TcpExtTCPMD5Failure", Raw, 0, "", 10, false}
 	case "TcpExtTCPSackShifted":
-		s = config[field].Render(n.TcpExtTCPSackShifted)
+		cfg = Field{"TcpExtTCPSackShifted", Raw, 0, "", 10, false}
 	case "TcpExtTCPSackMerged":
-		s = config[field].Render(n.TcpExtTCPSackMerged)
+		cfg = Field{"TcpExtTCPSackMerged", Raw, 0, "", 10, false}
 	case "TcpExtTCPSackShiftFallback":
-		s = config[field].Render(n.TcpExtTCPSackShiftFallback)
+		cfg = Field{"TcpExtTCPSackShiftFallback", Raw, 0, "", 10, false}
 	case "TcpExtTCPBacklogDrop":
-		s = config[field].Render(n.TcpExtTCPBacklogDrop)
+		cfg = Field{"TcpExtTCPBacklogDrop", Raw, 0, "", 10, false}
 	case "TcpExtPFMemallocDrop":
-		s = config[field].Render(n.TcpExtPFMemallocDrop)
+		cfg = Field{"TcpExtPFMemallocDrop", Raw, 0, "", 10, false}
 	case "TcpExtTCPMinTTLDrop":
-		s = config[field].Render(n.TcpExtTCPMinTTLDrop)
+		cfg = Field{"TcpExtTCPMinTTLDrop", Raw, 0, "", 10, false}
 	case "TcpExtTCPDeferAcceptDrop":
-		s = config[field].Render(n.TcpExtTCPDeferAcceptDrop)
+		cfg = Field{"TcpExtTCPDeferAcceptDrop", Raw, 0, "", 10, false}
 	case "TcpExtIPReversePathFilter":
-		s = config[field].Render(n.TcpExtIPReversePathFilter)
+		cfg = Field{"TcpExtIPReversePathFilter", Raw, 0, "", 10, false}
 	case "TcpExtTCPTimeWaitOverflow":
-		s = config[field].Render(n.TcpExtTCPTimeWaitOverflow)
+		cfg = Field{"TcpExtTCPTimeWaitOverflow", Raw, 0, "", 10, false}
 	case "TcpExtTCPReqQFullDoCookies":
-		s = config[field].Render(n.TcpExtTCPReqQFullDoCookies)
+		cfg = Field{"TcpExtTCPReqQFullDoCookies", Raw, 0, "", 10, false}
 	case "TcpExtTCPReqQFullDrop":
-		s = config[field].Render(n.TcpExtTCPReqQFullDrop)
+		cfg = Field{"TcpExtTCPReqQFullDrop", Raw, 0, "", 10, false}
 	case "TcpExtTCPRetransFail":
-		s = config[field].Render(n.TcpExtTCPRetransFail)
+		cfg = Field{"TcpExtTCPRetransFail", Raw, 0, "", 10, false}
 	case "TcpExtTCPRcvCoalesce":
-		s = config[field].Render(n.TcpExtTCPRcvCoalesce)
+		cfg = Field{"TcpExtTCPRcvCoalesce", Raw, 0, "", 10, false}
 	case "TcpExtTCPRcvQDrop":
-		s = config[field].Render(n.TcpExtTCPRcvQDrop)
+		cfg = Field{"TcpExtTCPRcvQDrop", Raw, 0, "", 10, false}
 	case "TcpExtTCPOFOQueue":
-		s = config[field].Render(n.TcpExtTCPOFOQueue)
+		cfg = Field{"TcpExtTCPOFOQueue", Raw, 0, "", 10, false}
 	case "TcpExtTCPOFODrop":
-		s = config[field].Render(n.TcpExtTCPOFODrop)
+		cfg = Field{"TcpExtTCPOFODrop", Raw, 0, "", 10, false}
 	case "TcpExtTCPOFOMerge":
-		s = config[field].Render(n.TcpExtTCPOFOMerge)
+		cfg = Field{"TcpExtTCPOFOMerge", Raw, 0, "", 10, false}
 	case "TcpExtTCPChallengeACK":
-		s = config[field].Render(n.TcpExtTCPChallengeACK)
+		cfg = Field{"TcpExtTCPChallengeACK", Raw, 0, "", 10, false}
 	case "TcpExtTCPSYNChallenge":
-		s = config[field].Render(n.TcpExtTCPSYNChallenge)
+		cfg = Field{"TcpExtTCPSYNChallenge", Raw, 0, "", 10, false}
 	case "TcpExtTCPFastOpenActive":
-		s = config[field].Render(n.TcpExtTCPFastOpenActive)
+		cfg = Field{"TcpExtTCPFastOpenActive", Raw, 0, "", 10, false}
 	case "TcpExtTCPFastOpenActiveFail":
-		s = config[field].Render(n.TcpExtTCPFastOpenActiveFail)
+		cfg = Field{"TcpExtTCPFastOpenActiveFail", Raw, 0, "", 10, false}
 	case "TcpExtTCPFastOpenPassive":
-		s = config[field].Render(n.TcpExtTCPFastOpenPassive)
+		cfg = Field{"TcpExtTCPFastOpenPassive", Raw, 0, "", 10, false}
 	case "TcpExtTCPFastOpenPassiveFail":
-		s = config[field].Render(n.TcpExtTCPFastOpenPassiveFail)
+		cfg = Field{"TcpExtTCPFastOpenPassiveFail", Raw, 0, "", 10, false}
 	case "TcpExtTCPFastOpenListenOverflow":
-		s = config[field].Render(n.TcpExtTCPFastOpenListenOverflow)
+		cfg = Field{"TcpExtTCPFastOpenListenOverflow", Raw, 0, "", 10, false}
 	case "TcpExtTCPFastOpenCookieReqd":
-		s = config[field].Render(n.TcpExtTCPFastOpenCookieReqd)
+		cfg = Field{"TcpExtTCPFastOpenCookieReqd", Raw, 0, "", 10, false}
 	case "TcpExtTCPFastOpenBlackhole":
-		s = config[field].Render(n.TcpExtTCPFastOpenBlackhole)
+		cfg = Field{"TcpExtTCPFastOpenBlackhole", Raw, 0, "", 10, false}
 	case "TcpExtTCPSpuriousRtxHostQueues":
-		s = config[field].Render(n.TcpExtTCPSpuriousRtxHostQueues)
+		cfg = Field{"TcpExtTCPSpuriousRtxHostQueues", Raw, 0, "", 10, false}
 	case "TcpExtBusyPollRxPackets":
-		s = config[field].Render(n.TcpExtBusyPollRxPackets)
+		cfg = Field{"TcpExtBusyPollRxPackets", Raw, 0, "", 10, false}
 	case "TcpExtTCPAutoCorking":
-		s = config[field].Render(n.TcpExtTCPAutoCorking)
+		cfg = Field{"TcpExtTCPAutoCorking", Raw, 0, "", 10, false}
 	case "TcpExtTCPFromZeroWindowAdv":
-		s = config[field].Render(n.TcpExtTCPFromZeroWindowAdv)
+		cfg = Field{"TcpExtTCPFromZeroWindowAdv", Raw, 0, "", 10, false}
 	case "TcpExtTCPToZeroWindowAdv":
-		s = config[field].Render(n.TcpExtTCPToZeroWindowAdv)
+		cfg = Field{"TcpExtTCPToZeroWindowAdv", Raw, 0, "", 10, false}
 	case "TcpExtTCPWantZeroWindowAdv":
-		s = config[field].Render(n.TcpExtTCPWantZeroWindowAdv)
+		cfg = Field{"TcpExtTCPWantZeroWindowAdv", Raw, 0, "", 10, false}
 	case "TcpExtTCPSynRetrans":
-		s = config[field].Render(n.TcpExtTCPSynRetrans)
+		cfg = Field{"TcpExtTCPSynRetrans", Raw, 0, "", 10, false}
 	case "TcpExtTCPOrigDataSent":
-		s = config[field].Render(n.TcpExtTCPOrigDataSent)
+		cfg = Field{"TcpExtTCPOrigDataSent", Raw, 0, "", 10, false}
 	case "TcpExtTCPHystartTrainDetect":
-		s = config[field].Render(n.TcpExtTCPHystartTrainDetect)
+		cfg = Field{"TcpExtTCPHystartTrainDetect", Raw, 0, "", 10, false}
 	case "TcpExtTCPHystartTrainCwnd":
-		s = config[field].Render(n.TcpExtTCPHystartTrainCwnd)
+		cfg = Field{"TcpExtTCPHystartTrainCwnd", Raw, 0, "", 10, false}
 	case "TcpExtTCPHystartDelayDetect":
-		s = config[field].Render(n.TcpExtTCPHystartDelayDetect)
+		cfg = Field{"TcpExtTCPHystartDelayDetect", Raw, 0, "", 10, false}
 	case "TcpExtTCPHystartDelayCwnd":
-		s = config[field].Render(n.TcpExtTCPHystartDelayCwnd)
+		cfg = Field{"TcpExtTCPHystartDelayCwnd", Raw, 0, "", 10, false}
 	case "TcpExtTCPACKSkippedSynRecv":
-		s = config[field].Render(n.TcpExtTCPACKSkippedSynRecv)
+		cfg = Field{"TcpExtTCPACKSkippedSynRecv", Raw, 0, "", 10, false}
 	case "TcpExtTCPACKSkippedPAWS":
-		s = config[field].Render(n.TcpExtTCPACKSkippedPAWS)
+		cfg = Field{"TcpExtTCPACKSkippedPAWS", Raw, 0, "", 10, false}
 	case "TcpExtTCPACKSkippedSeq":
-		s = config[field].Render(n.TcpExtTCPACKSkippedSeq)
+		cfg = Field{"TcpExtTCPACKSkippedSeq", Raw, 0, "", 10, false}
 	case "TcpExtTCPACKSkippedFinWait2":
-		s = config[field].Render(n.TcpExtTCPACKSkippedFinWait2)
+		cfg = Field{"TcpExtTCPACKSkippedFinWait2", Raw, 0, "", 10, false}
 	case "TcpExtTCPACKSkippedTimeWait":
-		s = config[field].Render(n.TcpExtTCPACKSkippedTimeWait)
+		cfg = Field{"TcpExtTCPACKSkippedTimeWait", Raw, 0, "", 10, false}
 	case "TcpExtTCPACKSkippedChallenge":
-		s = config[field].Render(n.TcpExtTCPACKSkippedChallenge)
+		cfg = Field{"TcpExtTCPACKSkippedChallenge", Raw, 0, "", 10, false}
 	case "TcpExtTCPWinProbe":
-		s = config[field].Render(n.TcpExtTCPWinProbe)
+		cfg = Field{"TcpExtTCPWinProbe", Raw, 0, "", 10, false}
 	case "TcpExtTCPKeepAlive":
-		s = config[field].Render(n.TcpExtTCPKeepAlive)
+		cfg = Field{"TcpExtTCPKeepAlive", Raw, 0, "", 10, false}
 	case "TcpExtTCPMTUPFail":
-		s = config[field].Render(n.TcpExtTCPMTUPFail)
+		cfg = Field{"TcpExtTCPMTUPFail", Raw, 0, "", 10, false}
 	case "TcpExtTCPMTUPSuccess":
-		s = config[field].Render(n.TcpExtTCPMTUPSuccess)
+		cfg = Field{"TcpExtTCPMTUPSuccess", Raw, 0, "", 10, false}
 	case "TcpExtTCPWqueueTooBig":
-		s = config[field].Render(n.TcpExtTCPWqueueTooBig)
+		cfg = Field{"TcpExtTCPWqueueTooBig", Raw, 0, "", 10, false}
 	case "IpExtInNoRoutes":
-		s = config[field].Render(n.IpExtInNoRoutes)
+		cfg = Field{"IpExtInNoRoutes", Raw, 0, "", 10, false}
 	case "IpExtInTruncatedPkts":
-		s = config[field].Render(n.IpExtInTruncatedPkts)
+		cfg = Field{"IpExtInTruncatedPkts", Raw, 0, "", 10, false}
 	case "IpExtInMcastPkts":
-		s = config[field].Render(n.IpExtInMcastPkts)
+		cfg = Field{"IpExtInMcastPkts", Raw, 0, "", 10, false}
 	case "IpExtOutMcastPkts":
-		s = config[field].Render(n.IpExtOutMcastPkts)
+		cfg = Field{"IpExtOutMcastPkts", Raw, 0, "", 10, false}
 	case "IpExtInBcastPkts":
-		s = config[field].Render(n.IpExtInBcastPkts)
+		cfg = Field{"IpExtInBcastPkts", Raw, 0, "", 10, false}
 	case "IpExtOutBcastPkts":
-		s = config[field].Render(n.IpExtOutBcastPkts)
+		cfg = Field{"IpExtOutBcastPkts", Raw, 0, "", 10, false}
 	case "IpExtInOctets":
-		s = config[field].Render(n.IpExtInOctets)
+		cfg = Field{"IpExtInOctets", Raw, 0, "", 10, false}
 	case "IpExtOutOctets":
-		s = config[field].Render(n.IpExtOutOctets)
+		cfg = Field{"IpExtOutOctets", Raw, 0, "", 10, false}
 	case "IpExtInMcastOctets":
-		s = config[field].Render(n.IpExtInMcastOctets)
+		cfg = Field{"IpExtInMcastOctets", Raw, 0, "", 10, false}
 	case "IpExtOutMcastOctets":
-		s = config[field].Render(n.IpExtOutMcastOctets)
+		cfg = Field{"IpExtOutMcastOctets", Raw, 0, "", 10, false}
 	case "IpExtInBcastOctets":
-		s = config[field].Render(n.IpExtInBcastOctets)
+		cfg = Field{"IpExtInBcastOctets", Raw, 0, "", 10, false}
 	case "IpExtOutBcastOctets":
-		s = config[field].Render(n.IpExtOutBcastOctets)
+		cfg = Field{"IpExtOutBcastOctets", Raw, 0, "", 10, false}
 	case "IpExtInCsumErrors":
-		s = config[field].Render(n.IpExtInCsumErrors)
+		cfg = Field{"IpExtInCsumErrors", Raw, 0, "", 10, false}
 	case "IpExtInNoECTPkts":
-		s = config[field].Render(n.IpExtInNoECTPkts)
+		cfg = Field{"IpExtInNoECTPkts", Raw, 0, "", 10, false}
 	case "IpExtInECT1Pkts":
-		s = config[field].Render(n.IpExtInECT1Pkts)
+		cfg = Field{"IpExtInECT1Pkts", Raw, 0, "", 10, false}
 	case "IpExtInECT0Pkts":
-		s = config[field].Render(n.IpExtInECT0Pkts)
+		cfg = Field{"IpExtInECT0Pkts", Raw, 0, "", 10, false}
 	case "IpExtInCEPkts":
-		s = config[field].Render(n.IpExtInCEPkts)
+		cfg = Field{"IpExtInCEPkts", Raw, 0, "", 10, false}
 	case "IpExtReasmOverlaps":
-		s = config[field].Render(n.IpExtReasmOverlaps)
+		cfg = Field{"IpExtReasmOverlaps", Raw, 0, "", 10, false}
+	}
+	return cfg
+}
+func (n *NetStat) GetRenderValue(field string, opt FieldOpt) string {
+
+	cfg := n.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "IpInReceives":
+		s = cfg.Render(n.IpInReceives)
+	case "IpInHdrErrors":
+		s = cfg.Render(n.IpInHdrErrors)
+	case "IpInAddrErrors":
+		s = cfg.Render(n.IpInAddrErrors)
+	case "IpForwDatagrams":
+		s = cfg.Render(n.IpForwDatagrams)
+	case "IpInUnknownProtos":
+		s = cfg.Render(n.IpInUnknownProtos)
+	case "IpInDiscards":
+		s = cfg.Render(n.IpInDiscards)
+	case "IpInDelivers":
+		s = cfg.Render(n.IpInDelivers)
+	case "IpOutRequests":
+		s = cfg.Render(n.IpOutRequests)
+	case "IpOutDiscards":
+		s = cfg.Render(n.IpOutDiscards)
+	case "IpOutNoRoutes":
+		s = cfg.Render(n.IpOutNoRoutes)
+	case "IpReasmTimeout":
+		s = cfg.Render(n.IpReasmTimeout)
+	case "IpReasmReqds":
+		s = cfg.Render(n.IpReasmReqds)
+	case "IpReasmOKs":
+		s = cfg.Render(n.IpReasmOKs)
+	case "IpReasmFails":
+		s = cfg.Render(n.IpReasmFails)
+	case "IpFragOKs":
+		s = cfg.Render(n.IpFragOKs)
+	case "IpFragFails":
+		s = cfg.Render(n.IpFragFails)
+	case "IpFragCreates":
+		s = cfg.Render(n.IpFragCreates)
+	case "IcmpInMsgs":
+		s = cfg.Render(n.IcmpInMsgs)
+	case "IcmpInErrors":
+		s = cfg.Render(n.IcmpInErrors)
+	case "IcmpInCsumErrors":
+		s = cfg.Render(n.IcmpInCsumErrors)
+	case "IcmpInDestUnreachs":
+		s = cfg.Render(n.IcmpInDestUnreachs)
+	case "IcmpInTimeExcds":
+		s = cfg.Render(n.IcmpInTimeExcds)
+	case "IcmpInParmProbs":
+		s = cfg.Render(n.IcmpInParmProbs)
+	case "IcmpInSrcQuenchs":
+		s = cfg.Render(n.IcmpInSrcQuenchs)
+	case "IcmpInRedirects":
+		s = cfg.Render(n.IcmpInRedirects)
+	case "IcmpInEchos":
+		s = cfg.Render(n.IcmpInEchos)
+	case "IcmpInEchoReps":
+		s = cfg.Render(n.IcmpInEchoReps)
+	case "IcmpInTimestamps":
+		s = cfg.Render(n.IcmpInTimestamps)
+	case "IcmpInTimestampReps":
+		s = cfg.Render(n.IcmpInTimestampReps)
+	case "IcmpInAddrMasks":
+		s = cfg.Render(n.IcmpInAddrMasks)
+	case "IcmpInAddrMaskReps":
+		s = cfg.Render(n.IcmpInAddrMaskReps)
+	case "IcmpOutMsgs":
+		s = cfg.Render(n.IcmpOutMsgs)
+	case "IcmpOutErrors":
+		s = cfg.Render(n.IcmpOutErrors)
+	case "IcmpOutDestUnreachs":
+		s = cfg.Render(n.IcmpOutDestUnreachs)
+	case "IcmpOutTimeExcds":
+		s = cfg.Render(n.IcmpOutTimeExcds)
+	case "IcmpOutParmProbs":
+		s = cfg.Render(n.IcmpOutParmProbs)
+	case "IcmpOutSrcQuenchs":
+		s = cfg.Render(n.IcmpOutSrcQuenchs)
+	case "IcmpOutRedirects":
+		s = cfg.Render(n.IcmpOutRedirects)
+	case "IcmpOutEchos":
+		s = cfg.Render(n.IcmpOutEchos)
+	case "IcmpOutEchoReps":
+		s = cfg.Render(n.IcmpOutEchoReps)
+	case "IcmpOutTimestamps":
+		s = cfg.Render(n.IcmpOutTimestamps)
+	case "IcmpOutTimestampReps":
+		s = cfg.Render(n.IcmpOutTimestampReps)
+	case "IcmpOutAddrMasks":
+		s = cfg.Render(n.IcmpOutAddrMasks)
+	case "IcmpOutAddrMaskReps":
+		s = cfg.Render(n.IcmpOutAddrMaskReps)
+	case "IcmpInType3":
+		s = cfg.Render(n.IcmpInType3)
+	case "IcmpOutType3":
+		s = cfg.Render(n.IcmpOutType3)
+	case "TcpActiveOpens":
+		s = cfg.Render(n.TcpActiveOpens)
+	case "TcpPassiveOpens":
+		s = cfg.Render(n.TcpPassiveOpens)
+	case "TcpAttemptFails":
+		s = cfg.Render(n.TcpAttemptFails)
+	case "TcpEstabResets":
+		s = cfg.Render(n.TcpEstabResets)
+	case "TcpCurrEstab":
+		s = cfg.Render(n.TcpCurrEstab)
+	case "TcpInSegs":
+		s = cfg.Render(n.TcpInSegs)
+	case "TcpOutSegs":
+		s = cfg.Render(n.TcpOutSegs)
+	case "TcpRetransSegs":
+		s = cfg.Render(n.TcpRetransSegs)
+	case "TcpInErrs":
+		s = cfg.Render(n.TcpInErrs)
+	case "TcpOutRsts":
+		s = cfg.Render(n.TcpOutRsts)
+	case "TcpInCsumErrors":
+		s = cfg.Render(n.TcpInCsumErrors)
+	case "UdpInDatagrams":
+		s = cfg.Render(n.UdpInDatagrams)
+	case "UdpNoPorts":
+		s = cfg.Render(n.UdpNoPorts)
+	case "UdpInErrors":
+		s = cfg.Render(n.UdpInErrors)
+	case "UdpOutDatagrams":
+		s = cfg.Render(n.UdpOutDatagrams)
+	case "UdpRcvbufErrors":
+		s = cfg.Render(n.UdpRcvbufErrors)
+	case "UdpSndbufErrors":
+		s = cfg.Render(n.UdpSndbufErrors)
+	case "UdpInCsumErrors":
+		s = cfg.Render(n.UdpInCsumErrors)
+	case "UdpIgnoredMulti":
+		s = cfg.Render(n.UdpIgnoredMulti)
+	case "UdpLiteInDatagrams":
+		s = cfg.Render(n.UdpLiteInDatagrams)
+	case "UdpLiteNoPorts":
+		s = cfg.Render(n.UdpLiteNoPorts)
+	case "UdpLiteInErrors":
+		s = cfg.Render(n.UdpLiteInErrors)
+	case "UdpLiteOutDatagrams":
+		s = cfg.Render(n.UdpLiteOutDatagrams)
+	case "UdpLiteRcvbufErrors":
+		s = cfg.Render(n.UdpLiteRcvbufErrors)
+	case "UdpLiteSndbufErrors":
+		s = cfg.Render(n.UdpLiteSndbufErrors)
+	case "UdpLiteInCsumErrors":
+		s = cfg.Render(n.UdpLiteInCsumErrors)
+	case "UdpLiteIgnoredMulti":
+		s = cfg.Render(n.UdpLiteIgnoredMulti)
+	case "Ip6InReceives":
+		s = cfg.Render(n.Ip6InReceives)
+	case "Ip6InHdrErrors":
+		s = cfg.Render(n.Ip6InHdrErrors)
+	case "Ip6InTooBigErrors":
+		s = cfg.Render(n.Ip6InTooBigErrors)
+	case "Ip6InNoRoutes":
+		s = cfg.Render(n.Ip6InNoRoutes)
+	case "Ip6InAddrErrors":
+		s = cfg.Render(n.Ip6InAddrErrors)
+	case "Ip6InUnknownProtos":
+		s = cfg.Render(n.Ip6InUnknownProtos)
+	case "Ip6InTruncatedPkts":
+		s = cfg.Render(n.Ip6InTruncatedPkts)
+	case "Ip6InDiscards":
+		s = cfg.Render(n.Ip6InDiscards)
+	case "Ip6InDelivers":
+		s = cfg.Render(n.Ip6InDelivers)
+	case "Ip6OutForwDatagrams":
+		s = cfg.Render(n.Ip6OutForwDatagrams)
+	case "Ip6OutRequests":
+		s = cfg.Render(n.Ip6OutRequests)
+	case "Ip6OutDiscards":
+		s = cfg.Render(n.Ip6OutDiscards)
+	case "Ip6OutNoRoutes":
+		s = cfg.Render(n.Ip6OutNoRoutes)
+	case "Ip6ReasmTimeout":
+		s = cfg.Render(n.Ip6ReasmTimeout)
+	case "Ip6ReasmReqds":
+		s = cfg.Render(n.Ip6ReasmReqds)
+	case "Ip6ReasmOKs":
+		s = cfg.Render(n.Ip6ReasmOKs)
+	case "Ip6ReasmFails":
+		s = cfg.Render(n.Ip6ReasmFails)
+	case "Ip6FragOKs":
+		s = cfg.Render(n.Ip6FragOKs)
+	case "Ip6FragFails":
+		s = cfg.Render(n.Ip6FragFails)
+	case "Ip6FragCreates":
+		s = cfg.Render(n.Ip6FragCreates)
+	case "Ip6InMcastPkts":
+		s = cfg.Render(n.Ip6InMcastPkts)
+	case "Ip6OutMcastPkts":
+		s = cfg.Render(n.Ip6OutMcastPkts)
+	case "Ip6InOctets":
+		s = cfg.Render(n.Ip6InOctets)
+	case "Ip6OutOctets":
+		s = cfg.Render(n.Ip6OutOctets)
+	case "Ip6InMcastOctets":
+		s = cfg.Render(n.Ip6InMcastOctets)
+	case "Ip6OutMcastOctets":
+		s = cfg.Render(n.Ip6OutMcastOctets)
+	case "Ip6InBcastOctets":
+		s = cfg.Render(n.Ip6InBcastOctets)
+	case "Ip6OutBcastOctets":
+		s = cfg.Render(n.Ip6OutBcastOctets)
+	case "Ip6InNoECTPkts":
+		s = cfg.Render(n.Ip6InNoECTPkts)
+	case "Ip6InECT1Pkts":
+		s = cfg.Render(n.Ip6InECT1Pkts)
+	case "Ip6InECT0Pkts":
+		s = cfg.Render(n.Ip6InECT0Pkts)
+	case "Ip6InCEPkts":
+		s = cfg.Render(n.Ip6InCEPkts)
+	case "Icmp6InMsgs":
+		s = cfg.Render(n.Icmp6InMsgs)
+	case "Icmp6InErrors":
+		s = cfg.Render(n.Icmp6InErrors)
+	case "Icmp6OutMsgs":
+		s = cfg.Render(n.Icmp6OutMsgs)
+	case "Icmp6OutErrors":
+		s = cfg.Render(n.Icmp6OutErrors)
+	case "Icmp6InCsumErrors":
+		s = cfg.Render(n.Icmp6InCsumErrors)
+	case "Icmp6InDestUnreachs":
+		s = cfg.Render(n.Icmp6InDestUnreachs)
+	case "Icmp6InPktTooBigs":
+		s = cfg.Render(n.Icmp6InPktTooBigs)
+	case "Icmp6InTimeExcds":
+		s = cfg.Render(n.Icmp6InTimeExcds)
+	case "Icmp6InParmProblems":
+		s = cfg.Render(n.Icmp6InParmProblems)
+	case "Icmp6InEchos":
+		s = cfg.Render(n.Icmp6InEchos)
+	case "Icmp6InEchoReplies":
+		s = cfg.Render(n.Icmp6InEchoReplies)
+	case "Icmp6InGroupMembQueries":
+		s = cfg.Render(n.Icmp6InGroupMembQueries)
+	case "Icmp6InGroupMembResponses":
+		s = cfg.Render(n.Icmp6InGroupMembResponses)
+	case "Icmp6InGroupMembReductions":
+		s = cfg.Render(n.Icmp6InGroupMembReductions)
+	case "Icmp6InRouterSolicits":
+		s = cfg.Render(n.Icmp6InRouterSolicits)
+	case "Icmp6InRouterAdvertisements":
+		s = cfg.Render(n.Icmp6InRouterAdvertisements)
+	case "Icmp6InNeighborSolicits":
+		s = cfg.Render(n.Icmp6InNeighborSolicits)
+	case "Icmp6InNeighborAdvertisements":
+		s = cfg.Render(n.Icmp6InNeighborAdvertisements)
+	case "Icmp6InRedirects":
+		s = cfg.Render(n.Icmp6InRedirects)
+	case "Icmp6InMLDv2Reports":
+		s = cfg.Render(n.Icmp6InMLDv2Reports)
+	case "Icmp6OutDestUnreachs":
+		s = cfg.Render(n.Icmp6OutDestUnreachs)
+	case "Icmp6OutPktTooBigs":
+		s = cfg.Render(n.Icmp6OutPktTooBigs)
+	case "Icmp6OutTimeExcds":
+		s = cfg.Render(n.Icmp6OutTimeExcds)
+	case "Icmp6OutParmProblems":
+		s = cfg.Render(n.Icmp6OutParmProblems)
+	case "Icmp6OutEchos":
+		s = cfg.Render(n.Icmp6OutEchos)
+	case "Icmp6OutEchoReplies":
+		s = cfg.Render(n.Icmp6OutEchoReplies)
+	case "Icmp6OutGroupMembQueries":
+		s = cfg.Render(n.Icmp6OutGroupMembQueries)
+	case "Icmp6OutGroupMembResponses":
+		s = cfg.Render(n.Icmp6OutGroupMembResponses)
+	case "Icmp6OutGroupMembReductions":
+		s = cfg.Render(n.Icmp6OutGroupMembReductions)
+	case "Icmp6OutRouterSolicits":
+		s = cfg.Render(n.Icmp6OutRouterSolicits)
+	case "Icmp6OutRouterAdvertisements":
+		s = cfg.Render(n.Icmp6OutRouterAdvertisements)
+	case "Icmp6OutNeighborSolicits":
+		s = cfg.Render(n.Icmp6OutNeighborSolicits)
+	case "Icmp6OutNeighborAdvertisements":
+		s = cfg.Render(n.Icmp6OutNeighborAdvertisements)
+	case "Icmp6OutRedirects":
+		s = cfg.Render(n.Icmp6OutRedirects)
+	case "Icmp6OutMLDv2Reports":
+		s = cfg.Render(n.Icmp6OutMLDv2Reports)
+	case "Icmp6InType1":
+		s = cfg.Render(n.Icmp6InType1)
+	case "Icmp6InType134":
+		s = cfg.Render(n.Icmp6InType134)
+	case "Icmp6InType135":
+		s = cfg.Render(n.Icmp6InType135)
+	case "Icmp6InType136":
+		s = cfg.Render(n.Icmp6InType136)
+	case "Icmp6InType143":
+		s = cfg.Render(n.Icmp6InType143)
+	case "Icmp6OutType133":
+		s = cfg.Render(n.Icmp6OutType133)
+	case "Icmp6OutType135":
+		s = cfg.Render(n.Icmp6OutType135)
+	case "Icmp6OutType136":
+		s = cfg.Render(n.Icmp6OutType136)
+	case "Icmp6OutType143":
+		s = cfg.Render(n.Icmp6OutType143)
+	case "Udp6InDatagrams":
+		s = cfg.Render(n.Udp6InDatagrams)
+	case "Udp6NoPorts":
+		s = cfg.Render(n.Udp6NoPorts)
+	case "Udp6InErrors":
+		s = cfg.Render(n.Udp6InErrors)
+	case "Udp6OutDatagrams":
+		s = cfg.Render(n.Udp6OutDatagrams)
+	case "Udp6RcvbufErrors":
+		s = cfg.Render(n.Udp6RcvbufErrors)
+	case "Udp6SndbufErrors":
+		s = cfg.Render(n.Udp6SndbufErrors)
+	case "Udp6InCsumErrors":
+		s = cfg.Render(n.Udp6InCsumErrors)
+	case "Udp6IgnoredMulti":
+		s = cfg.Render(n.Udp6IgnoredMulti)
+	case "UdpLite6InDatagrams":
+		s = cfg.Render(n.UdpLite6InDatagrams)
+	case "UdpLite6NoPorts":
+		s = cfg.Render(n.UdpLite6NoPorts)
+	case "UdpLite6InErrors":
+		s = cfg.Render(n.UdpLite6InErrors)
+	case "UdpLite6OutDatagrams":
+		s = cfg.Render(n.UdpLite6OutDatagrams)
+	case "UdpLite6RcvbufErrors":
+		s = cfg.Render(n.UdpLite6RcvbufErrors)
+	case "UdpLite6SndbufErrors":
+		s = cfg.Render(n.UdpLite6SndbufErrors)
+	case "UdpLite6InCsumErrors":
+		s = cfg.Render(n.UdpLite6InCsumErrors)
+	case "TcpExtSyncookiesSent":
+		s = cfg.Render(n.TcpExtSyncookiesSent)
+	case "TcpExtSyncookiesRecv":
+		s = cfg.Render(n.TcpExtSyncookiesRecv)
+	case "TcpExtSyncookiesFailed":
+		s = cfg.Render(n.TcpExtSyncookiesFailed)
+	case "TcpExtEmbryonicRsts":
+		s = cfg.Render(n.TcpExtEmbryonicRsts)
+	case "TcpExtPruneCalled":
+		s = cfg.Render(n.TcpExtPruneCalled)
+	case "TcpExtRcvPruned":
+		s = cfg.Render(n.TcpExtRcvPruned)
+	case "TcpExtOfoPruned":
+		s = cfg.Render(n.TcpExtOfoPruned)
+	case "TcpExtOutOfWindowIcmps":
+		s = cfg.Render(n.TcpExtOutOfWindowIcmps)
+	case "TcpExtLockDroppedIcmps":
+		s = cfg.Render(n.TcpExtLockDroppedIcmps)
+	case "TcpExtArpFilter":
+		s = cfg.Render(n.TcpExtArpFilter)
+	case "TcpExtTW":
+		s = cfg.Render(n.TcpExtTW)
+	case "TcpExtTWRecycled":
+		s = cfg.Render(n.TcpExtTWRecycled)
+	case "TcpExtTWKilled":
+		s = cfg.Render(n.TcpExtTWKilled)
+	case "TcpExtPAWSActive":
+		s = cfg.Render(n.TcpExtPAWSActive)
+	case "TcpExtPAWSEstab":
+		s = cfg.Render(n.TcpExtPAWSEstab)
+	case "TcpExtDelayedACKs":
+		s = cfg.Render(n.TcpExtDelayedACKs)
+	case "TcpExtDelayedACKLocked":
+		s = cfg.Render(n.TcpExtDelayedACKLocked)
+	case "TcpExtDelayedACKLost":
+		s = cfg.Render(n.TcpExtDelayedACKLost)
+	case "TcpExtListenOverflows":
+		s = cfg.Render(n.TcpExtListenOverflows)
+	case "TcpExtListenDrops":
+		s = cfg.Render(n.TcpExtListenDrops)
+	case "TcpExtTCPHPHits":
+		s = cfg.Render(n.TcpExtTCPHPHits)
+	case "TcpExtTCPPureAcks":
+		s = cfg.Render(n.TcpExtTCPPureAcks)
+	case "TcpExtTCPHPAcks":
+		s = cfg.Render(n.TcpExtTCPHPAcks)
+	case "TcpExtTCPRenoRecovery":
+		s = cfg.Render(n.TcpExtTCPRenoRecovery)
+	case "TcpExtTCPSackRecovery":
+		s = cfg.Render(n.TcpExtTCPSackRecovery)
+	case "TcpExtTCPSACKReneging":
+		s = cfg.Render(n.TcpExtTCPSACKReneging)
+	case "TcpExtTCPSACKReorder":
+		s = cfg.Render(n.TcpExtTCPSACKReorder)
+	case "TcpExtTCPRenoReorder":
+		s = cfg.Render(n.TcpExtTCPRenoReorder)
+	case "TcpExtTCPTSReorder":
+		s = cfg.Render(n.TcpExtTCPTSReorder)
+	case "TcpExtTCPFullUndo":
+		s = cfg.Render(n.TcpExtTCPFullUndo)
+	case "TcpExtTCPPartialUndo":
+		s = cfg.Render(n.TcpExtTCPPartialUndo)
+	case "TcpExtTCPDSACKUndo":
+		s = cfg.Render(n.TcpExtTCPDSACKUndo)
+	case "TcpExtTCPLossUndo":
+		s = cfg.Render(n.TcpExtTCPLossUndo)
+	case "TcpExtTCPLostRetransmit":
+		s = cfg.Render(n.TcpExtTCPLostRetransmit)
+	case "TcpExtTCPRenoFailures":
+		s = cfg.Render(n.TcpExtTCPRenoFailures)
+	case "TcpExtTCPSackFailures":
+		s = cfg.Render(n.TcpExtTCPSackFailures)
+	case "TcpExtTCPLossFailures":
+		s = cfg.Render(n.TcpExtTCPLossFailures)
+	case "TcpExtTCPFastRetrans":
+		s = cfg.Render(n.TcpExtTCPFastRetrans)
+	case "TcpExtTCPSlowStartRetrans":
+		s = cfg.Render(n.TcpExtTCPSlowStartRetrans)
+	case "TcpExtTCPTimeouts":
+		s = cfg.Render(n.TcpExtTCPTimeouts)
+	case "TcpExtTCPLossProbes":
+		s = cfg.Render(n.TcpExtTCPLossProbes)
+	case "TcpExtTCPLossProbeRecovery":
+		s = cfg.Render(n.TcpExtTCPLossProbeRecovery)
+	case "TcpExtTCPRenoRecoveryFail":
+		s = cfg.Render(n.TcpExtTCPRenoRecoveryFail)
+	case "TcpExtTCPSackRecoveryFail":
+		s = cfg.Render(n.TcpExtTCPSackRecoveryFail)
+	case "TcpExtTCPRcvCollapsed":
+		s = cfg.Render(n.TcpExtTCPRcvCollapsed)
+	case "TcpExtTCPDSACKOldSent":
+		s = cfg.Render(n.TcpExtTCPDSACKOldSent)
+	case "TcpExtTCPDSACKOfoSent":
+		s = cfg.Render(n.TcpExtTCPDSACKOfoSent)
+	case "TcpExtTCPDSACKRecv":
+		s = cfg.Render(n.TcpExtTCPDSACKRecv)
+	case "TcpExtTCPDSACKOfoRecv":
+		s = cfg.Render(n.TcpExtTCPDSACKOfoRecv)
+	case "TcpExtTCPAbortOnData":
+		s = cfg.Render(n.TcpExtTCPAbortOnData)
+	case "TcpExtTCPAbortOnClose":
+		s = cfg.Render(n.TcpExtTCPAbortOnClose)
+	case "TcpExtTCPAbortOnMemory":
+		s = cfg.Render(n.TcpExtTCPAbortOnMemory)
+	case "TcpExtTCPAbortOnTimeout":
+		s = cfg.Render(n.TcpExtTCPAbortOnTimeout)
+	case "TcpExtTCPAbortOnLinger":
+		s = cfg.Render(n.TcpExtTCPAbortOnLinger)
+	case "TcpExtTCPAbortFailed":
+		s = cfg.Render(n.TcpExtTCPAbortFailed)
+	case "TcpExtTCPMemoryPressures":
+		s = cfg.Render(n.TcpExtTCPMemoryPressures)
+	case "TcpExtTCPMemoryPressuresChrono":
+		s = cfg.Render(n.TcpExtTCPMemoryPressuresChrono)
+	case "TcpExtTCPSACKDiscard":
+		s = cfg.Render(n.TcpExtTCPSACKDiscard)
+	case "TcpExtTCPDSACKIgnoredOld":
+		s = cfg.Render(n.TcpExtTCPDSACKIgnoredOld)
+	case "TcpExtTCPDSACKIgnoredNoUndo":
+		s = cfg.Render(n.TcpExtTCPDSACKIgnoredNoUndo)
+	case "TcpExtTCPSpuriousRTOs":
+		s = cfg.Render(n.TcpExtTCPSpuriousRTOs)
+	case "TcpExtTCPMD5NotFound":
+		s = cfg.Render(n.TcpExtTCPMD5NotFound)
+	case "TcpExtTCPMD5Unexpected":
+		s = cfg.Render(n.TcpExtTCPMD5Unexpected)
+	case "TcpExtTCPMD5Failure":
+		s = cfg.Render(n.TcpExtTCPMD5Failure)
+	case "TcpExtTCPSackShifted":
+		s = cfg.Render(n.TcpExtTCPSackShifted)
+	case "TcpExtTCPSackMerged":
+		s = cfg.Render(n.TcpExtTCPSackMerged)
+	case "TcpExtTCPSackShiftFallback":
+		s = cfg.Render(n.TcpExtTCPSackShiftFallback)
+	case "TcpExtTCPBacklogDrop":
+		s = cfg.Render(n.TcpExtTCPBacklogDrop)
+	case "TcpExtPFMemallocDrop":
+		s = cfg.Render(n.TcpExtPFMemallocDrop)
+	case "TcpExtTCPMinTTLDrop":
+		s = cfg.Render(n.TcpExtTCPMinTTLDrop)
+	case "TcpExtTCPDeferAcceptDrop":
+		s = cfg.Render(n.TcpExtTCPDeferAcceptDrop)
+	case "TcpExtIPReversePathFilter":
+		s = cfg.Render(n.TcpExtIPReversePathFilter)
+	case "TcpExtTCPTimeWaitOverflow":
+		s = cfg.Render(n.TcpExtTCPTimeWaitOverflow)
+	case "TcpExtTCPReqQFullDoCookies":
+		s = cfg.Render(n.TcpExtTCPReqQFullDoCookies)
+	case "TcpExtTCPReqQFullDrop":
+		s = cfg.Render(n.TcpExtTCPReqQFullDrop)
+	case "TcpExtTCPRetransFail":
+		s = cfg.Render(n.TcpExtTCPRetransFail)
+	case "TcpExtTCPRcvCoalesce":
+		s = cfg.Render(n.TcpExtTCPRcvCoalesce)
+	case "TcpExtTCPRcvQDrop":
+		s = cfg.Render(n.TcpExtTCPRcvQDrop)
+	case "TcpExtTCPOFOQueue":
+		s = cfg.Render(n.TcpExtTCPOFOQueue)
+	case "TcpExtTCPOFODrop":
+		s = cfg.Render(n.TcpExtTCPOFODrop)
+	case "TcpExtTCPOFOMerge":
+		s = cfg.Render(n.TcpExtTCPOFOMerge)
+	case "TcpExtTCPChallengeACK":
+		s = cfg.Render(n.TcpExtTCPChallengeACK)
+	case "TcpExtTCPSYNChallenge":
+		s = cfg.Render(n.TcpExtTCPSYNChallenge)
+	case "TcpExtTCPFastOpenActive":
+		s = cfg.Render(n.TcpExtTCPFastOpenActive)
+	case "TcpExtTCPFastOpenActiveFail":
+		s = cfg.Render(n.TcpExtTCPFastOpenActiveFail)
+	case "TcpExtTCPFastOpenPassive":
+		s = cfg.Render(n.TcpExtTCPFastOpenPassive)
+	case "TcpExtTCPFastOpenPassiveFail":
+		s = cfg.Render(n.TcpExtTCPFastOpenPassiveFail)
+	case "TcpExtTCPFastOpenListenOverflow":
+		s = cfg.Render(n.TcpExtTCPFastOpenListenOverflow)
+	case "TcpExtTCPFastOpenCookieReqd":
+		s = cfg.Render(n.TcpExtTCPFastOpenCookieReqd)
+	case "TcpExtTCPFastOpenBlackhole":
+		s = cfg.Render(n.TcpExtTCPFastOpenBlackhole)
+	case "TcpExtTCPSpuriousRtxHostQueues":
+		s = cfg.Render(n.TcpExtTCPSpuriousRtxHostQueues)
+	case "TcpExtBusyPollRxPackets":
+		s = cfg.Render(n.TcpExtBusyPollRxPackets)
+	case "TcpExtTCPAutoCorking":
+		s = cfg.Render(n.TcpExtTCPAutoCorking)
+	case "TcpExtTCPFromZeroWindowAdv":
+		s = cfg.Render(n.TcpExtTCPFromZeroWindowAdv)
+	case "TcpExtTCPToZeroWindowAdv":
+		s = cfg.Render(n.TcpExtTCPToZeroWindowAdv)
+	case "TcpExtTCPWantZeroWindowAdv":
+		s = cfg.Render(n.TcpExtTCPWantZeroWindowAdv)
+	case "TcpExtTCPSynRetrans":
+		s = cfg.Render(n.TcpExtTCPSynRetrans)
+	case "TcpExtTCPOrigDataSent":
+		s = cfg.Render(n.TcpExtTCPOrigDataSent)
+	case "TcpExtTCPHystartTrainDetect":
+		s = cfg.Render(n.TcpExtTCPHystartTrainDetect)
+	case "TcpExtTCPHystartTrainCwnd":
+		s = cfg.Render(n.TcpExtTCPHystartTrainCwnd)
+	case "TcpExtTCPHystartDelayDetect":
+		s = cfg.Render(n.TcpExtTCPHystartDelayDetect)
+	case "TcpExtTCPHystartDelayCwnd":
+		s = cfg.Render(n.TcpExtTCPHystartDelayCwnd)
+	case "TcpExtTCPACKSkippedSynRecv":
+		s = cfg.Render(n.TcpExtTCPACKSkippedSynRecv)
+	case "TcpExtTCPACKSkippedPAWS":
+		s = cfg.Render(n.TcpExtTCPACKSkippedPAWS)
+	case "TcpExtTCPACKSkippedSeq":
+		s = cfg.Render(n.TcpExtTCPACKSkippedSeq)
+	case "TcpExtTCPACKSkippedFinWait2":
+		s = cfg.Render(n.TcpExtTCPACKSkippedFinWait2)
+	case "TcpExtTCPACKSkippedTimeWait":
+		s = cfg.Render(n.TcpExtTCPACKSkippedTimeWait)
+	case "TcpExtTCPACKSkippedChallenge":
+		s = cfg.Render(n.TcpExtTCPACKSkippedChallenge)
+	case "TcpExtTCPWinProbe":
+		s = cfg.Render(n.TcpExtTCPWinProbe)
+	case "TcpExtTCPKeepAlive":
+		s = cfg.Render(n.TcpExtTCPKeepAlive)
+	case "TcpExtTCPMTUPFail":
+		s = cfg.Render(n.TcpExtTCPMTUPFail)
+	case "TcpExtTCPMTUPSuccess":
+		s = cfg.Render(n.TcpExtTCPMTUPSuccess)
+	case "TcpExtTCPWqueueTooBig":
+		s = cfg.Render(n.TcpExtTCPWqueueTooBig)
+	case "IpExtInNoRoutes":
+		s = cfg.Render(n.IpExtInNoRoutes)
+	case "IpExtInTruncatedPkts":
+		s = cfg.Render(n.IpExtInTruncatedPkts)
+	case "IpExtInMcastPkts":
+		s = cfg.Render(n.IpExtInMcastPkts)
+	case "IpExtOutMcastPkts":
+		s = cfg.Render(n.IpExtOutMcastPkts)
+	case "IpExtInBcastPkts":
+		s = cfg.Render(n.IpExtInBcastPkts)
+	case "IpExtOutBcastPkts":
+		s = cfg.Render(n.IpExtOutBcastPkts)
+	case "IpExtInOctets":
+		s = cfg.Render(n.IpExtInOctets)
+	case "IpExtOutOctets":
+		s = cfg.Render(n.IpExtOutOctets)
+	case "IpExtInMcastOctets":
+		s = cfg.Render(n.IpExtInMcastOctets)
+	case "IpExtOutMcastOctets":
+		s = cfg.Render(n.IpExtOutMcastOctets)
+	case "IpExtInBcastOctets":
+		s = cfg.Render(n.IpExtInBcastOctets)
+	case "IpExtOutBcastOctets":
+		s = cfg.Render(n.IpExtOutBcastOctets)
+	case "IpExtInCsumErrors":
+		s = cfg.Render(n.IpExtInCsumErrors)
+	case "IpExtInNoECTPkts":
+		s = cfg.Render(n.IpExtInNoECTPkts)
+	case "IpExtInECT1Pkts":
+		s = cfg.Render(n.IpExtInECT1Pkts)
+	case "IpExtInECT0Pkts":
+		s = cfg.Render(n.IpExtInECT0Pkts)
+	case "IpExtInCEPkts":
+		s = cfg.Render(n.IpExtInCEPkts)
+	case "IpExtReasmOverlaps":
+		s = cfg.Render(n.IpExtReasmOverlaps)
+	default:
+		s = "no " + field + " for netstat stat"
 	}
 	return s
 }

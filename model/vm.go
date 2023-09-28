@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -23,27 +21,56 @@ type Vm struct {
 	OOMKill         uint64
 }
 
-func (v *Vm) GetRenderValue(config RenderConfig, field string) string {
-	s := fmt.Sprintf("no %s for vm stat", field)
+func (v *Vm) DefaultConfig(field string) Field {
+	cfg := Field{}
 	switch field {
 	case "PageIn":
-		s = config[field].Render(v.PageIn)
+		cfg = Field{"PageIn", Raw, 0, "", 10, false}
 	case "PageOut":
-		s = config[field].Render(v.PageOut)
+		cfg = Field{"PageOut", Raw, 0, "", 10, false}
 	case "SwapIn":
-		s = config[field].Render(v.SwapIn)
+		cfg = Field{"SwapIn", Raw, 0, "", 10, false}
 	case "SwapOut":
-		s = config[field].Render(v.SwapOut)
+		cfg = Field{"SwapOut", Raw, 0, "", 10, false}
 	case "PageScanKswapd":
-		s = config[field].Render(v.PageScanKswapd)
+		cfg = Field{"PageScanKswapd", Raw, 0, "", 10, false}
 	case "PageScanDirect":
-		s = config[field].Render(v.PageScanDirect)
+		cfg = Field{"PageScanDirect", Raw, 0, "", 10, false}
 	case "PageStealKswapd":
-		s = config[field].Render(v.PageStealKswapd)
+		cfg = Field{"PageStealKswapd", Raw, 0, "", 10, false}
 	case "PageStealDirect":
-		s = config[field].Render(v.PageStealDirect)
+		cfg = Field{"PageStealDirect", Raw, 0, "", 10, false}
 	case "OOMKill":
-		s = config[field].Render(v.OOMKill)
+		cfg = Field{"OOMKill", Raw, 0, "", 10, false}
+	}
+	return cfg
+}
+
+func (v *Vm) GetRenderValue(field string, opt FieldOpt) string {
+	cfg := v.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "PageIn":
+		s = cfg.Render(v.PageIn)
+	case "PageOut":
+		s = cfg.Render(v.PageOut)
+	case "SwapIn":
+		s = cfg.Render(v.SwapIn)
+	case "SwapOut":
+		s = cfg.Render(v.SwapOut)
+	case "PageScanKswapd":
+		s = cfg.Render(v.PageScanKswapd)
+	case "PageScanDirect":
+		s = cfg.Render(v.PageScanDirect)
+	case "PageStealKswapd":
+		s = cfg.Render(v.PageStealKswapd)
+	case "PageStealDirect":
+		s = cfg.Render(v.PageStealDirect)
+	case "OOMKill":
+		s = cfg.Render(v.OOMKill)
+	default:
+		s = "no " + field + " for vm stat"
 	}
 	return s
 }

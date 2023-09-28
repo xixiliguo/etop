@@ -9,7 +9,8 @@ import (
 )
 
 type Render interface {
-	GetRenderValue(config RenderConfig, field string) string
+	DefaultConfig(field string) Field
+	GetRenderValue(field string, opt FieldOpt) string
 }
 
 var bufferPool = sync.Pool{
@@ -24,7 +25,7 @@ var bufferMapPool = sync.Pool{
 	},
 }
 
-func dumpText(timeStamp int64, config RenderConfig, opt DumpOption, m Render) {
+func dumpText(timeStamp int64, opt DumpOption, m Render) {
 
 	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
 	buf := bufferPool.Get().(*bytes.Buffer)
@@ -33,7 +34,10 @@ func dumpText(timeStamp int64, config RenderConfig, opt DumpOption, m Render) {
 
 	buf.WriteString(dateTime)
 	for _, f := range opt.Fields {
-		renderValue := m.GetRenderValue(config, f)
+		renderValue := m.GetRenderValue(f, FieldOpt{
+			FixWidth: true,
+			Raw:      opt.RawData,
+		})
 		if f == opt.SelectField && opt.Filter != nil {
 			if opt.Filter.MatchString(renderValue) == false {
 				return
@@ -46,7 +50,7 @@ func dumpText(timeStamp int64, config RenderConfig, opt DumpOption, m Render) {
 	buf.WriteTo(opt.Output)
 }
 
-func dumpJson(timeStamp int64, config RenderConfig, opt DumpOption, m Render) {
+func dumpJson(timeStamp int64, opt DumpOption, m Render) {
 
 	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
 	buf := bufferMapPool.Get().(map[string]string)
@@ -55,19 +59,21 @@ func dumpJson(timeStamp int64, config RenderConfig, opt DumpOption, m Render) {
 
 	buf["Timestamp"] = dateTime
 	for _, f := range opt.Fields {
-		renderValue := m.GetRenderValue(config, f)
+		renderValue := m.GetRenderValue(f, FieldOpt{
+			Raw: opt.RawData,
+		})
 		if f == opt.SelectField && opt.Filter != nil {
 			if opt.Filter.MatchString(renderValue) == false {
 				return
 			}
 		}
-		buf[config[f].Name] = renderValue
+		buf[m.DefaultConfig(f).Name] = renderValue
 	}
 	b, _ := json.Marshal(buf)
 	opt.Output.Write(b)
 }
 
-func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, config RenderConfig, opt DumpOption, m Render) {
+func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, opt DumpOption, m Render) {
 
 	buf := bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -77,7 +83,9 @@ func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, config Ren
 		if _, ok := OMConfig[f]; !ok {
 			continue
 		}
-		renderValue := m.GetRenderValue(config, f)
+		renderValue := m.GetRenderValue(f, FieldOpt{
+			Raw: opt.RawData,
+		})
 		if f == opt.SelectField && opt.Filter != nil {
 			if opt.Filter.MatchString(renderValue) == false {
 				return
@@ -101,7 +109,7 @@ func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, config Ren
 				} else {
 					buf.WriteString(",")
 				}
-				buf.WriteString(l + "=" + `"` + m.GetRenderValue(config, l) + `"`)
+				buf.WriteString(l + "=" + `"` + m.GetRenderValue(l, FieldOpt{}) + `"`)
 			}
 			buf.WriteString("}")
 		}

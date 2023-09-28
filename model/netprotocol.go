@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -16,16 +14,34 @@ type NetProtocol struct {
 
 type NetProtocolMap map[string]NetProtocol
 
-func (n *NetProtocol) GetRenderValue(config RenderConfig, field string) string {
+func (n *NetProtocol) DefaultConfig(field string) Field {
 
-	s := fmt.Sprintf("no %s for netprotocol stat", field)
+	cfg := Field{}
 	switch field {
 	case "Name":
-		s = config[field].Render(n.Name)
+		cfg = Field{"Name", Raw, 0, "", 10, false}
 	case "Sockets":
-		s = config[field].Render(n.Sockets)
+		cfg = Field{"Sockets", Raw, 0, "", 10, false}
 	case "Memory":
-		s = config[field].Render(n.Memory)
+		cfg = Field{"Memory", HumanReadableSize, 0, "", 10, false}
+	}
+	return cfg
+}
+
+func (n *NetProtocol) GetRenderValue(field string, opt FieldOpt) string {
+
+	cfg := n.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "Name":
+		s = cfg.Render(n.Name)
+	case "Sockets":
+		s = cfg.Render(n.Sockets)
+	case "Memory":
+		s = cfg.Render(n.Memory)
+	default:
+		s = "no " + field + " for netprotocol stat"
 	}
 	return s
 }

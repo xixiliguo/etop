@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/xixiliguo/etop/store"
@@ -41,19 +40,40 @@ type PCPU struct {
 	CPUUsage float64
 }
 
-func (c *PCPU) GetRenderValue(config RenderConfig, field string) string {
-	s := fmt.Sprintf("no %s for process cpu stat", field)
+func (c *PCPU) DefaultConfig(field string) Field {
+	cfg := Field{}
 	switch field {
 	case "UserCPU":
-		s = config[field].Render(c.UTime)
+		cfg = Field{"UserCPU", Raw, 1, "%", 10, false}
 	case "SysCPU":
-		s = config[field].Render(c.STime)
+		cfg = Field{"SysCPU", Raw, 1, "%", 10, false}
 	case "Pri":
-		s = config[field].Render(c.Priority)
+		cfg = Field{"Pri", Raw, 0, "", 10, false}
 	case "Nice":
-		s = config[field].Render(c.Nice)
+		cfg = Field{"Nice", Raw, 0, "", 10, false}
 	case "CPU":
-		s = config[field].Render(c.CPUUsage)
+		cfg = Field{"CPU", Raw, 1, "%", 10, false}
+	}
+	return cfg
+}
+
+func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
+	cfg := c.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "UserCPU":
+		s = cfg.Render(c.UTime)
+	case "SysCPU":
+		s = cfg.Render(c.STime)
+	case "Pri":
+		s = cfg.Render(c.Priority)
+	case "Nice":
+		s = cfg.Render(c.Nice)
+	case "CPU":
+		s = cfg.Render(c.CPUUsage)
+	default:
+		s = "no " + field + " for process cpu stat"
 	}
 	return s
 }
@@ -66,19 +86,40 @@ type PMEM struct {
 	MemUsage float64
 }
 
-func (m *PMEM) GetRenderValue(config RenderConfig, field string) string {
-	s := fmt.Sprintf("no %s for process mem stat", field)
+func (m *PMEM) DefaultConfig(field string) Field {
+	cfg := Field{}
 	switch field {
 	case "Minflt":
-		s = config[field].Render(m.MinFlt)
+		cfg = Field{"Minflt", Raw, 0, "", 10, false}
 	case "Majflt":
-		s = config[field].Render(m.MajFlt)
+		cfg = Field{"Majflt", Raw, 0, "", 10, false}
 	case "Vsize":
-		s = config[field].Render(m.VSize)
+		cfg = Field{"Vsize", HumanReadableSize, 0, "", 10, false}
 	case "RSS":
-		s = config[field].Render(m.RSS)
+		cfg = Field{"RSS", HumanReadableSize, 0, "", 10, false}
 	case "Mem":
-		s = config[field].Render(m.MemUsage)
+		cfg = Field{"Mem", Raw, 1, "%", 10, false}
+	}
+	return cfg
+}
+
+func (m *PMEM) GetRenderValue(field string, opt FieldOpt) string {
+	cfg := m.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "Minflt":
+		s = cfg.Render(m.MinFlt)
+	case "Majflt":
+		s = cfg.Render(m.MajFlt)
+	case "Vsize":
+		s = cfg.Render(m.VSize)
+	case "RSS":
+		s = cfg.Render(m.RSS)
+	case "Mem":
+		s = cfg.Render(m.MemUsage)
+	default:
+		s = "no " + field + " for process mem stat"
 	}
 	return s
 }
@@ -101,52 +142,122 @@ type PIO struct {
 	DiskUage                  float64
 }
 
-func (i *PIO) GetRenderValue(config RenderConfig, field string) string {
-	s := fmt.Sprintf("no %s for process io stat", field)
+func (i *PIO) DefaultConfig(field string) Field {
+	cfg := Field{}
+	switch field {
+	case "Rchar/s":
+		cfg = Field{"Rchar/s", HumanReadableSize, 1, "/s", 10, false}
+	case "Wchar/s":
+		cfg = Field{"Wchar/s", HumanReadableSize, 1, "/s", 10, false}
+	case "Syscr":
+		cfg = Field{"Syscr", Raw, 0, "", 10, false}
+	case "Syscw":
+		cfg = Field{"Syscw", Raw, 0, "", 10, false}
+	case "Syscr/s":
+		cfg = Field{"Syscr/s", Raw, 1, "/s", 10, false}
+	case "Syscw/s":
+		cfg = Field{"Syscw/s", Raw, 1, "/s", 10, false}
+	case "Read":
+		cfg = Field{"Read", HumanReadableSize, 0, "", 10, false}
+	case "Write":
+		cfg = Field{"Write", HumanReadableSize, 0, "", 10, false}
+	case "Wcancel":
+		cfg = Field{"Wcancel", HumanReadableSize, 0, "", 10, false}
+	case "R/s":
+		cfg = Field{"R/s", HumanReadableSize, 1, "/s", 10, false}
+	case "W/s":
+		cfg = Field{"W/s", HumanReadableSize, 1, "/s", 10, false}
+	case "CW/s":
+		cfg = Field{"CW/s", HumanReadableSize, 1, "/s", 10, false}
+	case "Disk":
+		cfg = Field{"Disk", Raw, 1, "%", 10, false}
+	}
+	return cfg
+}
 
+func (i *PIO) GetRenderValue(field string, opt FieldOpt) string {
+	cfg := i.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
 	switch field {
 	case "Rchar":
-		s = config[field].Render(i.RChar)
+		s = cfg.Render(i.RChar)
 	case "Wchar":
-		s = config[field].Render(i.WChar)
+		s = cfg.Render(i.WChar)
 	case "Rchar/s":
-		s = config[field].Render(i.RCharPerSec)
+		s = cfg.Render(i.RCharPerSec)
 	case "Wchar/s":
-		s = config[field].Render(i.WCharPerSec)
+		s = cfg.Render(i.WCharPerSec)
 	case "Syscr":
-		s = config[field].Render(i.SyscR)
+		s = cfg.Render(i.SyscR)
 	case "Syscw":
-		s = config[field].Render(i.SyscW)
+		s = cfg.Render(i.SyscW)
 	case "Syscr/s":
-		s = config[field].Render(i.SyscRPerSec)
+		s = cfg.Render(i.SyscRPerSec)
 	case "Syscw/s":
-		s = config[field].Render(i.SyscWPerSec)
+		s = cfg.Render(i.SyscWPerSec)
 	case "Read":
-		s = config[field].Render(i.ReadBytes)
+		s = cfg.Render(i.ReadBytes)
 	case "Write":
-		s = config[field].Render(i.WriteBytes)
+		s = cfg.Render(i.WriteBytes)
 	case "Wcancel":
-		s = config[field].Render(i.CancelledWriteBytes)
+		s = cfg.Render(i.CancelledWriteBytes)
 	case "R/s":
-		s = config[field].Render(i.ReadBytesPerSec)
+		s = cfg.Render(i.ReadBytesPerSec)
 	case "W/s":
-		s = config[field].Render(i.WriteBytesPerSec)
+		s = cfg.Render(i.WriteBytesPerSec)
 	case "CW/s":
-		s = config[field].Render(i.CancelledWriteBytesPerSec)
+		s = cfg.Render(i.CancelledWriteBytesPerSec)
 	case "Disk":
-		s = config[field].Render(i.DiskUage)
+		s = cfg.Render(i.DiskUage)
+	default:
+		s = "no " + field + " for process io stat"
 	}
 	return s
 }
 
-func (p *Process) GetRenderValue(config RenderConfig, field string) string {
+func (p *Process) DefaultConfig(field string) Field {
 
-	s := fmt.Sprintf("no %s for process stat", field)
+	cfg := Field{}
 	switch field {
 	case "Pid":
-		s = config[field].Render(p.Pid)
+		cfg = Field{"Pid", Raw, 0, "", 10, false}
 	case "Comm":
-		s = config[field].Render(p.Comm)
+		cfg = Field{"Comm", Raw, 0, "", 16, false}
+	case "State":
+		cfg = Field{"State", Raw, 0, "", 10, false}
+	case "Ppid":
+		cfg = Field{"Ppid", Raw, 0, "", 10, false}
+	case "Thr":
+		cfg = Field{"Thr", Raw, 0, "", 10, false}
+	case "StartTime":
+		cfg = Field{"StartTime", Raw, 0, "", 10, false}
+	case "OnCPU":
+		cfg = Field{"OnCPU", Raw, 0, "", 10, false}
+	case "CmdLine":
+		cfg = Field{"CmdLine", Raw, 0, "", 10, false}
+	case "UserCPU", "SysCPU", "Pri", "Nice", "CPU":
+		return p.PCPU.DefaultConfig(field)
+	case "Minflt", "Majflt", "Vsize", "RSS", "Mem":
+		return p.PMEM.DefaultConfig(field)
+	case "Rchar", "Wchar", "Rchar/s", "Wchar/s",
+		"Syscr", "Syscw", "Syscr/s", "Syscw/s",
+		"Read", "Write", "Wcancel", "R/s", "W/s", "CW/s", "Disk":
+		return p.PIO.DefaultConfig(field)
+	}
+	return cfg
+}
+
+func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
+
+	cfg := p.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "Pid":
+		s = cfg.Render(p.Pid)
+	case "Comm":
+		s = cfg.Render(p.Comm)
 	case "State":
 		stodesc := map[string]string{
 			"R": "Running",
@@ -162,26 +273,26 @@ func (p *Process) GetRenderValue(config RenderConfig, field string) string {
 			"W": "Waking",
 			"P": "Parked",
 		}
-		s = config[field].Render(stodesc[p.State])
+		s = cfg.Render(stodesc[p.State])
 	case "Ppid":
-		s = config[field].Render(p.Ppid)
+		s = cfg.Render(p.Ppid)
 	case "Thr":
-		s = config[field].Render(p.NumThreads)
+		s = cfg.Render(p.NumThreads)
 	case "StartTime":
 		startTime := time.Unix(int64(p.StartTime), 0).Format(time.RFC3339)
-		s = config[field].Render(startTime)
+		s = cfg.Render(startTime)
 	case "OnCPU":
-		s = config[field].Render(p.Processor)
+		s = cfg.Render(p.Processor)
 	case "CmdLine":
-		s = config[field].Render(p.CmdLine)
+		s = cfg.Render(p.CmdLine)
 	case "UserCPU", "SysCPU", "Pri", "Nice", "CPU":
-		return p.PCPU.GetRenderValue(config, field)
+		return p.PCPU.GetRenderValue(field, opt)
 	case "Minflt", "Majflt", "Vsize", "RSS", "Mem":
-		return p.PMEM.GetRenderValue(config, field)
+		return p.PMEM.GetRenderValue(field, opt)
 	case "Rchar", "Wchar", "Rchar/s", "Wchar/s",
 		"Syscr", "Syscw", "Syscr/s", "Syscw/s",
 		"Read", "Write", "Wcancel", "R/s", "W/s", "CW/s", "Disk":
-		return p.PIO.GetRenderValue(config, field)
+		return p.PIO.GetRenderValue(field, opt)
 	}
 	return s
 }

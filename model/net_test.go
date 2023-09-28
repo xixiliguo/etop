@@ -21,29 +21,25 @@ func TestNetDevGetRenderValue(t *testing.T) {
 	}
 
 	tests := []struct {
-		config RenderConfig
-		field  string
-		want   string
+		field string
+		want  string
 	}{
 		{
-			config: netDevDefaultRenderConfig,
-			field:  "Name",
-			want:   "eth0",
+			field: "Name",
+			want:  "eth0",
 		},
 		{
-			config: netDevDefaultRenderConfig,
-			field:  "RxBytes",
-			want:   "1",
+			field: "RxBytes",
+			want:  "1",
 		},
 		{
-			config: netDevDefaultRenderConfig,
-			field:  "abc",
-			want:   "no abc for netdev stat",
+			field: "abc",
+			want:  "no abc for netdev stat",
 		},
 	}
 	for _, tt := range tests {
 
-		if got := n.GetRenderValue(tt.config, tt.field); got != tt.want {
+		if got := n.GetRenderValue(tt.field, FieldOpt{}); got != tt.want {
 			t.Errorf("NetDev.GetRenderValue() = %v, want %v", got, tt.want)
 		}
 

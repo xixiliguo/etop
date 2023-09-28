@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var unitMap = []string{"B", "KB", "MB", "GB", "TB", "PB"}
+var unitMap = []string{" B", " KB", " MB", " GB", " TB", " PB"}
 
 func GetHumanSize[T int | int64 | uint64 | uint | uint32 | float64](size T) string {
 	if size < 0 {

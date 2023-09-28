@@ -365,7 +365,7 @@ func (process *Process) update() {
 			process.processView.SetCell(r+1,
 				i,
 				tview.NewTableCell(process.visbleData[r].
-					GetRenderValue(process.source.Config["process"], col)).
+					GetRenderValue(col, model.FieldOpt{FixWidth: true})).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft).
 					SetMaxWidth(width))

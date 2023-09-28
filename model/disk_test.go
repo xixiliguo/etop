@@ -19,29 +19,25 @@ func TestDiskGetRenderValue(t *testing.T) {
 	}
 
 	tests := []struct {
-		config RenderConfig
-		field  string
-		want   string
+		field string
+		want  string
 	}{
 		{
-			config: diskDefaultRenderConfig,
-			field:  "Disk",
-			want:   "vda",
+			field: "Disk",
+			want:  "vda",
 		},
 		{
-			config: diskDefaultRenderConfig,
-			field:  "Read",
-			want:   "1",
+			field: "Read",
+			want:  "1",
 		},
 		{
-			config: diskDefaultRenderConfig,
-			field:  "Write",
-			want:   "2",
+			field: "Write",
+			want:  "2",
 		},
 	}
 	for _, tt := range tests {
 
-		if got := n.GetRenderValue(tt.config, tt.field); got != tt.want {
+		if got := n.GetRenderValue(tt.field, FieldOpt{}); got != tt.want {
 			t.Errorf("Disk.GetRenderValue() = %v, want %v", got, tt.want)
 		}
 

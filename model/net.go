@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -42,52 +41,106 @@ type NetDev struct {
 
 type NetDevMap map[string]NetDev
 
-func (n *NetDev) GetRenderValue(config RenderConfig, field string) string {
+func (n *NetDev) DefaultConfig(field string) Field {
 
-	s := fmt.Sprintf("no %s for netdev stat", field)
+	cfg := Field{}
 	switch field {
 	case "Name":
-		s = config[field].Render(n.Name)
+		cfg = Field{"Name", Raw, 0, "", 10, false}
 	case "RxBytes":
-		s = config[field].Render(n.RxBytes)
+		cfg = Field{"RxBytes", Raw, 0, "", 10, false}
 	case "RxPackets":
-		s = config[field].Render(n.RxPackets)
+		cfg = Field{"RxPackets", Raw, 0, "", 10, false}
 	case "RxErrors":
-		s = config[field].Render(n.RxErrors)
+		cfg = Field{"RxErrors", Raw, 0, "", 10, false}
 	case "RxDropped":
-		s = config[field].Render(n.RxDropped)
+		cfg = Field{"RxDropped", Raw, 0, "", 10, false}
 	case "RxFIFO":
-		s = config[field].Render(n.RxFIFO)
+		cfg = Field{"RxFIFO", Raw, 0, "", 10, false}
 	case "RxFrame":
-		s = config[field].Render(n.RxFrame)
+		cfg = Field{"RxFrame", Raw, 0, "", 10, false}
 	case "RxCompressed":
-		s = config[field].Render(n.RxCompressed)
+		cfg = Field{"RxCompressed", Raw, 0, "", 10, false}
 	case "RxMulticast":
-		s = config[field].Render(n.RxMulticast)
+		cfg = Field{"RxMulticast", Raw, 0, "", 10, false}
 	case "TxBytes":
-		s = config[field].Render(n.TxBytes)
+		cfg = Field{"TxBytes", Raw, 0, "", 10, false}
 	case "TxPackets":
-		s = config[field].Render(n.TxPackets)
+		cfg = Field{"TxPackets", Raw, 0, "", 10, false}
 	case "TxErrors":
-		s = config[field].Render(n.TxErrors)
+		cfg = Field{"TxErrors", Raw, 0, "", 10, false}
 	case "TxDropped":
-		s = config[field].Render(n.TxDropped)
+		cfg = Field{"TxDropped", Raw, 0, "", 10, false}
 	case "TxFIFO":
-		s = config[field].Render(n.TxFIFO)
+		cfg = Field{"TxFIFO", Raw, 0, "", 10, false}
 	case "TxCollisions":
-		s = config[field].Render(n.TxCollisions)
+		cfg = Field{"TxCollisions", Raw, 0, "", 10, false}
 	case "TxCarrier":
-		s = config[field].Render(n.TxCarrier)
+		cfg = Field{"TxCarrier", Raw, 0, "", 10, false}
 	case "TxCompressed":
-		s = config[field].Render(n.TxCompressed)
+		cfg = Field{"TxCompressed", Raw, 0, "", 10, false}
 	case "RxByte/s":
-		s = config[field].Render(n.RxBytePerSec)
+		cfg = Field{"RxByte/s", HumanReadableSize, 1, "/s", 10, false}
 	case "RxPacket/s":
-		s = config[field].Render(n.RxPacketPerSec)
+		cfg = Field{"Rp/s", Raw, 1, "/s", 10, false}
 	case "TxByte/s":
-		s = config[field].Render(n.TxBytePerSec)
+		cfg = Field{"TxByte/s", HumanReadableSize, 1, "/s", 10, false}
 	case "TxPacket/s":
-		s = config[field].Render(n.TxPacketPerSec)
+		cfg = Field{"Tp/s", Raw, 1, "/s", 10, false}
+	}
+	return cfg
+}
+
+func (n *NetDev) GetRenderValue(field string, opt FieldOpt) string {
+
+	cfg := n.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "Name":
+		s = cfg.Render(n.Name)
+	case "RxBytes":
+		s = cfg.Render(n.RxBytes)
+	case "RxPackets":
+		s = cfg.Render(n.RxPackets)
+	case "RxErrors":
+		s = cfg.Render(n.RxErrors)
+	case "RxDropped":
+		s = cfg.Render(n.RxDropped)
+	case "RxFIFO":
+		s = cfg.Render(n.RxFIFO)
+	case "RxFrame":
+		s = cfg.Render(n.RxFrame)
+	case "RxCompressed":
+		s = cfg.Render(n.RxCompressed)
+	case "RxMulticast":
+		s = cfg.Render(n.RxMulticast)
+	case "TxBytes":
+		s = cfg.Render(n.TxBytes)
+	case "TxPackets":
+		s = cfg.Render(n.TxPackets)
+	case "TxErrors":
+		s = cfg.Render(n.TxErrors)
+	case "TxDropped":
+		s = cfg.Render(n.TxDropped)
+	case "TxFIFO":
+		s = cfg.Render(n.TxFIFO)
+	case "TxCollisions":
+		s = cfg.Render(n.TxCollisions)
+	case "TxCarrier":
+		s = cfg.Render(n.TxCarrier)
+	case "TxCompressed":
+		s = cfg.Render(n.TxCompressed)
+	case "RxByte/s":
+		s = cfg.Render(n.RxBytePerSec)
+	case "RxPacket/s":
+		s = cfg.Render(n.RxPacketPerSec)
+	case "TxByte/s":
+		s = cfg.Render(n.TxBytePerSec)
+	case "TxPacket/s":
+		s = cfg.Render(n.TxPacketPerSec)
+	default:
+		s = "no " + field + " for netdev stat"
 	}
 	return s
 }

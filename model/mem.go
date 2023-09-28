@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -72,117 +70,236 @@ type MEM struct {
 	DirectMap1G       uint64
 }
 
-func (m *MEM) GetRenderValue(config RenderConfig, field string) string {
-	s := fmt.Sprintf("no %s for mem stat", field)
+func (m *MEM) DefaultConfig(field string) Field {
+	cfg := Field{}
 	switch field {
 	case "Total":
-		s = config[field].Render(m.MemTotal * 1024)
+		cfg = Field{"Total", HumanReadableSize, 0, "", 10, false}
 	case "Free":
-		s = config[field].Render(m.MemFree * 1024)
+		cfg = Field{"Free", HumanReadableSize, 0, "", 10, false}
 	case "Avail":
-		s = config[field].Render(m.MemAvailable * 1024)
+		cfg = Field{"Avail", HumanReadableSize, 0, "", 10, false}
 	case "HSlab":
-		s = config[field].Render(m.Slab * 1024)
+		cfg = Field{"Slab", HumanReadableSize, 0, "", 10, false}
 	case "Buffer":
-		s = config[field].Render(m.Buffers * 1024)
+		cfg = Field{"Buffer", HumanReadableSize, 0, "", 10, false}
 	case "Cache":
-		s = config[field].Render(m.Cached * 1024)
+		cfg = Field{"Cache", HumanReadableSize, 0, "", 10, false}
 	case "MemTotal":
-		s = config[field].Render(m.MemTotal)
+		cfg = Field{"MemTotal", Raw, 0, " KB", 10, false}
 	case "MemFree":
-		s = config[field].Render(m.MemFree)
+		cfg = Field{"MemFree", Raw, 0, " KB", 10, false}
 	case "MemAvailable":
-		s = config[field].Render(m.MemAvailable)
+		cfg = Field{"MemAvailable", Raw, 0, " KB", 10, false}
 	case "Buffers":
-		s = config[field].Render(m.Buffers)
+		cfg = Field{"Buffers", Raw, 0, " KB", 10, false}
 	case "Cached":
-		s = config[field].Render(m.Cached)
+		cfg = Field{"Cached", Raw, 0, " KB", 10, false}
 	case "SwapCached":
-		s = config[field].Render(m.SwapCached)
+		cfg = Field{"SwapCached", Raw, 0, " KB", 10, false}
 	case "Active":
-		s = config[field].Render(m.Active)
+		cfg = Field{"Active", Raw, 0, " KB", 10, false}
 	case "Inactive":
-		s = config[field].Render(m.Inactive)
+		cfg = Field{"Inactive", Raw, 0, " KB", 10, false}
 	case "ActiveAnon":
-		s = config[field].Render(m.ActiveAnon)
+		cfg = Field{"ActiveAnon", Raw, 0, " KB", 10, false}
 	case "InactiveAnon":
-		s = config[field].Render(m.InactiveAnon)
+		cfg = Field{"InactiveAnon", Raw, 0, " KB", 10, false}
 	case "ActiveFile":
-		s = config[field].Render(m.ActiveFile)
+		cfg = Field{"ActiveFile", Raw, 0, " KB", 10, false}
 	case "InactiveFile":
-		s = config[field].Render(m.InactiveFile)
+		cfg = Field{"InactiveFile", Raw, 0, " KB", 10, false}
 	case "Unevictable":
-		s = config[field].Render(m.Unevictable)
+		cfg = Field{"Unevictable", Raw, 0, " KB", 10, false}
 	case "Mlocked":
-		s = config[field].Render(m.Mlocked)
+		cfg = Field{"Mlocked", Raw, 0, " KB", 10, false}
 	case "SwapTotal":
-		s = config[field].Render(m.SwapTotal)
+		cfg = Field{"SwapTotal", Raw, 0, " KB", 10, false}
 	case "SwapFree":
-		s = config[field].Render(m.SwapFree)
+		cfg = Field{"SwapFree", Raw, 0, " KB", 10, false}
 	case "Dirty":
-		s = config[field].Render(m.Dirty)
+		cfg = Field{"Dirty", Raw, 0, " KB", 10, false}
 	case "Writeback":
-		s = config[field].Render(m.Writeback)
+		cfg = Field{"Writeback", Raw, 0, " KB", 10, false}
 	case "AnonPages":
-		s = config[field].Render(m.AnonPages)
+		cfg = Field{"AnonPages", Raw, 0, " KB", 10, false}
 	case "Mapped":
-		s = config[field].Render(m.Mapped)
+		cfg = Field{"Mapped", Raw, 0, " KB", 10, false}
 	case "Shmem":
-		s = config[field].Render(m.Shmem)
+		cfg = Field{"Shmem", Raw, 0, " KB", 10, false}
 	case "Slab":
-		s = config[field].Render(m.Slab)
+		cfg = Field{"Slab", Raw, 0, " KB", 10, false}
 	case "SReclaimable":
-		s = config[field].Render(m.SReclaimable)
+		cfg = Field{"SReclaimable", Raw, 0, " KB", 10, false}
 	case "SUnreclaim":
-		s = config[field].Render(m.SUnreclaim)
+		cfg = Field{"SUnreclaim", Raw, 0, " KB", 10, false}
 	case "KernelStack":
-		s = config[field].Render(m.KernelStack)
+		cfg = Field{"KernelStack", Raw, 0, " KB", 10, false}
 	case "PageTables":
-		s = config[field].Render(m.PageTables)
+		cfg = Field{"PageTables", Raw, 0, " KB", 10, false}
 	case "NFSUnstable":
-		s = config[field].Render(m.NFSUnstable)
+		cfg = Field{"NFSUnstable", Raw, 0, " KB", 10, false}
 	case "Bounce":
-		s = config[field].Render(m.Bounce)
+		cfg = Field{"Bounce", Raw, 0, " KB", 10, false}
 	case "WritebackTmp":
-		s = config[field].Render(m.WritebackTmp)
+		cfg = Field{"WritebackTmp", Raw, 0, " KB", 10, false}
 	case "CommitLimit":
-		s = config[field].Render(m.CommitLimit)
+		cfg = Field{"CommitLimit", Raw, 0, " KB", 10, false}
 	case "CommittedAS":
-		s = config[field].Render(m.CommittedAS)
+		cfg = Field{"CommittedAS", Raw, 0, " KB", 10, false}
 	case "VmallocTotal":
-		s = config[field].Render(m.VmallocTotal)
+		cfg = Field{"VmallocTotal", Raw, 0, " KB", 10, false}
 	case "VmallocUsed":
-		s = config[field].Render(m.VmallocUsed)
+		cfg = Field{"VmallocUsed", Raw, 0, " KB", 10, false}
 	case "VmallocChunk":
-		s = config[field].Render(m.VmallocChunk)
+		cfg = Field{"VmallocChunk", Raw, 0, " KB", 10, false}
 	case "HardwareCorrupted":
-		s = config[field].Render(m.HardwareCorrupted)
+		cfg = Field{"HardwareCorrupted", Raw, 0, " KB", 10, false}
 	case "AnonHugePages":
-		s = config[field].Render(m.AnonHugePages)
+		cfg = Field{"AnonHugePages", Raw, 0, " KB", 10, false}
 	case "ShmemHugePages":
-		s = config[field].Render(m.ShmemHugePages)
+		cfg = Field{"ShmemHugePages", Raw, 0, " KB", 10, false}
 	case "ShmemPmdMapped":
-		s = config[field].Render(m.ShmemPmdMapped)
+		cfg = Field{"ShmemPmdMapped", Raw, 0, " KB", 10, false}
 	case "CmaTotal":
-		s = config[field].Render(m.CmaTotal)
+		cfg = Field{"CmaTotal", Raw, 0, " KB", 10, false}
 	case "CmaFree":
-		s = config[field].Render(m.CmaFree)
+		cfg = Field{"CmaFree", Raw, 0, " KB", 10, false}
 	case "HugePagesTotal":
-		s = config[field].Render(m.HugePagesTotal)
+		cfg = Field{"HugePagesTotal", Raw, 0, " KB", 10, false}
 	case "HugePagesFree":
-		s = config[field].Render(m.HugePagesFree)
+		cfg = Field{"HugePagesFree", Raw, 0, " KB", 10, false}
 	case "HugePagesRsvd":
-		s = config[field].Render(m.HugePagesRsvd)
+		cfg = Field{"HugePagesRsvd", Raw, 0, " KB", 10, false}
 	case "HugePagesSurp":
-		s = config[field].Render(m.HugePagesSurp)
+		cfg = Field{"HugePagesSurp", Raw, 0, " KB", 10, false}
 	case "Hugepagesize":
-		s = config[field].Render(m.Hugepagesize)
+		cfg = Field{"Hugepagesize", Raw, 0, " KB", 10, false}
 	case "DirectMap4k":
-		s = config[field].Render(m.DirectMap4k)
+		cfg = Field{"DirectMap4k", Raw, 0, " KB", 10, false}
 	case "DirectMap2M":
-		s = config[field].Render(m.DirectMap2M)
+		cfg = Field{"DirectMap2M", Raw, 0, " KB", 10, false}
 	case "DirectMap1G":
-		s = config[field].Render(m.DirectMap1G)
+		cfg = Field{"DirectMap1G", Raw, 0, " KB", 10, false}
+	}
+	return cfg
+}
+
+func (m *MEM) GetRenderValue(field string, opt FieldOpt) string {
+	cfg := m.DefaultConfig(field)
+	cfg.ApplyOpt(opt)
+	s := ""
+	switch field {
+	case "Total":
+		s = cfg.Render(m.MemTotal * 1024)
+	case "Free":
+		s = cfg.Render(m.MemFree * 1024)
+	case "Avail":
+		s = cfg.Render(m.MemAvailable * 1024)
+	case "HSlab":
+		s = cfg.Render(m.Slab * 1024)
+	case "Buffer":
+		s = cfg.Render(m.Buffers * 1024)
+	case "Cache":
+		s = cfg.Render(m.Cached * 1024)
+	case "MemTotal":
+		s = cfg.Render(m.MemTotal)
+	case "MemFree":
+		s = cfg.Render(m.MemFree)
+	case "MemAvailable":
+		s = cfg.Render(m.MemAvailable)
+	case "Buffers":
+		s = cfg.Render(m.Buffers)
+	case "Cached":
+		s = cfg.Render(m.Cached)
+	case "SwapCached":
+		s = cfg.Render(m.SwapCached)
+	case "Active":
+		s = cfg.Render(m.Active)
+	case "Inactive":
+		s = cfg.Render(m.Inactive)
+	case "ActiveAnon":
+		s = cfg.Render(m.ActiveAnon)
+	case "InactiveAnon":
+		s = cfg.Render(m.InactiveAnon)
+	case "ActiveFile":
+		s = cfg.Render(m.ActiveFile)
+	case "InactiveFile":
+		s = cfg.Render(m.InactiveFile)
+	case "Unevictable":
+		s = cfg.Render(m.Unevictable)
+	case "Mlocked":
+		s = cfg.Render(m.Mlocked)
+	case "SwapTotal":
+		s = cfg.Render(m.SwapTotal)
+	case "SwapFree":
+		s = cfg.Render(m.SwapFree)
+	case "Dirty":
+		s = cfg.Render(m.Dirty)
+	case "Writeback":
+		s = cfg.Render(m.Writeback)
+	case "AnonPages":
+		s = cfg.Render(m.AnonPages)
+	case "Mapped":
+		s = cfg.Render(m.Mapped)
+	case "Shmem":
+		s = cfg.Render(m.Shmem)
+	case "Slab":
+		s = cfg.Render(m.Slab)
+	case "SReclaimable":
+		s = cfg.Render(m.SReclaimable)
+	case "SUnreclaim":
+		s = cfg.Render(m.SUnreclaim)
+	case "KernelStack":
+		s = cfg.Render(m.KernelStack)
+	case "PageTables":
+		s = cfg.Render(m.PageTables)
+	case "NFSUnstable":
+		s = cfg.Render(m.NFSUnstable)
+	case "Bounce":
+		s = cfg.Render(m.Bounce)
+	case "WritebackTmp":
+		s = cfg.Render(m.WritebackTmp)
+	case "CommitLimit":
+		s = cfg.Render(m.CommitLimit)
+	case "CommittedAS":
+		s = cfg.Render(m.CommittedAS)
+	case "VmallocTotal":
+		s = cfg.Render(m.VmallocTotal)
+	case "VmallocUsed":
+		s = cfg.Render(m.VmallocUsed)
+	case "VmallocChunk":
+		s = cfg.Render(m.VmallocChunk)
+	case "HardwareCorrupted":
+		s = cfg.Render(m.HardwareCorrupted)
+	case "AnonHugePages":
+		s = cfg.Render(m.AnonHugePages)
+	case "ShmemHugePages":
+		s = cfg.Render(m.ShmemHugePages)
+	case "ShmemPmdMapped":
+		s = cfg.Render(m.ShmemPmdMapped)
+	case "CmaTotal":
+		s = cfg.Render(m.CmaTotal)
+	case "CmaFree":
+		s = cfg.Render(m.CmaFree)
+	case "HugePagesTotal":
+		s = cfg.Render(m.HugePagesTotal)
+	case "HugePagesFree":
+		s = cfg.Render(m.HugePagesFree)
+	case "HugePagesRsvd":
+		s = cfg.Render(m.HugePagesRsvd)
+	case "HugePagesSurp":
+		s = cfg.Render(m.HugePagesSurp)
+	case "Hugepagesize":
+		s = cfg.Render(m.Hugepagesize)
+	case "DirectMap4k":
+		s = cfg.Render(m.DirectMap4k)
+	case "DirectMap2M":
+		s = cfg.Render(m.DirectMap2M)
+	case "DirectMap1G":
+		s = cfg.Render(m.DirectMap1G)
+	default:
+		s = "no " + field + " for mem stat"
 	}
 	return s
 }

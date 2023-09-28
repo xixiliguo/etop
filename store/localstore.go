@@ -555,7 +555,7 @@ func (local *LocalStore) CleanOldFiles(opt WriteOption) {
 		}
 	}
 
-	for i := 0; i < 3; i++ {
+	for {
 		suffixs, idxSize, dataSize, err := getIndexAndDataInfo(local.Path)
 		if err != nil {
 			msg := fmt.Sprintf("get index and data files: %s", err)
