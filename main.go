@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -60,16 +59,10 @@ var (
 			Usage:   "select which `FIELD` to display",
 		},
 		&cli.StringFlag{
-			Name:    "select",
-			Aliases: []string{"s"},
-			Value:   "",
-			Usage:   "select `FIELD` for filter",
-		},
-		&cli.StringFlag{
 			Name:    "filter",
 			Aliases: []string{"F"},
 			Value:   "",
-			Usage:   "apply `REGEX` to filter --select field",
+			Usage:   "apply filter",
 		},
 		&cli.StringFlag{
 			Name:    "output",
@@ -143,10 +136,6 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		}
 	}
 
-	re, err := regexp.Compile(c.String("filter"))
-	if err != nil {
-		return err
-	}
 	opt := model.DumpOption{
 		Begin:          begin,
 		End:            end,
@@ -154,8 +143,7 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		Output:         output,
 		Format:         c.String("output-format"),
 		Fields:         fields,
-		SelectField:    c.String("select"),
-		Filter:         re,
+		FilterText:     c.String("filter"),
 		SortField:      c.String("sort"),
 		AscendingOrder: c.Bool("ascending-order"),
 		Top:            c.Int("top"),

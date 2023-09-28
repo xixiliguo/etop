@@ -27,6 +27,10 @@ var bufferMapPool = sync.Pool{
 
 func dumpText(timeStamp int64, opt DumpOption, m Render) {
 
+	if isFilter(opt, m) == false {
+		return
+	}
+
 	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
 	buf := bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -38,11 +42,6 @@ func dumpText(timeStamp int64, opt DumpOption, m Render) {
 			FixWidth: true,
 			Raw:      opt.RawData,
 		})
-		if f == opt.SelectField && opt.Filter != nil {
-			if opt.Filter.MatchString(renderValue) == false {
-				return
-			}
-		}
 		buf.WriteString(" ")
 		buf.WriteString(renderValue)
 	}
@@ -62,11 +61,6 @@ func dumpJson(timeStamp int64, opt DumpOption, m Render) {
 		renderValue := m.GetRenderValue(f, FieldOpt{
 			Raw: opt.RawData,
 		})
-		if f == opt.SelectField && opt.Filter != nil {
-			if opt.Filter.MatchString(renderValue) == false {
-				return
-			}
-		}
 		buf[m.DefaultConfig(f).Name] = renderValue
 	}
 	b, _ := json.Marshal(buf)
@@ -86,11 +80,6 @@ func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, opt DumpOp
 		renderValue := m.GetRenderValue(f, FieldOpt{
 			Raw: opt.RawData,
 		})
-		if f == opt.SelectField && opt.Filter != nil {
-			if opt.Filter.MatchString(renderValue) == false {
-				return
-			}
-		}
 		cfg := OMConfig[f]
 		buf.WriteString("# TYPE" + " " + cfg.Name + " " + typToString[cfg.Typ] + "\n")
 		if cfg.Unit != "" {
