@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/rlimit"
@@ -47,6 +48,7 @@ func (e *ExitProcess) Collect() {
 		return
 	}
 	defer objs.Close()
+	btf.FlushKernelSpec()
 
 	kp, err := link.Tracepoint("sched", "sched_process_exit", objs.HandleExit, nil)
 	if err != nil {
