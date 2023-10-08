@@ -110,7 +110,7 @@ func (e *ExitProcess) Collect() {
 				CSTime:              0,
 				Priority:            int(event.Priority),
 				Nice:                int(event.Nice),
-				NumThreads:          1,
+				NumThreads:          int(event.NumThreads),
 				Starttime:           event.StartTime,
 				VSize:               uint(event.VssPages) * pageSize,
 				RSS:                 int(event.RssPages),
@@ -129,6 +129,8 @@ func (e *ExitProcess) Collect() {
 				WriteBytes:          event.IoWriteBytes,
 				CancelledWriteBytes: int64(event.CancelledWriteBytes),
 			},
+			EndTime:  event.EndTime,
+			ExitCode: event.ExitCode,
 		}
 		e.Unlock()
 	}

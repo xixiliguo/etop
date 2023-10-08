@@ -629,6 +629,7 @@ func main() {
 									return err
 								}
 								fmt.Printf("%s\n", b)
+								sample.Reset()
 								if err := local.NextSample(1, &sample); err != nil {
 									return nil
 								}

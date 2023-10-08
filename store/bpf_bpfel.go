@@ -23,6 +23,8 @@ type bpfEvent struct {
 	Stime               uint64
 	StartTime           uint64
 	EndTime             uint64
+	NumThreads          int32
+	_                   [4]byte
 	OnCpu               uint64
 	Priority            uint64
 	Nice                uint64
@@ -55,9 +57,9 @@ func loadBpf() (*ebpf.CollectionSpec, error) {
 //
 // The following types are suitable as obj argument:
 //
-//     *bpfObjects
-//     *bpfPrograms
-//     *bpfMaps
+//	*bpfObjects
+//	*bpfPrograms
+//	*bpfMaps
 //
 // See ebpf.CollectionSpec.LoadAndAssign documentation for details.
 func loadBpfObjects(obj interface{}, opts *ebpf.CollectionOptions) error {
@@ -142,5 +144,6 @@ func _BpfClose(closers ...io.Closer) error {
 }
 
 // Do not access this directly.
+//
 //go:embed bpf_bpfel.o
 var _BpfBytes []byte

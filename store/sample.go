@@ -154,7 +154,9 @@ func newVmstat(file string) (VmStat, error) {
 type ProcSample struct {
 	procfs.ProcStat
 	procfs.ProcIO
-	CmdLine string
+	CmdLine  string
+	EndTime  uint64
+	ExitCode uint32
 }
 
 func NewSample() Sample {
@@ -168,6 +170,15 @@ func NewSample() Sample {
 		ProcSamples: make(PidMap),
 	}
 	return s
+}
+
+func (s *Sample) Reset() {
+
+	clear(s.NetDevStats)
+	clear(s.DiskStats)
+	clear(s.NetProtocolStats)
+	clear(s.ProcSamples)
+	return
 }
 
 func (s *Sample) Marshal() ([]byte, error) {

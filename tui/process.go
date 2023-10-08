@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"time"
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
@@ -85,11 +86,18 @@ func NewProcess(tui *TUI) *Process {
 			process.tui.status.Clear()
 			idx := row - 1
 			if 0 <= idx && idx < len(process.visbleData) {
-				extra := process.visbleData[idx].CmdLine
+				p := process.visbleData[idx]
+				extra := p.CmdLine
 				if extra == "" {
-					extra = process.visbleData[idx].Comm
+					extra = p.Comm
 				}
 				fmt.Fprintf(process.tui.status, "%s", extra)
+				if p.State == "x" || p.State == "X" {
+					fmt.Fprintf(process.tui.status, " exit code %d at %s",
+						p.ExitCode,
+						time.Unix(int64(p.EndTime), 0).Format(time.RFC3339))
+				}
+
 			}
 		})
 	process.lower.

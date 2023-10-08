@@ -25,6 +25,7 @@ struct event
     u64 stime;
     u64 start_time;
     u64 end_time;
+    int num_threads;
     u64 on_cpu;
     u64 priority;
     u64 nice;
@@ -72,6 +73,7 @@ int handle_exit(struct trace_event_raw_sched_process_template *ctx)
     e.stime += BPF_CORE_READ(task, signal, stime) / 10000000;
     e.start_time = BPF_CORE_READ(task, start_time) / 10000000;
     e.end_time = now / 10000000;
+    e.num_threads = BPF_CORE_READ(task, signal, nr_threads);
 
     e.on_cpu = bpf_get_smp_processor_id();
     e.priority = BPF_CORE_READ(task, prio) - 100;

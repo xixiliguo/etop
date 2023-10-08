@@ -25,6 +25,8 @@ type Process struct {
 	Ppid       int
 	NumThreads int
 	StartTime  uint64
+	EndTime    uint64
+	ExitCode   uint32
 	Processor  uint
 	CmdLine    string
 	PCPU
@@ -334,6 +336,13 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			Processor:  new.Processor,
 			CmdLine:    new.CmdLine,
 		}
+		if new.EndTime != 0 {
+			// exited process from ebpf have not cmdline info
+			// use old one
+			p.CmdLine = old.CmdLine
+			p.EndTime = bootTime + new.EndTime/userHZ
+			p.ExitCode = new.ExitCode
+		}
 
 		// get cpu info
 		p.UTime = SubWithInterval(float64(new.UTime), float64(old.UTime), float64(interval))
@@ -381,6 +390,9 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 
 func SubWithInterval[T int | int64 | float64](curr, prev, interval T) T {
 	if interval == 0 {
+		return 0
+	}
+	if curr < prev {
 		return 0
 	}
 	return (curr - prev) / interval
