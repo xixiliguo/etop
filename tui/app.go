@@ -70,7 +70,7 @@ func NewTUI() *TUI {
 
 	tui.search.form.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
-			timeStamp, err := util.ConvertToTime(tui.search.form.GetText())
+			timeStamp, err := util.ConvertToUnixTime(tui.search.form.GetText())
 			if err != nil {
 				msg := fmt.Sprintf("user-input time: %s", err)
 				tui.status.Clear()
@@ -172,7 +172,7 @@ func (tui *TUI) Run(path string, beginTime string) error {
 	sm, err := model.NewSysModel(local, tui.log)
 
 	begin := int64(0)
-	if begin, err = util.ConvertToTime(beginTime); err != nil {
+	if begin, err = util.ConvertToUnixTime(beginTime); err != nil {
 		return err
 	}
 

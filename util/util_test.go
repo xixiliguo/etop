@@ -45,18 +45,18 @@ func TestConvertToTime(t *testing.T) {
 		expected    int64
 	}{
 		{
-			intput:      "1hago",
+			intput:      "1h",
 			shouldError: false,
 			expected:    time.Now().Add(-time.Hour).Unix(),
 		},
 		{
-			intput:      "2h ago",
+			intput:      "2h",
 			shouldError: false,
 			expected:    time.Now().Add(-2 * time.Hour).Unix(),
 		},
 		{
 			intput:      "3h  ago",
-			shouldError: false,
+			shouldError: true,
 			expected:    time.Now().Add(-3 * time.Hour).Unix(),
 		},
 		{
@@ -66,7 +66,7 @@ func TestConvertToTime(t *testing.T) {
 		},
 		{
 			intput:      "123hago",
-			shouldError: false,
+			shouldError: true,
 			expected:    time.Now().Add(-123 * time.Hour).Unix(),
 		},
 		{
@@ -107,7 +107,7 @@ func TestConvertToTime(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		actual, err := ConvertToTime(testCase.intput)
+		actual, err := ConvertToUnixTime(testCase.intput)
 		if err != nil && testCase.shouldError == false {
 			t.Errorf("input: %q expected no error but got %s", testCase.intput, err)
 			continue

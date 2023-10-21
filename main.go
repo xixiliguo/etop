@@ -22,7 +22,7 @@ var (
 			Aliases: []string{"b"},
 			Value:   time.Now().Format("2006-01-02") + " 00:00",
 			Usage: "`TIME` indicate start point of dump\n" +
-				"			relate value: 1h ago, 3h4m5s ago\n" +
+				"			relate value:  1h, mean 1 hour ago from now from now\n" +
 				"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
 				"			 ",
 			DefaultText: time.Now().Format("2006-01-02") + " 00:00",
@@ -109,13 +109,13 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		return err
 	}
 
-	begin, err := util.ConvertToTime(c.String("begin"))
+	begin, err := util.ConvertToUnixTime(c.String("begin"))
 	if err != nil {
 		return err
 	}
 	end := int64(0)
 	if duration := c.String("duration"); duration == "" {
-		end, err = util.ConvertToTime(c.String("end"))
+		end, err = util.ConvertToUnixTime(c.String("end"))
 		if err != nil {
 			return err
 		}
@@ -252,7 +252,7 @@ func main() {
 						Aliases: []string{"b"},
 						Value:   time.Now().Format("2006-01-02") + " 00:00",
 						Usage: "`TIME` indicate start point of report\n" +
-							"			relate value: 1h ago, 3h4m5s ago\n" +
+							"			relate value:  1h, mean 1 hour ago from now\n" +
 							"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
 							"			 ",
 						DefaultText: time.Now().Format("2006-01-02") + " 00:00",
@@ -335,7 +335,7 @@ func main() {
 						Aliases: []string{"b"},
 						Value:   "",
 						Usage: "`TIME` indicate start point of dump\n" +
-							"			relate value: 1h ago, 3h4m5s ago\n" +
+							"			relate value:  1h, mean 1 hour ago from now\n" +
 							"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
 							"			 ",
 						Required: true,
@@ -366,13 +366,13 @@ func main() {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					begin, err := util.ConvertToTime(c.String("begin"))
+					begin, err := util.ConvertToUnixTime(c.String("begin"))
 					if err != nil {
 						return err
 					}
 					end := int64(0)
 					if duration := c.String("duration"); duration == "" {
-						end, err = util.ConvertToTime(c.String("end"))
+						end, err = util.ConvertToUnixTime(c.String("end"))
 						if err != nil {
 							return err
 						}
@@ -563,7 +563,7 @@ func main() {
 								Aliases: []string{"b"},
 								Value:   "",
 								Usage: "`TIME` indicate start point of dump\n" +
-									"			relate value: 1h ago, 3h4m5s ago\n" +
+									"			relate value:  1h, mean 1 hour ago from now\n" +
 									"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
 									"			 ",
 								Required: true,
@@ -602,13 +602,13 @@ func main() {
 							if err != nil {
 								return err
 							}
-							begin, err := util.ConvertToTime(c.String("begin"))
+							begin, err := util.ConvertToUnixTime(c.String("begin"))
 							if err != nil {
 								return err
 							}
 							end := int64(0)
 							if duration := c.String("duration"); duration == "" {
-								end, err = util.ConvertToTime(c.String("end"))
+								end, err = util.ConvertToUnixTime(c.String("end"))
 								if err != nil {
 									return err
 								}

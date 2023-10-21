@@ -28,30 +28,26 @@ func GetHumanSize[T int | int64 | uint64 | uint | uint32 | float64](size T) stri
 	return strconv.FormatFloat(fsize, 'f', 1, 64) + unitMap[i]
 }
 
-func ConvertToTime(s string) (timeStamp int64, err error) {
-	if strings.HasSuffix(s, "ago") {
-		d, err := time.ParseDuration(strings.TrimSpace(strings.TrimSuffix(s, "ago")))
-		if err != nil {
-			return timeStamp, err
-		}
+func ConvertToUnixTime(s string) (timeStamp int64, err error) {
+
+	if d, err := time.ParseDuration(strings.TrimSpace(s)); err == nil {
 		return time.Now().Add(-d).Unix(), nil
 	}
 
-	t, err := time.ParseInLocation("2006-01-02 15:04", s, time.Local)
-	if err == nil {
+	if t, err := time.ParseInLocation("2006-01-02 15:04", s, time.Local); err == nil {
 		return t.Unix(), nil
 	}
 
-	t, err = time.ParseInLocation("01-02 15:04", s, time.Local)
-	if err == nil {
-		return t.AddDate(time.Now().Year(), 0, 0).Unix(), nil
+	if t, err := time.ParseInLocation("01-02 15:04", s, time.Local); err == nil {
+		y := time.Now().Year()
+		return time.Date(y, t.Month(), t.Day(), t.Hour(), t.Minute(), 0, 0, time.Local).Unix(), nil
 	}
-	t, err = time.ParseInLocation("15:04", s, time.Local)
-	if err != nil {
-		return timeStamp, fmt.Errorf("cannot parse %s: not support format", s)
+
+	if t, err := time.ParseInLocation("15:04", s, time.Local); err == nil {
+		y, m, d := time.Now().Date()
+		return time.Date(y, m, d, t.Hour(), t.Minute(), 0, 0, time.Local).Unix(), nil
 	}
-	y, m, d := time.Now().Date()
-	return time.Date(y, m, d, t.Hour(), t.Minute(), 0, 0, time.Local).Unix(), nil
+	return timeStamp, fmt.Errorf("cannot parse %s: not support format", s)
 }
 
 func ExtractFileFromTar(tarFileName string) (string, error) {
