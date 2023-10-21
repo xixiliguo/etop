@@ -19,7 +19,7 @@ import (
 func TestLocalStoreopenFile(t *testing.T) {
 	dir := t.TempDir()
 	local, err := NewLocalStore(
-		WithSetDefault(dir, slog.Default()),
+		WithPathAndLogger(dir, slog.Default()),
 	)
 	if err != nil {
 		t.Fatalf("NewLocalStore: %s\n", err)
@@ -63,7 +63,7 @@ func TestLocalStoreopenFile(t *testing.T) {
 func TestNextSample(t *testing.T) {
 	dir := t.TempDir()
 	writeStore, err := NewLocalStore(
-		WithSetDefault(dir, slog.Default()),
+		WithPathAndLogger(dir, slog.Default()),
 		WithWriteOnly(),
 	)
 	if err != nil {
@@ -72,7 +72,7 @@ func TestNextSample(t *testing.T) {
 	defer writeStore.Close()
 
 	readStore, err := NewLocalStore(
-		WithSetDefault(dir, slog.Default()),
+		WithPathAndLogger(dir, slog.Default()),
 	)
 	if err != nil {
 		t.Fatalf("now readStore: %s\n", err)
@@ -142,7 +142,7 @@ func TestNextSample(t *testing.T) {
 func TestJumpSampleByTimeStamp(t *testing.T) {
 	dir := t.TempDir()
 	writeStore, err := NewLocalStore(
-		WithSetDefault(dir, slog.Default()),
+		WithPathAndLogger(dir, slog.Default()),
 		WithWriteOnly(),
 	)
 	if err != nil {
@@ -151,7 +151,7 @@ func TestJumpSampleByTimeStamp(t *testing.T) {
 	defer writeStore.Close()
 
 	readStore, err := NewLocalStore(
-		WithSetDefault(dir, slog.Default()),
+		WithPathAndLogger(dir, slog.Default()),
 	)
 	if err != nil {
 		t.Fatalf("now readStore: %s\n", err)
@@ -245,7 +245,7 @@ func TestCleanOldFilesByDays(t *testing.T) {
 
 	dir := t.TempDir()
 	local, err := NewLocalStore(
-		WithSetDefault(dir, slog.Default()),
+		WithPathAndLogger(dir, slog.Default()),
 		WithWriteOnly(),
 	)
 	if err != nil {
@@ -281,7 +281,7 @@ func TestCleanOldFilesBySize(t *testing.T) {
 
 	dir := t.TempDir()
 	local, err := NewLocalStore(
-		WithSetDefault(dir, slog.Default()),
+		WithPathAndLogger(dir, slog.Default()),
 		WithWriteOnly(),
 	)
 	if err != nil {

@@ -164,7 +164,7 @@ func (tui *TUI) Run(path string, beginTime string) error {
 	tui.mode = REPORT
 
 	local, err := store.NewLocalStore(
-		store.WithSetDefault(path, tui.log),
+		store.WithPathAndLogger(path, tui.log),
 	)
 	if err != nil {
 		return err

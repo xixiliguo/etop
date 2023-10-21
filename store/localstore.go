@@ -21,7 +21,6 @@ import (
 )
 
 var (
-	DefaultPath                     = "/var/log/etop"
 	ErrOutOfRange                   = errors.New("data is out of range")
 	ErrIndexCorrupt                 = errors.New("corrupt index")
 	ErrDataCorrupt                  = errors.New("corrupt data")
@@ -67,11 +66,8 @@ type Store interface {
 
 type Option func(*LocalStore) error
 
-func WithSetDefault(path string, log *slog.Logger) Option {
+func WithPathAndLogger(path string, log *slog.Logger) Option {
 	return func(local *LocalStore) error {
-		if path == "" {
-			path = DefaultPath
-		}
 		local.Path = path
 		local.Log = log
 		return nil
@@ -81,13 +77,15 @@ func WithSetDefault(path string, log *slog.Logger) Option {
 func WithWriteOnly() Option {
 	return func(local *LocalStore) error {
 		local.writeOnly = true
+		local.handelSignal()
 		return nil
 	}
 }
 
-func WithSetExitProcess(log *slog.Logger) Option {
+func WithExitProcess(log *slog.Logger) Option {
 	return func(local *LocalStore) error {
 		local.exit = NewExitProcess(log)
+		go local.exit.Collect()
 		return nil
 	}
 }
@@ -121,8 +119,6 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 	}
 
 	if local.writeOnly == true {
-		local.handelSignal()
-		go local.exit.Collect()
 		return local, nil
 	}
 

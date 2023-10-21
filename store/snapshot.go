@@ -16,9 +16,8 @@ func (local *LocalStore) Snapshot(begin int64, end int64) (string, error) {
 	}
 
 	dest, err := NewLocalStore(
-		WithSetDefault(tempPath, local.Log),
+		WithPathAndLogger(tempPath, local.Log),
 		WithWriteOnly(),
-		WithSetExitProcess(local.Log),
 	)
 	if err != nil {
 		return "", err

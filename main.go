@@ -100,7 +100,7 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		return err
 	}
 	local, err := store.NewLocalStore(
-		store.WithSetDefault(path, util.CreateLogger(logFile, false)),
+		store.WithPathAndLogger(path, util.CreateLogger(logFile, false)),
 	)
 	if err != nil {
 		return err
@@ -220,9 +220,9 @@ func main() {
 					log.Info(msg)
 
 					local, err := store.NewLocalStore(
-						store.WithSetDefault(path, log),
+						store.WithPathAndLogger(path, log),
 						store.WithWriteOnly(),
-						store.WithSetExitProcess(log),
+						store.WithExitProcess(log),
 					)
 					if err != nil {
 						return err
@@ -283,7 +283,7 @@ func main() {
 					if c.Bool("stat") == true {
 
 						local, err := store.NewLocalStore(
-							store.WithSetDefault(path, util.CreateLogger(os.Stdout, false)),
+							store.WithPathAndLogger(path, util.CreateLogger(os.Stdout, false)),
 						)
 						if err != nil {
 							return err
@@ -389,7 +389,7 @@ func main() {
 						time.Unix(end, 0))
 					slog.Info(msg)
 					local, err := store.NewLocalStore(
-						store.WithSetDefault(c.String("path"), slog.Default()),
+						store.WithPathAndLogger(c.String("path"), slog.Default()),
 					)
 					if err != nil {
 						return err
@@ -600,7 +600,7 @@ func main() {
 							path := c.String("path")
 							path, _ = filepath.Abs(path)
 							local, err := store.NewLocalStore(
-								store.WithSetDefault(path, util.CreateLogger(os.Stdout, false)),
+								store.WithPathAndLogger(path, util.CreateLogger(os.Stdout, false)),
 							)
 							if err != nil {
 								return err
