@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -383,11 +384,12 @@ func main() {
 						}
 						end = begin + int64(d/time.Second)
 					}
-					fmt.Printf("start to generate snapshot file from %s to %s\n",
+					msg := fmt.Sprintf("start to generate snapshot file from %s to %s\n",
 						time.Unix(begin, 0),
 						time.Unix(end, 0))
+					slog.Info(msg)
 					local, err := store.NewLocalStore(
-						store.WithSetDefault(c.String("path"), util.CreateLogger(os.Stdout, false)),
+						store.WithSetDefault(c.String("path"), slog.Default()),
 					)
 					if err != nil {
 						return err
@@ -395,7 +397,8 @@ func main() {
 					if snapshotFileName, err := local.Snapshot(begin, end); err != nil {
 						return err
 					} else {
-						fmt.Printf("snapshot file was created at %s\n", snapshotFileName)
+						msg := fmt.Sprintf("snapshot file was created at %s\n", snapshotFileName)
+						slog.Info(msg)
 					}
 					return nil
 				},

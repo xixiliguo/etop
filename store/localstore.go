@@ -121,10 +121,6 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 	}
 
 	if local.writeOnly == true {
-		shard := calcshard(time.Now().Unix())
-		if err := local.openFile(shard, true); err != nil {
-			return nil, err
-		}
 		local.handelSignal()
 		go local.exit.Collect()
 		return local, nil
@@ -485,9 +481,8 @@ type WriteOption struct {
 func (local *LocalStore) WriteLoop(opt WriteOption) error {
 
 	interval := opt.Interval
-	msg := fmt.Sprintf("start to write sample every %s to %s",
-		interval.String(),
-		local.Data.Name())
+	msg := fmt.Sprintf("start to collect sample every %s",
+		interval.String())
 	local.Log.Info(msg)
 	isSkip := 0
 	for {
