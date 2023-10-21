@@ -87,46 +87,51 @@ func ExtractFileFromTar(tarFileName string) (string, error) {
 	return tempPath, nil
 }
 
-func ArchiveToTarFile(subFiles []string, tarFileName string) error {
+func ArchiveToTarFile(path string, tarFileName string) error {
 	tarFile, err := os.OpenFile(tarFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 
 	tw := tar.NewWriter(tarFile)
+	if entrys, err := os.ReadDir(path); err != nil {
+		return err
+	} else {
+		for _, e := range entrys {
+			fullPath := filepath.Join(path, e.Name())
 
-	for _, file := range subFiles {
-		base := filepath.Base(file)
-		size := int64(0)
-		if info, err := os.Stat(file); err != nil {
-			return err
-		} else {
-			size = info.Size()
-		}
-		src, err := os.Open(file)
-		if err != nil {
-			return err
-		}
-		defer src.Close()
+			size := int64(0)
+			if info, err := os.Stat(fullPath); err != nil {
+				return err
+			} else {
+				size = info.Size()
+			}
+			src, err := os.Open(fullPath)
+			if err != nil {
+				return err
+			}
+			defer src.Close()
 
-		hdr := &tar.Header{
-			Name: base,
-			Mode: 0644,
-			Size: size,
+			hdr := &tar.Header{
+				Name: e.Name(),
+				Mode: 0644,
+				Size: size,
+			}
+			if err := tw.WriteHeader(hdr); err != nil {
+				return err
+			}
+			n, err := io.CopyN(tw, src, size)
+			if err != nil {
+				return err
+			}
+			if n != size {
+				return fmt.Errorf("%s expect written %d bytes, but %d bytes", e.Name(), size, n)
+			}
+			src.Close()
+			os.Remove(src.Name())
 		}
-		if err := tw.WriteHeader(hdr); err != nil {
-			return err
-		}
-		n, err := io.CopyN(tw, src, size)
-		if err != nil {
-			return err
-		}
-		if n != size {
-			return fmt.Errorf("%s expect written %d bytes, but %d bytes", file, size, n)
-		}
-		src.Close()
-		os.Remove(src.Name())
 	}
+
 	if err := tw.Close(); err != nil {
 		return err
 	}

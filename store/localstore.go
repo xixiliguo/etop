@@ -26,6 +26,7 @@ var (
 	ErrIndexCorrupt                 = errors.New("corrupt index")
 	ErrDataCorrupt                  = errors.New("corrupt data")
 	MinimumFreeSpaceForStore uint64 = 500 * (1 << 20) // 500MB
+	ShardTime                       = int64(24 * 60 * 60)
 )
 
 // Index represent short info for one sample, so that speed up to find
@@ -106,7 +107,7 @@ type LocalStore struct {
 	closed   bool
 	closeSig chan os.Signal
 	idxs     []Index // all indexs from Path
-	suffix   string
+	shard    int64
 	curIdx   int
 	exit     *ExitProcess
 }
@@ -120,8 +121,8 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 	}
 
 	if local.writeOnly == true {
-		suffix := time.Now().Format("20060102")
-		if err := local.openFile(suffix, true); err != nil {
+		shard := calcshard(time.Now().Unix())
+		if err := local.openFile(shard, true); err != nil {
 			return nil, err
 		}
 		local.handelSignal()
@@ -137,6 +138,10 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 	}
 
 	return local, nil
+}
+
+func calcshard(sec int64) int64 {
+	return sec - sec%ShardTime
 }
 
 // getIndexFrames walk path and get data from all index file
@@ -220,7 +225,7 @@ func (local *LocalStore) FileStatInfo() (result string, err error) {
 
 // getDataInfo walk path and get info of index file and data file
 // return suffixs array and total size
-func getIndexAndDataInfo(path string) (suffixs []string, indexSize int64, dataSize int64, err error) {
+func getIndexAndDataInfo(path string) (shards []int64, indexSize int64, dataSize int64, err error) {
 	indexNum := 0
 	dataNum := 0
 
@@ -231,34 +236,38 @@ func getIndexAndDataInfo(path string) (suffixs []string, indexSize int64, dataSi
 				if info, err := d.Info(); err == nil {
 					indexSize += info.Size()
 				} else {
-					return suffixs, indexSize, dataSize, err
+					return shards, indexSize, dataSize, err
 				}
 			}
 			if d.Type().IsRegular() && strings.HasPrefix(d.Name(), "data_") {
 				dataNum++
-				suffixs = append(suffixs, strings.TrimLeft(d.Name(), "data_"))
+				var shard int64
+				if _, err := fmt.Sscanf(d.Name(), "data_0%d", &shard); err != nil {
+					return shards, indexSize, dataSize, err
+				}
+				shards = append(shards, shard)
 				if info, err := d.Info(); err == nil {
 					dataSize += info.Size()
 				} else {
-					return suffixs, indexSize, dataSize, err
+					return shards, indexSize, dataSize, err
 				}
 			}
 		}
 	} else {
-		return suffixs, indexSize, dataSize, err
+		return shards, indexSize, dataSize, err
 	}
 
 	if indexNum != dataNum {
-		return suffixs, indexSize, dataSize,
+		return shards, indexSize, dataSize,
 			fmt.Errorf("%d index files is not equal to %d data files", indexNum, dataNum)
 	}
-	sort.Slice(suffixs, func(i, j int) bool {
-		return suffixs[i] < suffixs[j]
+	sort.Slice(shards, func(i, j int) bool {
+		return shards[i] < shards[j]
 	})
 	return
 }
 
-func (local *LocalStore) openFile(suffix string, writeonly bool) (err error) {
+func (local *LocalStore) openFile(shard int64, writeonly bool) (err error) {
 
 	flags := os.O_RDONLY
 	if writeonly == true {
@@ -267,7 +276,7 @@ func (local *LocalStore) openFile(suffix string, writeonly bool) (err error) {
 
 	lock := syscall.LOCK_EX | syscall.LOCK_NB
 
-	idxPath := filepath.Join(local.Path, fmt.Sprintf("index_%s", suffix))
+	idxPath := filepath.Join(local.Path, fmt.Sprintf("index_%011d", shard))
 	if local.Index, err = os.OpenFile(idxPath, flags, 0644); err != nil {
 		return err
 	}
@@ -275,7 +284,7 @@ func (local *LocalStore) openFile(suffix string, writeonly bool) (err error) {
 		return fmt.Errorf("can not acquire lock for file %s", idxPath)
 	}
 
-	dataPath := filepath.Join(local.Path, fmt.Sprintf("data_%s", suffix))
+	dataPath := filepath.Join(local.Path, fmt.Sprintf("data_%011d", shard))
 	if local.Data, err = os.OpenFile(dataPath, flags, 0644); err != nil {
 		local.Index.Close()
 		return err
@@ -291,15 +300,15 @@ func (local *LocalStore) openFile(suffix string, writeonly bool) (err error) {
 		return err
 	}
 
-	local.suffix = suffix
+	local.shard = shard
 	return nil
 }
 
-func (local *LocalStore) changeFile(suffix string, writeOnly bool) error {
+func (local *LocalStore) changeFile(shard int64, writeOnly bool) error {
 
 	local.Index.Close()
 	local.Data.Close()
-	return local.openFile(suffix, writeOnly)
+	return local.openFile(shard, writeOnly)
 }
 
 func (local *LocalStore) Close() error {
@@ -326,10 +335,10 @@ func (local *LocalStore) NextSample(step int, sample *Sample) error {
 		}
 	}
 
-	suffix := time.Unix(local.idxs[target].TimeStamp, 0).Format("20060102")
+	shard := calcshard(local.idxs[target].TimeStamp)
 
-	if suffix != local.suffix {
-		if err := local.changeFile(suffix, false); err != nil {
+	if shard != local.shard {
+		if err := local.changeFile(shard, false); err != nil {
 			return err
 		}
 	}
@@ -373,10 +382,10 @@ func (local *LocalStore) JumpSampleByTimeStamp(timestamp int64, sample *Sample) 
 		target = 1
 	}
 
-	suffix := time.Unix(local.idxs[target].TimeStamp, 0).Format("20060102")
+	shard := calcshard(local.idxs[target].TimeStamp)
 
-	if suffix != local.suffix {
-		if err := local.changeFile(suffix, false); err != nil {
+	if shard != local.shard {
+		if err := local.changeFile(shard, false); err != nil {
 			return err
 		}
 	}
@@ -417,9 +426,9 @@ func (local *LocalStore) CollectSample(s *Sample) error {
 func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 
 	newSuffix := false
-	suffix := time.Unix(s.TimeStamp, 0).Format("20060102")
-	if suffix != local.suffix {
-		if err := local.changeFile(suffix, true); err != nil {
+	shard := calcshard(s.TimeStamp)
+	if shard != local.shard {
+		if err := local.changeFile(shard, true); err != nil {
 			return newSuffix, err
 		}
 		msg := fmt.Sprintf("switch and write data into %s", local.Data.Name())
@@ -541,31 +550,33 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 }
 
 func (local *LocalStore) CleanOldFiles(opt WriteOption) {
-	suffixs, _, _, err := getIndexAndDataInfo(local.Path)
+	shards, _, _, err := getIndexAndDataInfo(local.Path)
 	if err != nil {
 		msg := fmt.Sprintf("get index and data files: %s", err)
 		local.Log.Warn(msg)
 		return
 	}
 
-	oldestKeepDate := time.Now().AddDate(0, 0, -opt.RetainDay).Format("20060102")
-	for _, suffixs := range suffixs {
-		if suffixs < oldestKeepDate {
-			local.DeleteSingleFile(suffixs)
+	unixTime := time.Now().AddDate(0, 0, -opt.RetainDay).Unix()
+	oldestKeepShard := calcshard(unixTime)
+	for _, shard := range shards {
+		if shard < oldestKeepShard {
+			local.DeleteSingleFile(shard)
 		}
 	}
 
 	for {
-		suffixs, idxSize, dataSize, err := getIndexAndDataInfo(local.Path)
+		shards, idxSize, dataSize, err := getIndexAndDataInfo(local.Path)
 		if err != nil {
 			msg := fmt.Sprintf("get index and data files: %s", err)
 			local.Log.Warn(msg)
 			return
 		}
 		if idxSize+dataSize > opt.RetainSize {
-			if len(suffixs) != 0 && suffixs[0] < time.Now().Format("20060102") {
-				s := suffixs[0]
-				suffixs = suffixs[1:]
+			currShard := calcshard(time.Now().Unix())
+			if len(shards) != 0 && shards[0] < currShard {
+				s := shards[0]
+				shards = shards[1:]
 				local.DeleteSingleFile(s)
 			} else {
 				local.Log.Info("file of today was not permitted to delete")
@@ -577,9 +588,9 @@ func (local *LocalStore) CleanOldFiles(opt WriteOption) {
 	}
 }
 
-func (local *LocalStore) DeleteSingleFile(suffix string) {
+func (local *LocalStore) DeleteSingleFile(shard int64) {
 	for _, prefix := range []string{"index", "data"} {
-		file := fmt.Sprintf("%s_%s", prefix, suffix)
+		file := fmt.Sprintf("%s_%011d", prefix, shard)
 		absFile := filepath.Join(local.Path, file)
 		if err := os.Remove(absFile); err != nil {
 			local.Log.Warn(fmt.Sprintf("%s", err))

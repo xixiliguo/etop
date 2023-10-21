@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path"
@@ -24,37 +25,37 @@ func TestLocalStoreopenFile(t *testing.T) {
 		t.Fatalf("NewLocalStore: %s\n", err)
 
 	}
-
-	err = local.openFile("20221127", false)
+	//1697760000 mean 2013/10/20
+	err = local.openFile(1697760000, false)
 	if err == nil || errors.Is(err, os.ErrNotExist) == false {
 		t.Fatalf("open no-exist file: %s\n", err)
 	}
-	_, _ = os.Create(filepath.Join(dir, "index_20221127"))
+	_, _ = os.Create(filepath.Join(dir, "index_01697760000"))
 
-	err = local.openFile("20221127", false)
+	err = local.openFile(1697760000, false)
 	if err == nil || errors.Is(err, os.ErrNotExist) == false {
 		t.Fatalf("open no-exist file: %s\n", err)
 	}
-	_, _ = os.Create(filepath.Join(dir, "data_20221127"))
-	err = local.openFile("20221127", false)
+	_, _ = os.Create(filepath.Join(dir, "data_01697760000"))
+	err = local.openFile(1697760000, false)
 	if err != nil {
 		t.Fatalf("open exist file: %s\n", err)
 	}
 
-	err = local.changeFile("20221127", false)
+	err = local.changeFile(1697760000, false)
 	if err != nil {
 		t.Fatalf("open exist file: %s\n", err)
 	}
 
-	err = local.changeFile("20221127", true)
+	err = local.changeFile(1697760000, true)
 	if err != nil {
 		t.Fatalf("open exist file: %s\n", err)
 	}
-	if filepath.Base(local.Index.Name()) != "index_20221127" {
+	if filepath.Base(local.Index.Name()) != "index_01697760000" {
 		t.Fatalf("index file got: %s, but want %s\n", filepath.Base(local.Index.Name()), "index_20221127")
 	}
 
-	if filepath.Base(local.Data.Name()) != "data_20221127" {
+	if filepath.Base(local.Data.Name()) != "data_01697760000" {
 		t.Fatalf("data file got: %s, but want %s\n", filepath.Base(local.Data.Name()), "data_20221127")
 	}
 }
@@ -256,12 +257,12 @@ func TestCleanOldFilesByDays(t *testing.T) {
 
 	now := time.Now()
 	for i := 0; i < 5; i++ {
-		suffix := now.AddDate(0, 0, -i).Format("20060102")
+		shard := calcshard(now.AddDate(0, 0, -i).Unix())
 		if i < 3 {
-			expect = append(expect, "data_"+suffix)
-			expect = append(expect, "index_"+suffix)
+			expect = append(expect, fmt.Sprintf("data_%011d", shard))
+			expect = append(expect, fmt.Sprintf("index_%011d", shard))
 		}
-		local.changeFile(suffix, true)
+		local.changeFile(shard, true)
 	}
 	sort.Strings(expect)
 
@@ -292,12 +293,12 @@ func TestCleanOldFilesBySize(t *testing.T) {
 
 	now := time.Now()
 	for i := 0; i < 5; i++ {
-		suffix := now.AddDate(0, 0, -i).Format("20060102")
+		shard := calcshard(now.AddDate(0, 0, -i).Unix())
 		if i == 0 {
-			expect = append(expect, "data_"+suffix)
-			expect = append(expect, "index_"+suffix)
+			expect = append(expect, fmt.Sprintf("data_%011d", shard))
+			expect = append(expect, fmt.Sprintf("index_%011d", shard))
 		}
-		idx, err := os.Create(path.Join(local.Path, "index_"+suffix))
+		idx, err := os.Create(path.Join(local.Path, fmt.Sprintf("index_%011d", shard)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -305,7 +306,7 @@ func TestCleanOldFilesBySize(t *testing.T) {
 		if err := idx.Truncate(1 << 20); err != nil {
 			t.Fatal(err)
 		}
-		data, err := os.Create(path.Join(local.Path, "data_"+suffix))
+		data, err := os.Create(path.Join(local.Path, fmt.Sprintf("data_%011d", shard)))
 		if err != nil {
 			t.Fatal(err)
 		}
