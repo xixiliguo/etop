@@ -3,7 +3,7 @@ Description=etop system monitor for linux system
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/etop record
+ExecStart=/usr/bin/etop record --compress --compress-dict-chunk-size 1024
 
 [Install]
 WantedBy=multi-user.target
