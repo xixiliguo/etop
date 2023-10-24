@@ -177,6 +177,29 @@ func main() {
 						Value:   "/var/log/etop",
 						Usage:   "`directory` to store file",
 					},
+					&cli.BoolFlag{
+						Name:  "compress",
+						Value: false,
+						Usage: "enable zstd compress",
+					},
+					&cli.IntFlag{
+						Name:  "compress-dict-chunk-size",
+						Value: 0,
+						Usage: "at least 2, must be a power of two",
+						Action: func(c *cli.Context, n int) error {
+							if c.Bool("compress") == false {
+								return fmt.Errorf("compress-dict-chunk-size only is valid when --compress")
+							}
+							if n > store.MaxDictOffset {
+								return fmt.Errorf("value must <= %d", store.MaxDictOffset)
+							}
+							if n >= 2 && ((n & (n - 1)) == 0) {
+							} else {
+								return fmt.Errorf("compress-dict-chunk-size at least 2, must be a power of two")
+							}
+							return nil
+						},
+					},
 					&cli.IntFlag{
 						Name:  "retainday",
 						Value: 3,
@@ -219,9 +242,17 @@ func main() {
 					msg := fmt.Sprintf("version: %s", version.Version)
 					log.Info(msg)
 
+					mode := store.NoCompress
+					if c.Bool("compress") {
+						mode = store.ZstdCompress
+					}
+					chunk := uint32(c.Int("compress-dict-chunk-size"))
+					if chunk != 0 {
+						mode = store.ZstdCompressWithDict
+					}
 					local, err := store.NewLocalStore(
 						store.WithPathAndLogger(path, log),
-						store.WithWriteOnly(),
+						store.WithWriteOnly(mode, chunk),
 						store.WithExitProcess(log),
 					)
 					if err != nil {

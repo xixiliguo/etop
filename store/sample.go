@@ -9,15 +9,9 @@ import (
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
-	"github.com/klauspost/compress/zstd"
 	"github.com/prometheus/procfs"
 	"github.com/prometheus/procfs/blockdevice"
 	"golang.org/x/sys/unix"
-)
-
-var (
-	enc, _ = zstd.NewWriter(nil)
-	dec, _ = zstd.NewReader(nil)
 )
 
 // Sample represent all system info and process info.
@@ -182,25 +176,11 @@ func (s *Sample) Reset() {
 }
 
 func (s *Sample) Marshal() ([]byte, error) {
-
-	b, err := cbor.Marshal(s)
-	if err != nil {
-		return nil, err
-	}
-	return enc.EncodeAll(b, make([]byte, 0, len(b))), nil
+	return cbor.Marshal(s)
 }
 
 func (s *Sample) Unmarshal(b []byte) error {
-
-	uncompressed, err := dec.DecodeAll(b, make([]byte, 0, len(b)))
-	if err != nil {
-		return err
-	}
-
-	if err = cbor.Unmarshal(uncompressed, s); err != nil {
-		return nil
-	}
-	return nil
+	return cbor.Unmarshal(b, s)
 }
 
 func CollectSampleFromSys(s *Sample, exit *ExitProcess) error {

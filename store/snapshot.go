@@ -17,7 +17,7 @@ func (local *LocalStore) Snapshot(begin int64, end int64) (string, error) {
 
 	dest, err := NewLocalStore(
 		WithPathAndLogger(tempPath, local.Log),
-		WithWriteOnly(),
+		WithWriteOnly(ZstdCompressWithDict, 1024),
 	)
 	if err != nil {
 		return "", err

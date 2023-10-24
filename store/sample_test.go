@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/fxamacker/cbor/v2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/prometheus/procfs"
@@ -135,20 +134,18 @@ func BenchmarkSampleMarshal(b *testing.B) {
 
 	testCase := NewSample()
 	src, _ := os.ReadFile("testdata/sample.data")
-	testCase.Unmarshal(src)
-
-	before, _ := cbor.Marshal(&testCase)
-	b.ReportAllocs()
-	b.ResetTimer()
-	size := 0
-
-	for n := 0; n < b.N; n++ {
-		re, _ := testCase.Marshal()
-		size += len(re)
+	if err := testCase.Unmarshal(src); err != nil {
+		b.Fatalf("testCase: %s", err)
 	}
 
-	b.ReportMetric(float64(size)/float64(b.N), "compressed/op")
-	b.ReportMetric(float64(len(before)), "uncompressed/op")
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		if _, err := testCase.Marshal(); err != nil {
+			b.Fatalf("testCase: %s", err)
+		}
+	}
 }
 
 func BenchmarkSampleUnmarshal(b *testing.B) {

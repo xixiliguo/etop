@@ -17,6 +17,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/xixiliguo/etop/util"
 )
 
@@ -28,23 +29,63 @@ var (
 	ShardTime                       = int64(24 * 60 * 60)
 )
 
+const (
+	NoCompress = uint32(1 << iota)
+	ZstdCompress
+	ZstdCompressWithDict
+)
+const (
+	CompressModeShift = 0
+	CompressModeLen   = 8
+	DictOffsetShift   = 8
+	DictOffsetLen     = 24
+	MaxDictOffset     = 1<<DictOffsetLen - 1
+)
+
 // Index represent short info for one sample, so that speed up to find
 // specifed sample.
 type Index struct {
 	TimeStamp int64  // unix time when sample was generated
 	Offset    int64  // offset of file where sample is exist
 	Len       int64  // length of one sample
+	Flag      uint32 // compress mode and dict offset
 	CRC       uint32 // crc for whole index, except CRC self
 }
 
 var sizeIndex = binary.Size(Index{})
+
+func mask(len uint32) uint32 {
+	return (1 << len) - 1
+}
+
+func readBits(value, len, shift uint32) uint32 {
+	return (value >> shift) & mask(len)
+}
+
+func writeBits(value, len, shift, new uint32) uint32 {
+	value &^= mask(len) << shift
+	value |= (new & mask(len)) << shift
+	return value
+}
+
+func (idx *Index) SetCompressMode(m uint32, offset uint32) {
+	idx.Flag = writeBits(idx.Flag, CompressModeLen, CompressModeShift, m)
+	idx.Flag = writeBits(idx.Flag, DictOffsetLen, DictOffsetShift, offset)
+}
+
+func (idx *Index) CompressMode() (uint32, uint32) {
+	mode := readBits(idx.Flag, CompressModeLen, CompressModeShift)
+	offset := readBits(idx.Flag, DictOffsetLen, DictOffsetShift)
+	return mode, offset
+}
 
 func (idx *Index) Marshal() []byte {
 	b := make([]byte, sizeIndex)
 	binary.LittleEndian.PutUint64(b[0:], uint64(idx.TimeStamp))
 	binary.LittleEndian.PutUint64(b[8:], uint64(idx.Offset))
 	binary.LittleEndian.PutUint64(b[16:], uint64(idx.Len))
-	binary.LittleEndian.PutUint32(b[24:], idx.CRC)
+	binary.LittleEndian.PutUint32(b[24:], idx.Flag)
+	binary.LittleEndian.PutUint32(b[28:], idx.CRC)
 	return b
 }
 
@@ -52,7 +93,8 @@ func (idx *Index) Unmarshal(b []byte) {
 	idx.TimeStamp = int64(binary.LittleEndian.Uint64(b[0:]))
 	idx.Offset = int64(binary.LittleEndian.Uint64(b[8:]))
 	idx.Len = int64(binary.LittleEndian.Uint64(b[16:]))
-	idx.CRC = binary.LittleEndian.Uint32(b[24:])
+	idx.Flag = binary.LittleEndian.Uint32(b[24:])
+	idx.CRC = binary.LittleEndian.Uint32(b[28:])
 }
 
 // Store is interface which operate file/network which include sample data.
@@ -74,9 +116,11 @@ func WithPathAndLogger(path string, log *slog.Logger) Option {
 	}
 }
 
-func WithWriteOnly() Option {
+func WithWriteOnly(mode, chunk uint32) Option {
 	return func(local *LocalStore) error {
 		local.writeOnly = true
+		local.mode = mode
+		local.chunk = chunk
 		local.handelSignal()
 		return nil
 	}
@@ -92,7 +136,8 @@ func WithExitProcess(log *slog.Logger) Option {
 
 // LocalStore represent local store, which consist of index and data files.
 // All files was stored into Path (default: /var/log/etop).
-// file format: index_{suffix}, data_{suffix}  suffix: yyyymmdd
+// file format: index_{shard}, data_{shard}
+// shard is unix time of 00:00 utc every day
 // It should work either readonly mode or writeonly mode.
 type LocalStore struct {
 	Path       string   // path which index and data file is stored
@@ -101,6 +146,16 @@ type LocalStore struct {
 	Log        *slog.Logger
 	DataOffset int64 // file offset which next sample was written to
 	writeOnly  bool
+	mode       uint32 // compress mode
+	// increment after writing one sample
+	// reset to 0 when opening new file or initializing instance of LocalStore
+	next    uint32
+	curDict int64         // timestamp of sample which was used as dict
+	chunk   uint32        // a number of adjacent samples as one group
+	enc     *zstd.Encoder // zstd encoder
+	dec     *zstd.Decoder // zstd decoder
+	encDict *zstd.Encoder // zstd encoder with dict
+	decDict *zstd.Decoder // zstd decoder with dict
 	sync.Mutex
 	closed   bool
 	closeSig chan os.Signal
@@ -116,6 +171,16 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 		if err := opt(local); err != nil {
 			return nil, err
 		}
+	}
+
+	// 0 is valid, so cannot set to 0 as initial value
+	local.shard = -1
+	// so that nextSample(1, &s) after NewLocalStore can get first sample
+	local.curIdx = -1
+
+	if local.mode != NoCompress {
+		local.enc, _ = zstd.NewWriter(nil)
+		local.dec, _ = zstd.NewReader(nil)
 	}
 
 	if local.writeOnly == true {
@@ -165,7 +230,7 @@ func getIndexFrames(path string) ([]Index, error) {
 					return nil, err
 				}
 				if n != sizeIndex {
-					return nil, fmt.Errorf("request %d byte, but got %d", sizeIndex, n)
+					return nil, fmt.Errorf("request %d byte, but got %d from %s", sizeIndex, n, f.Name())
 				}
 				index := Index{}
 				index.Unmarshal(buf)
@@ -285,6 +350,9 @@ func (local *LocalStore) openFile(shard int64, writeonly bool) (err error) {
 		return fmt.Errorf("can not acquire lock for file %s", dataPath)
 	}
 
+	// should be new group for zstd dict compress when opening new file
+	// reset next to 0
+	local.next = 0
 	// data file may already exist and take file size as initail DataOffset
 	if info, err := local.Data.Stat(); err == nil {
 		local.DataOffset = info.Size()
@@ -391,22 +459,63 @@ func (local *LocalStore) JumpSampleByTimeStamp(timestamp int64, sample *Sample) 
 }
 
 func (local *LocalStore) getSample(target int, sample *Sample) error {
+
 	idx := local.idxs[target]
-	if idx.CRC != crc32.ChecksumIEEE((*[28]byte)(unsafe.Pointer(&idx))[:24]) {
+	buff := make([]byte, idx.Len)
+	var err error
+	if err = local.getDataBytes(idx, &buff); err != nil {
+		return err
+	}
+
+	mode, offset := idx.CompressMode()
+	if mode == ZstdCompress || (mode == ZstdCompressWithDict && offset == 0) {
+		if buff, err = local.dec.DecodeAll(buff, make([]byte, 0, len(buff))); err != nil {
+			return err
+		}
+	} else if mode == ZstdCompressWithDict {
+		dictIdxPos := target - int(offset)
+		dictIdx := local.idxs[dictIdxPos]
+		dictMode, dictOffSet := dictIdx.CompressMode()
+		if dictMode != ZstdCompressWithDict || dictOffSet != 0 {
+			return fmt.Errorf("dict of %+v is not compress mode: %+v", idx, dictIdx)
+		}
+		if dictIdx.TimeStamp != local.curDict {
+			dictBuff := make([]byte, dictIdx.Len)
+			if err = local.getDataBytes(dictIdx, &dictBuff); err != nil {
+				return err
+			}
+			if dictBuff, err = local.dec.DecodeAll(dictBuff, make([]byte, 0, len(dictBuff))); err != nil {
+				return err
+			}
+			if local.decDict, err = zstd.NewReader(nil, zstd.WithDecoderDictRaw(0, dictBuff)); err != nil {
+				return err
+			}
+			local.curDict = dictIdx.TimeStamp
+		}
+		if buff, err = local.decDict.DecodeAll(buff, make([]byte, 0, len(buff))); err != nil {
+			return err
+		}
+	}
+
+	if err := sample.Unmarshal(buff); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (local *LocalStore) getDataBytes(idx Index, buff *[]byte) error {
+	if idx.CRC != crc32.ChecksumIEEE((*[32]byte)(unsafe.Pointer(&idx))[:28]) {
 		return fmt.Errorf("%s timestamp %d: %w", local.Index.Name(), idx.TimeStamp, ErrIndexCorrupt)
 	}
-	buff := make([]byte, idx.Len)
-	n, err := local.Data.ReadAt(buff, idx.Offset)
+
+	n, err := local.Data.ReadAt(*buff, idx.Offset)
 	if err != nil {
 		return fmt.Errorf("offset %d read %d bytes at %s: %w", idx.Offset, idx.Len, local.Data.Name(), err)
 	}
 
 	if n != int(idx.Len) {
-		return fmt.Errorf("got %d bytes, but want %d\n", n, idx.Len)
-	}
-
-	if err := sample.Unmarshal(buff); err != nil {
-		return err
+		return fmt.Errorf("got %d bytes, but want %d from %s\n", n, idx.Len, local.Data.Name())
 	}
 	return nil
 }
@@ -430,9 +539,24 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 
 	var err error
 
-	compressed := []byte{}
-	if compressed, err = s.Marshal(); err != nil {
+	dataBytes := []byte{}
+	offset := uint32(0)
+	if dataBytes, err = s.Marshal(); err != nil {
 		return newSuffix, err
+	}
+
+	if local.mode == ZstdCompress {
+		dataBytes = local.enc.EncodeAll(dataBytes, make([]byte, 0, len(dataBytes)))
+	} else if local.mode == ZstdCompressWithDict {
+		offset = local.next % local.chunk
+		if offset == 0 {
+			if local.encDict, err = zstd.NewWriter(nil, zstd.WithEncoderDictRaw(0, dataBytes)); err != nil {
+				return newSuffix, err
+			}
+			dataBytes = local.enc.EncodeAll(dataBytes, make([]byte, 0, len(dataBytes)))
+		} else {
+			dataBytes = local.encDict.EncodeAll(dataBytes, make([]byte, 0, len(dataBytes)))
+		}
 	}
 
 	if info, err := local.Data.Stat(); err != nil {
@@ -448,23 +572,22 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 	idx := Index{
 		TimeStamp: s.TimeStamp,
 		Offset:    local.DataOffset,
-		Len:       int64(len(compressed)),
+		Len:       int64(len(dataBytes)),
 	}
+	idx.SetCompressMode(local.mode, offset)
 
-	_, err = local.Data.Write(compressed)
-
-	if err != nil {
+	if _, err = local.Data.Write(dataBytes); err != nil {
 		return newSuffix, err
 	}
 
-	idx.CRC = crc32.ChecksumIEEE((*[28]byte)(unsafe.Pointer(&idx))[:24])
+	idx.CRC = crc32.ChecksumIEEE((*[32]byte)(unsafe.Pointer(&idx))[:28])
 
-	_, err = local.Index.Write(idx.Marshal())
-	if err != nil {
+	if _, err = local.Index.Write(idx.Marshal()); err != nil {
 		return newSuffix, err
 	}
 
-	local.DataOffset += int64(len(compressed))
+	local.next++
+	local.DataOffset += int64(len(dataBytes))
 	return newSuffix, nil
 }
 
