@@ -179,8 +179,16 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 	local.curIdx = -1
 
 	if local.mode != NoCompress {
-		local.enc, _ = zstd.NewWriter(nil)
-		local.dec, _ = zstd.NewReader(nil)
+		local.enc, _ = zstd.NewWriter(
+			nil,
+			zstd.WithLowerEncoderMem(true),
+			zstd.WithEncoderConcurrency(1),
+		)
+		local.dec, _ = zstd.NewReader(
+			nil,
+			zstd.WithDecoderLowmem(true),
+			zstd.WithDecoderConcurrency(1),
+		)
 	}
 
 	if local.writeOnly == true {
@@ -487,7 +495,12 @@ func (local *LocalStore) getSample(target int, sample *Sample) error {
 			if dictBuff, err = local.dec.DecodeAll(dictBuff, make([]byte, 0, len(dictBuff))); err != nil {
 				return err
 			}
-			if local.decDict, err = zstd.NewReader(nil, zstd.WithDecoderDictRaw(0, dictBuff)); err != nil {
+			opts := []zstd.DOption{
+				zstd.WithDecoderDictRaw(0, dictBuff),
+				zstd.WithDecoderLowmem(true),
+				zstd.WithDecoderConcurrency(1),
+			}
+			if local.decDict, err = zstd.NewReader(nil, opts...); err != nil {
 				return err
 			}
 			local.curDict = dictIdx.TimeStamp
@@ -550,7 +563,12 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 	} else if local.mode == ZstdCompressWithDict {
 		offset = local.next % local.chunk
 		if offset == 0 {
-			if local.encDict, err = zstd.NewWriter(nil, zstd.WithEncoderDictRaw(0, dataBytes)); err != nil {
+			opts := []zstd.EOption{
+				zstd.WithEncoderDictRaw(0, dataBytes),
+				zstd.WithLowerEncoderMem(true),
+				zstd.WithEncoderConcurrency(1),
+			}
+			if local.encDict, err = zstd.NewWriter(nil, opts...); err != nil {
 				return newSuffix, err
 			}
 			dataBytes = local.enc.EncodeAll(dataBytes, make([]byte, 0, len(dataBytes)))
