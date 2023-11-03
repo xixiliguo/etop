@@ -58,10 +58,10 @@ func NewTUI() *TUI {
 	tui.detail.AddPage("System", tui.system, true, false)
 
 	tui.detail.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyF1 {
+		if event.Key() == tcell.KeyF1 || event.Name() == "Alt+Rune[1]" {
 			tui.detail.SwitchToPage("Process")
 			return nil
-		} else if event.Key() == tcell.KeyF2 {
+		} else if event.Key() == tcell.KeyF2 || event.Name() == "Alt+Rune[2]" {
 			tui.detail.SwitchToPage("System")
 			return nil
 		}

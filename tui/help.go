@@ -8,8 +8,8 @@ import (
 )
 
 var content = `
-    <F1>           - switch to process view
-    <F2>           - switch to system view
+    <F1>,<Alt>+1   - switch to process view
+    <F2>,<Alt>+2   - switch to system view
     'g'            - show gernal info (process view only)
     'c'            - show cpu-relate info
     'm'            - show memory-relate info
