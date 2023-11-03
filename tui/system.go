@@ -89,7 +89,7 @@ func (system *System) DrawCPUInfo() {
 		if col == "Index" {
 			col = ""
 		}
-		system.cpu.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
+		system.cpu.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorTeal))
 	}
 	for r := 0; r < len(system.source.CPUs); r++ {
 		c := system.source.CPUs[r]
@@ -109,7 +109,7 @@ func (system *System) DrawMEMInfo() {
 
 	items := model.DefaultMEMFields
 	for i, v := range []string{"Field", "Value"} {
-		system.mem.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorBlue))
+		system.mem.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorTeal))
 	}
 
 	for i, item := range items {
@@ -133,7 +133,7 @@ func (system *System) DrawVMInfo() {
 
 	items := model.DefaultVmFields
 	for i, v := range []string{"Field", "Value"} {
-		system.vm.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorBlue))
+		system.vm.SetCell(0, i, tview.NewTableCell(v).SetTextColor(tcell.ColorTeal))
 	}
 
 	for i, item := range items {
@@ -159,7 +159,7 @@ func (system *System) DrawDiskInfo() {
 
 	for i, col := range visbleCols {
 
-		system.disk.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
+		system.disk.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorTeal))
 	}
 
 	r := 0
@@ -185,7 +185,7 @@ func (system *System) DrawNetInfo() {
 
 	for i, col := range visbleCols {
 
-		system.net.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorBlue))
+		system.net.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorTeal))
 	}
 
 	r := 0

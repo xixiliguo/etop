@@ -125,7 +125,7 @@ func NewProcess(tui *TUI) *Process {
 		SetLabel(">  ").
 		SetFieldWidth(0).
 		SetFieldBackgroundColor(tcell.ColorBlack).
-		SetLabelColor(tcell.ColorBlue).
+		SetLabelColor(tcell.ColorTeal).
 		SetDoneFunc(func(key tcell.Key) {
 			if key == tcell.KeyEnter {
 				input := process.searchView.GetText()
@@ -362,7 +362,7 @@ func (process *Process) update() {
 				orderFlag = "▲"
 			}
 		}
-		process.processView.SetCell(0, i, tview.NewTableCell(col+orderFlag).SetTextColor(tcell.ColorBlue).SetSelectable(false))
+		process.processView.SetCell(0, i, tview.NewTableCell(col+orderFlag).SetTextColor(tcell.ColorTeal).SetSelectable(false))
 	}
 	for r := 0; r < len(process.visbleData); r++ {
 		for i, col := range process.visibleColumns {
