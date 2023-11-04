@@ -15,8 +15,7 @@ var (
 )
 
 type System struct {
-	*tview.Box
-	layout           *tview.Flex
+	*tview.Flex
 	header           *tview.TextView
 	regions          []string
 	currentRegionIdx int
@@ -33,8 +32,7 @@ type System struct {
 func NewSystem() *System {
 
 	system := &System{
-		Box:     tview.NewBox(),
-		layout:  tview.NewFlex(),
+		Flex:    tview.NewFlex(),
 		header:  tview.NewTextView(),
 		content: tview.NewPages(),
 		cpu:     tview.NewTable().SetFixed(1, 1),
@@ -53,7 +51,7 @@ func NewSystem() *System {
 		AddPage("Disk", system.disk, true, false).
 		AddPage("Net", system.net, true, false)
 
-	system.layout.SetDirection(tview.FlexRow).
+	system.SetDirection(tview.FlexRow).
 		AddItem(system.header, 1, 0, false).
 		AddItem(system.content, 0, 1, true)
 
@@ -78,14 +76,14 @@ func NewSystem() *System {
 
 func (system *System) SetSource(source *model.Model) {
 	system.source = source
-	system.DrawCPUInfo()
-	system.DrawMEMInfo()
-	system.DrawVMInfo()
-	system.DrawDiskInfo()
-	system.DrawNetInfo()
+	system.UpdateCPUInfo()
+	system.UpdateMEMInfo()
+	system.UpdateVMInfo()
+	system.UpdateDiskInfo()
+	system.UpdateNetInfo()
 }
 
-func (system *System) DrawCPUInfo() {
+func (system *System) UpdateCPUInfo() {
 	system.cpu.Clear()
 	system.cpu.SetOffset(0, 0)
 
@@ -114,7 +112,7 @@ func (system *System) DrawCPUInfo() {
 	}
 }
 
-func (system *System) DrawMEMInfo() {
+func (system *System) UpdateMEMInfo() {
 	system.mem.Clear()
 	system.mem.SetOffset(0, 0)
 
@@ -148,7 +146,7 @@ func (system *System) DrawMEMInfo() {
 
 }
 
-func (system *System) DrawVMInfo() {
+func (system *System) UpdateVMInfo() {
 	system.vm.Clear()
 	system.vm.SetOffset(0, 0)
 
@@ -177,7 +175,7 @@ func (system *System) DrawVMInfo() {
 
 }
 
-func (system *System) DrawDiskInfo() {
+func (system *System) UpdateDiskInfo() {
 	system.disk.Clear()
 	system.disk.SetOffset(0, 0)
 
@@ -208,7 +206,7 @@ func (system *System) DrawDiskInfo() {
 
 }
 
-func (system *System) DrawNetInfo() {
+func (system *System) UpdateNetInfo() {
 	system.net.Clear()
 	system.net.SetOffset(0, 0)
 
@@ -234,21 +232,21 @@ func (system *System) DrawNetInfo() {
 
 }
 
-func (system *System) HasFocus() bool {
-	return system.layout.HasFocus()
-}
+// func (system *System) HasFocus() bool {
+// 	return system.layout.HasFocus()
+// }
 
-func (system *System) Focus(delegate func(p tview.Primitive)) {
-	delegate(system.layout)
-}
+// func (system *System) Focus(delegate func(p tview.Primitive)) {
+// 	delegate(system.layout)
+// }
 
-func (system *System) Draw(screen tcell.Screen) {
-	system.Box.DrawForSubclass(screen, system)
-	x, y, width, height := system.Box.GetInnerRect()
+// func (system *System) Draw(screen tcell.Screen) {
+// 	system.Box.DrawForSubclass(screen, system)
+// 	x, y, width, height := system.Box.GetInnerRect()
 
-	system.layout.SetRect(x, y, width, height)
-	system.layout.Draw(screen)
-}
+// 	system.layout.SetRect(x, y, width, height)
+// 	system.layout.Draw(screen)
+// }
 
 func (system *System) setRegionAndSwitchPage(region string) {
 	for i, r := range system.regions {
@@ -283,8 +281,8 @@ func (system *System) InputHandler() func(event *tcell.EventKey, setFocus func(p
 			return
 		}
 		if system.content.HasFocus() {
-			if Handler := system.content.InputHandler(); Handler != nil {
-				Handler(event, setFocus)
+			if handler := system.content.InputHandler(); handler != nil {
+				handler(event, setFocus)
 				return
 			}
 		}
