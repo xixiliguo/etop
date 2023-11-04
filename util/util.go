@@ -107,11 +107,14 @@ func ArchiveToTarFile(path string, tarFileName string) error {
 				return err
 			}
 			defer src.Close()
-
+			now := time.Now()
 			hdr := &tar.Header{
-				Name: e.Name(),
-				Mode: 0644,
-				Size: size,
+				Name:       e.Name(),
+				Mode:       0644,
+				Size:       size,
+				ModTime:    now,
+				AccessTime: now,
+				ChangeTime: now,
 			}
 			if err := tw.WriteHeader(hdr); err != nil {
 				return err
