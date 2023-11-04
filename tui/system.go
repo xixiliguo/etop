@@ -8,6 +8,12 @@ import (
 	"github.com/xixiliguo/etop/model"
 )
 
+var (
+	CPUBusy  float64 = 90
+	MemBusy  float64 = 90
+	DiskBusy float64 = 90
+)
+
 type System struct {
 	*tview.Box
 	layout           *tview.Flex
@@ -94,9 +100,14 @@ func (system *System) DrawCPUInfo() {
 	for r := 0; r < len(system.source.CPUs); r++ {
 		c := system.source.CPUs[r]
 		for i, col := range visbleCols {
+			color := tcell.ColorDefault
+			if col == "Idle" && c.Idle <= (100-CPUBusy) {
+				color = tcell.ColorRed
+			}
 			system.cpu.SetCell(r+1,
 				i,
 				tview.NewTableCell(c.GetRenderValue(col, model.FieldOpt{})).
+					SetTextColor(color).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}
@@ -113,6 +124,15 @@ func (system *System) DrawMEMInfo() {
 	}
 
 	for i, item := range items {
+		color := tcell.ColorDefault
+		if item == "MemAvailable" {
+			avail := system.source.MEM.MemAvailable
+			total := system.source.MEM.MemTotal
+			if float64(avail*100/total) <= (100 - MemBusy) {
+				color = tcell.ColorRed
+			}
+		}
+
 		system.mem.SetCell(i+1,
 			0,
 			tview.NewTableCell(item).
@@ -121,6 +141,7 @@ func (system *System) DrawMEMInfo() {
 		system.mem.SetCell(i+1,
 			1,
 			tview.NewTableCell(system.source.MEM.GetRenderValue(item, model.FieldOpt{})).
+				SetTextColor(color).
 				SetExpansion(0).
 				SetAlign(tview.AlignRight))
 	}
@@ -166,9 +187,14 @@ func (system *System) DrawDiskInfo() {
 	for _, n := range system.source.Disks.GetKeys() {
 		disk := system.source.Disks[n]
 		for i, col := range visbleCols {
+			color := tcell.ColorDefault
+			if col == "Util" && disk.Util >= DiskBusy {
+				color = tcell.ColorRed
+			}
 			system.disk.SetCell(r+1,
 				i,
 				tview.NewTableCell(disk.GetRenderValue(col, model.FieldOpt{})).
+					SetTextColor(color).
 					SetExpansion(1).
 					SetAlign(tview.AlignLeft))
 		}

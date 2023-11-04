@@ -8,6 +8,15 @@ import (
 	"github.com/xixiliguo/etop/model"
 )
 
+const (
+	cpuFmtStr      = "%-7sUser %10s%5sSystem %8s%5sIowait %8s%5sIdle %10s%5sIRQ %11s%5sSoftIRQ %7s"
+	cpuBusyFmtStr  = "%-7sUser %10s%5sSystem %8s%5sIowait %8s%5sIdle [red]%10s[white]%5sIRQ %11s%5sSoftIRQ %7s"
+	memFmtStr      = "%-7sTotal %9s%5sFree %10s%5sAvail %9s%5sSlab %10s%5sBuffer %8s%5sCache %9s"
+	memBusyFmtStr  = "%-7sTotal %9s%5sFree %10s%5sAvail [red]%9s[white]%5sSlab %10s%5sBuffer %8s%5sCache %9s"
+	diskFmtStr     = "%-5s%10s|%-10s "
+	diskBusyFmtStr = "%-5s[red]%10s|%-10s[white] "
+)
+
 type Basic struct {
 	*tview.Box
 	layout *tview.Flex
@@ -26,9 +35,9 @@ func NewBasic() *Basic {
 		layout: tview.NewFlex(),
 		load:   tview.NewTextView(),
 		proc:   tview.NewTextView(),
-		cpu:    tview.NewTextView(),
-		mem:    tview.NewTextView(),
-		disk:   tview.NewTextView(),
+		cpu:    tview.NewTextView().SetDynamicColors(true),
+		mem:    tview.NewTextView().SetDynamicColors(true),
+		disk:   tview.NewTextView().SetDynamicColors(true),
 		net:    tview.NewTextView(),
 	}
 	basic.SetBorder(true)
@@ -59,7 +68,7 @@ func (basic *Basic) Update(sm *model.Model) {
 		sm.Sys.GetRenderValue("ProcessesBlocked", model.FieldOpt{}), "",
 		sm.Sys.GetRenderValue("ClonePerSec", model.FieldOpt{}), "",
 		sm.Sys.GetRenderValue("ContextSwitchPerSec", model.FieldOpt{}))
-
+	var fmtStr string
 	c := model.CPU{}
 	for i := 0; i < len(sm.CPUs); i++ {
 		if sm.CPUs[i].Index == "total" {
@@ -67,7 +76,11 @@ func (basic *Basic) Update(sm *model.Model) {
 		}
 	}
 	basic.cpu.Clear()
-	fmt.Fprintf(basic.cpu, "%-7sUser %10s%5sSystem %8s%5sIowait %8s%5sIdle %10s%5sIRQ %11s%5sSoftIRQ %7s",
+	fmtStr = cpuFmtStr
+	if c.Idle <= (100 - CPUBusy) {
+		fmtStr = cpuBusyFmtStr
+	}
+	fmt.Fprintf(basic.cpu, fmtStr,
 		"CPU", c.GetRenderValue("User", model.FieldOpt{}), "",
 		c.GetRenderValue("System", model.FieldOpt{}), "",
 		c.GetRenderValue("Iowait", model.FieldOpt{}), "",
@@ -76,7 +89,11 @@ func (basic *Basic) Update(sm *model.Model) {
 		c.GetRenderValue("SoftIRQ", model.FieldOpt{}))
 
 	basic.mem.Clear()
-	fmt.Fprintf(basic.mem, "%-7sTotal %9s%5sFree %10s%5sAvail %9s%5sSlab %10s%5sBuffer %8s%5sCache %9s",
+	fmtStr = memFmtStr
+	if float64(sm.MEM.MemAvailable*100/sm.MEM.MemTotal) <= (100 - MemBusy) {
+		fmtStr = memBusyFmtStr
+	}
+	fmt.Fprintf(basic.mem, fmtStr,
 		"Mem", sm.MEM.GetRenderValue("Total", model.FieldOpt{}), "",
 		sm.MEM.GetRenderValue("Free", model.FieldOpt{}), "",
 		sm.MEM.GetRenderValue("Avail", model.FieldOpt{}), "",
@@ -88,7 +105,11 @@ func (basic *Basic) Update(sm *model.Model) {
 	fmt.Fprintf(basic.disk, "%-7s", "Disk")
 	for _, disk := range sm.Disks.GetKeys() {
 		d := sm.Disks[disk]
-		fmt.Fprintf(basic.disk, "%-5s%10s|%-10s ",
+		fmtStr = diskFmtStr
+		if d.Util >= DiskBusy {
+			fmtStr = diskBusyFmtStr
+		}
+		fmt.Fprintf(basic.disk, fmtStr,
 			d.GetRenderValue("Disk", model.FieldOpt{}),
 			d.GetRenderValue("ReadByte/s", model.FieldOpt{}),
 			d.GetRenderValue("WriteByte/s", model.FieldOpt{}))
