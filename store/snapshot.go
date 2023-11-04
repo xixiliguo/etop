@@ -22,6 +22,7 @@ func (local *LocalStore) Snapshot(begin int64, end int64) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer local.Close()
 	defer dest.Close()
 
 	sample := NewSample()
@@ -41,9 +42,6 @@ func (local *LocalStore) Snapshot(begin int64, end int64) (string, error) {
 		}
 	}
 
-	local.Close()
-	dest.Close()
-
 	tarFileName := fmt.Sprintf("snapshot_%s_%s",
 		time.Unix(begin, 0).Format("200601021504"),
 		time.Unix(end, 0).Format("200601021504"))
@@ -51,5 +49,7 @@ func (local *LocalStore) Snapshot(begin int64, end int64) (string, error) {
 	if err := util.ArchiveToTarFile(dest.Path, tarFileName); err != nil {
 		return "", err
 	}
+	os.RemoveAll(dest.Path)
+
 	return tarFileName, nil
 }
