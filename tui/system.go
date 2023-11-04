@@ -158,6 +158,10 @@ func (system *System) DrawVMInfo() {
 	}
 
 	for i, item := range items {
+		color := tcell.ColorDefault
+		if item == "OOMKill" && system.source.Vm.OOMKill > 0 {
+			color = tcell.ColorRed
+		}
 		system.vm.SetCell(i+1,
 			0,
 			tview.NewTableCell(item).
@@ -166,6 +170,7 @@ func (system *System) DrawVMInfo() {
 		system.vm.SetCell(i+1,
 			1,
 			tview.NewTableCell(system.source.Vm.GetRenderValue(item, model.FieldOpt{})).
+				SetTextColor(color).
 				SetExpansion(0).
 				SetAlign(tview.AlignRight))
 	}
