@@ -6,17 +6,15 @@ import (
 )
 
 type InputDialog struct {
-	*tview.Box
-	layout *tview.Flex
-	form   *tview.InputField
+	*tview.Flex
+	form *tview.InputField
 }
 
 func NewInputDialog() *InputDialog {
 
 	input := &InputDialog{
-		Box:    tview.NewBox(),
-		layout: tview.NewFlex(),
-		form:   tview.NewInputField(),
+		Flex: tview.NewFlex(),
+		form: tview.NewInputField(),
 	}
 
 	input.form.
@@ -27,10 +25,9 @@ func NewInputDialog() *InputDialog {
 		SetLabel(">  ").
 		SetFieldWidth(30).
 		SetFieldBackgroundColor(tcell.ColorBlack).
-		SetLabelColor(tcell.ColorBlue)
+		SetLabelColor(tcell.ColorTeal)
 
-	input.layout.
-		AddItem(nil, 0, 1, false).
+	input.AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 0, 1, false).
 			AddItem(input.form, 3, 1, true).
@@ -38,29 +35,4 @@ func NewInputDialog() *InputDialog {
 		AddItem(nil, 0, 1, false)
 
 	return input
-}
-
-func (input *InputDialog) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	return input.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-		if handler := input.layout.InputHandler(); handler != nil {
-			handler(event, setFocus)
-			return
-		}
-	})
-}
-
-func (input *InputDialog) HasFocus() bool {
-	return input.layout.HasFocus()
-}
-
-func (input *InputDialog) Focus(delegate func(p tview.Primitive)) {
-	delegate(input.layout)
-}
-
-func (input *InputDialog) Draw(screen tcell.Screen) {
-
-	x, y, width, height := input.Box.GetInnerRect()
-
-	input.layout.SetRect(x, y, width, height)
-	input.layout.Draw(screen)
 }
