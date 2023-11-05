@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/xixiliguo/etop/model"
 )
@@ -18,30 +17,28 @@ const (
 )
 
 type Basic struct {
-	*tview.Box
-	layout *tview.Flex
-	load   *tview.TextView
-	proc   *tview.TextView
-	cpu    *tview.TextView
-	mem    *tview.TextView
-	disk   *tview.TextView
-	net    *tview.TextView
+	*tview.Flex
+	load *tview.TextView
+	proc *tview.TextView
+	cpu  *tview.TextView
+	mem  *tview.TextView
+	disk *tview.TextView
+	net  *tview.TextView
 }
 
 func NewBasic() *Basic {
 
 	basic := &Basic{
-		Box:    tview.NewBox(),
-		layout: tview.NewFlex(),
-		load:   tview.NewTextView(),
-		proc:   tview.NewTextView(),
-		cpu:    tview.NewTextView().SetDynamicColors(true),
-		mem:    tview.NewTextView().SetDynamicColors(true),
-		disk:   tview.NewTextView().SetDynamicColors(true),
-		net:    tview.NewTextView(),
+		Flex: tview.NewFlex(),
+		load: tview.NewTextView(),
+		proc: tview.NewTextView(),
+		cpu:  tview.NewTextView().SetDynamicColors(true),
+		mem:  tview.NewTextView().SetDynamicColors(true),
+		disk: tview.NewTextView().SetDynamicColors(true),
+		net:  tview.NewTextView(),
 	}
 	basic.SetBorder(true)
-	basic.layout.SetDirection(tview.FlexRow).
+	basic.SetDirection(tview.FlexRow).
 		AddItem(basic.load, 1, 0, false).
 		AddItem(basic.proc, 1, 0, false).
 		AddItem(basic.cpu, 1, 0, false).
@@ -125,20 +122,4 @@ func (basic *Basic) Update(sm *model.Model) {
 			d.GetRenderValue("TxByte/s", model.FieldOpt{}))
 	}
 
-}
-
-func (basic *Basic) HasFocus() bool {
-	return basic.layout.HasFocus()
-}
-
-func (basic *Basic) Focus(delegate func(p tview.Primitive)) {
-	delegate(basic.layout)
-}
-
-func (basic *Basic) Draw(screen tcell.Screen) {
-	basic.Box.DrawForSubclass(screen, basic)
-	x, y, width, height := basic.Box.GetInnerRect()
-
-	basic.layout.SetRect(x, y, width, height)
-	basic.layout.Draw(screen)
 }
