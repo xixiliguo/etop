@@ -25,11 +25,8 @@ var (
 )
 
 type Process struct {
-	*tview.Box
-	tui                *TUI
-	layout             *tview.Flex
-	upper              *tview.Flex
-	lower              *tview.Flex
+	*tview.Flex
+	status             *tview.TextView
 	regions            []string
 	currRegionIdx      int
 	header             *tview.TextView
@@ -50,14 +47,11 @@ type Process struct {
 	source             *model.Model
 }
 
-func NewProcess(tui *TUI) *Process {
+func NewProcess(status *tview.TextView) *Process {
 
 	process := &Process{
-		Box:            tview.NewBox(),
-		tui:            tui,
-		layout:         tview.NewFlex(),
-		upper:          tview.NewFlex(),
-		lower:          tview.NewFlex(),
+		Flex:           tview.NewFlex(),
+		status:         status,
 		header:         tview.NewTextView(),
 		processView:    tview.NewTable(),
 		sortView:       tview.NewList(),
@@ -83,7 +77,7 @@ func NewProcess(tui *TUI) *Process {
 		SetFixed(1, 2).
 		SetSelectable(true, false).
 		SetSelectionChangedFunc(func(row int, column int) {
-			process.tui.status.Clear()
+			process.status.Clear()
 			idx := row - 1
 			if 0 <= idx && idx < len(process.visbleData) {
 				p := process.visbleData[idx]
@@ -91,17 +85,16 @@ func NewProcess(tui *TUI) *Process {
 				if extra == "" {
 					extra = p.Comm
 				}
-				fmt.Fprintf(process.tui.status, "%s", extra)
+				fmt.Fprintf(process.status, "%s", extra)
 				if p.State == "x" || p.State == "X" {
-					fmt.Fprintf(process.tui.status, " exit code %d at %s",
+					fmt.Fprintf(process.status, " exit code %d at %s",
 						p.ExitCode,
 						time.Unix(int64(p.EndTime), 0).Format(time.RFC3339))
 				}
 
 			}
 		})
-	process.lower.
-		SetBorder(true).
+	process.SetBorder(true).
 		SetTitle("Process").
 		SetTitleAlign(tview.AlignLeft)
 
@@ -141,8 +134,8 @@ func NewProcess(tui *TUI) *Process {
 					process.searchprogram = program
 					process.update()
 				} else {
-					process.tui.status.Clear()
-					fmt.Fprintf(process.tui.status, "%s", err)
+					process.status.Clear()
+					fmt.Fprintf(process.status, "%s", err)
 				}
 			}
 		}).
@@ -150,21 +143,16 @@ func NewProcess(tui *TUI) *Process {
 		SetBorder(true).
 		SetTitleAlign(tview.AlignLeft)
 
-	process.layout.
-		SetDirection(tview.FlexRow).
-		AddItem(process.upper.
+	process.SetDirection(tview.FlexRow).
+		AddItem(tview.NewFlex().
 			AddItem(process.sortView, 0, 0, false).
-			AddItem(process.lower.
+			AddItem(tview.NewFlex().
 				SetDirection(tview.FlexRow).
 				AddItem(process.header, 1, 0, false).
 				AddItem(process.processView, 0, 1, true), 0, 1, true), 0, 1, true).
 		AddItem(process.searchView, 0, 0, false)
 
 	return process
-}
-
-func (process *Process) HasFocus() bool {
-	return process.processView.HasFocus() || process.sortView.HasFocus() || process.searchView.HasFocus()
 }
 
 func (process *Process) Focus(delegate func(p tview.Primitive)) {
@@ -178,25 +166,6 @@ func (process *Process) Focus(delegate func(p tview.Primitive)) {
 	}
 	delegate(process.processView)
 	return
-}
-
-func (process *Process) Draw(screen tcell.Screen) {
-	process.Box.DrawForSubclass(screen, process)
-	x, y, width, height := process.Box.GetInnerRect()
-
-	process.layout.SetRect(x, y, width, height)
-
-	sortWidth := 0
-	if process.sortDisplay {
-		sortWidth = 9
-	}
-	searchWidth := 0
-	if process.searchDisplay {
-		searchWidth = 3
-	}
-	process.upper.ResizeItem(process.sortView, sortWidth, 0)
-	process.layout.ResizeItem(process.searchView, searchWidth, 0)
-	process.layout.Draw(screen)
 }
 
 func (process *Process) setRegionAndSwitchView(region string) {
@@ -226,6 +195,7 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 		if process.searchDisplay {
 			if event.Key() == tcell.KeyEsc {
 				process.searchDisplay = false
+				process.ResizeItem(process.searchView, 0, 0)
 				process.Focus(setFocus)
 				return
 			}
@@ -235,20 +205,29 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 			}
 		}
 		if event.Rune() == 's' {
+			upper := process.GetItem(0).(*tview.Flex)
+			sortWidth := 0
 			if process.sortDisplay == true {
 				process.sortDisplay = false
+				sortWidth = 0
 			} else {
 				process.sortDisplay = true
+				sortWidth = 9
 			}
+			upper.ResizeItem(process.sortView, sortWidth, 0)
 			process.Focus(setFocus)
 			return
 		}
 		if event.Rune() == '/' {
+			searchWidth := 0
 			if process.searchDisplay == true {
 				process.searchDisplay = false
+				searchWidth = 0
 			} else {
 				process.searchDisplay = true
+				searchWidth = 3
 			}
+			process.ResizeItem(process.searchView, searchWidth, 0)
 			process.Focus(setFocus)
 			return
 		}
@@ -323,7 +302,7 @@ func (process *Process) update() {
 	if process.searchText != "" {
 		title += " Filter: " + process.searchText
 	}
-	process.lower.SetTitle(title)
+	process.SetTitle(title)
 
 	process.visbleData = process.visbleData[:0]
 	if process.searchText != "" {

@@ -50,7 +50,7 @@ func NewTUI() *TUI {
 
 	tui.log = util.CreateLogger(tui.status, true)
 
-	tui.process = NewProcess(tui)
+	tui.process = NewProcess(tui.status)
 
 	tui.status.SetBorder(true)
 
