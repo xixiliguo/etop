@@ -108,8 +108,8 @@ func (basic *Basic) Update(sm *model.Model) {
 		}
 		fmt.Fprintf(basic.disk, fmtStr,
 			d.GetRenderValue("Disk", model.FieldOpt{}),
-			d.GetRenderValue("ReadByte/s", model.FieldOpt{}),
-			d.GetRenderValue("WriteByte/s", model.FieldOpt{}))
+			d.GetRenderValue("ReadBytePerSec", model.FieldOpt{}),
+			d.GetRenderValue("WriteBytePerSec", model.FieldOpt{}))
 	}
 
 	basic.net.Clear()
@@ -118,8 +118,8 @@ func (basic *Basic) Update(sm *model.Model) {
 		d := sm.Nets[netDev]
 		fmt.Fprintf(basic.net, "%-5s%10s|%-10s ",
 			d.GetRenderValue("Name", model.FieldOpt{}),
-			d.GetRenderValue("RxByte/s", model.FieldOpt{}),
-			d.GetRenderValue("TxByte/s", model.FieldOpt{}))
+			d.GetRenderValue("RxBytePerSec", model.FieldOpt{}),
+			d.GetRenderValue("TxBytePerSec", model.FieldOpt{}))
 	}
 
 }

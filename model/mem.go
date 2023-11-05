@@ -185,6 +185,121 @@ func (m *MEM) DefaultConfig(field string) Field {
 	return cfg
 }
 
+func (m *MEM) DefaultOMConfig(field string) OpenMetricField {
+	cfg := OpenMetricField{}
+	switch field {
+	case "Total":
+		cfg = OpenMetricField{"Total", Gauge, "", "", []string{}}
+	case "Free":
+		cfg = OpenMetricField{"Free", Gauge, "", "", []string{}}
+	case "Avail":
+		cfg = OpenMetricField{"Avail", Gauge, "", "", []string{}}
+	case "HSlab":
+		cfg = OpenMetricField{"Slab", Gauge, "", "", []string{}}
+	case "Buffer":
+		cfg = OpenMetricField{"Buffer", Gauge, "", "", []string{}}
+	case "Cache":
+		cfg = OpenMetricField{"Cache", Gauge, "", "", []string{}}
+	case "MemTotal":
+		cfg = OpenMetricField{"MemTotal", Gauge, "", "", []string{}}
+	case "MemFree":
+		cfg = OpenMetricField{"MemFree", Gauge, "", "", []string{}}
+	case "MemAvailable":
+		cfg = OpenMetricField{"MemAvailable", Gauge, "", "", []string{}}
+	case "Buffers":
+		cfg = OpenMetricField{"Buffers", Gauge, "", "", []string{}}
+	case "Cached":
+		cfg = OpenMetricField{"Cached", Gauge, "", "", []string{}}
+	case "SwapCached":
+		cfg = OpenMetricField{"SwapCached", Gauge, "", "", []string{}}
+	case "Active":
+		cfg = OpenMetricField{"Active", Gauge, "", "", []string{}}
+	case "Inactive":
+		cfg = OpenMetricField{"Inactive", Gauge, "", "", []string{}}
+	case "ActiveAnon":
+		cfg = OpenMetricField{"ActiveAnon", Gauge, "", "", []string{}}
+	case "InactiveAnon":
+		cfg = OpenMetricField{"InactiveAnon", Gauge, "", "", []string{}}
+	case "ActiveFile":
+		cfg = OpenMetricField{"ActiveFile", Gauge, "", "", []string{}}
+	case "InactiveFile":
+		cfg = OpenMetricField{"InactiveFile", Gauge, "", "", []string{}}
+	case "Unevictable":
+		cfg = OpenMetricField{"Unevictable", Gauge, "", "", []string{}}
+	case "Mlocked":
+		cfg = OpenMetricField{"Mlocked", Gauge, "", "", []string{}}
+	case "SwapTotal":
+		cfg = OpenMetricField{"SwapTotal", Gauge, "", "", []string{}}
+	case "SwapFree":
+		cfg = OpenMetricField{"SwapFree", Gauge, "", "", []string{}}
+	case "Dirty":
+		cfg = OpenMetricField{"Dirty", Gauge, "", "", []string{}}
+	case "Writeback":
+		cfg = OpenMetricField{"Writeback", Gauge, "", "", []string{}}
+	case "AnonPages":
+		cfg = OpenMetricField{"AnonPages", Gauge, "", "", []string{}}
+	case "Mapped":
+		cfg = OpenMetricField{"Mapped", Gauge, "", "", []string{}}
+	case "Shmem":
+		cfg = OpenMetricField{"Shmem", Gauge, "", "", []string{}}
+	case "Slab":
+		cfg = OpenMetricField{"Slab", Gauge, "", "", []string{}}
+	case "SReclaimable":
+		cfg = OpenMetricField{"SReclaimable", Gauge, "", "", []string{}}
+	case "SUnreclaim":
+		cfg = OpenMetricField{"SUnreclaim", Gauge, "", "", []string{}}
+	case "KernelStack":
+		cfg = OpenMetricField{"KernelStack", Gauge, "", "", []string{}}
+	case "PageTables":
+		cfg = OpenMetricField{"PageTables", Gauge, "", "", []string{}}
+	case "NFSUnstable":
+		cfg = OpenMetricField{"NFSUnstable", Gauge, "", "", []string{}}
+	case "Bounce":
+		cfg = OpenMetricField{"Bounce", Gauge, "", "", []string{}}
+	case "WritebackTmp":
+		cfg = OpenMetricField{"WritebackTmp", Gauge, "", "", []string{}}
+	case "CommitLimit":
+		cfg = OpenMetricField{"CommitLimit", Gauge, "", "", []string{}}
+	case "CommittedAS":
+		cfg = OpenMetricField{"CommittedAS", Gauge, "", "", []string{}}
+	case "VmallocTotal":
+		cfg = OpenMetricField{"VmallocTotal", Gauge, "", "", []string{}}
+	case "VmallocUsed":
+		cfg = OpenMetricField{"VmallocUsed", Gauge, "", "", []string{}}
+	case "VmallocChunk":
+		cfg = OpenMetricField{"VmallocChunk", Gauge, "", "", []string{}}
+	case "HardwareCorrupted":
+		cfg = OpenMetricField{"HardwareCorrupted", Gauge, "", "", []string{}}
+	case "AnonHugePages":
+		cfg = OpenMetricField{"AnonHugePages", Gauge, "", "", []string{}}
+	case "ShmemHugePages":
+		cfg = OpenMetricField{"ShmemHugePages", Gauge, "", "", []string{}}
+	case "ShmemPmdMapped":
+		cfg = OpenMetricField{"ShmemPmdMapped", Gauge, "", "", []string{}}
+	case "CmaTotal":
+		cfg = OpenMetricField{"CmaTotal", Gauge, "", "", []string{}}
+	case "CmaFree":
+		cfg = OpenMetricField{"CmaFree", Gauge, "", "", []string{}}
+	case "HugePagesTotal":
+		cfg = OpenMetricField{"HugePagesTotal", Gauge, "", "", []string{}}
+	case "HugePagesFree":
+		cfg = OpenMetricField{"HugePagesFree", Gauge, "", "", []string{}}
+	case "HugePagesRsvd":
+		cfg = OpenMetricField{"HugePagesRsvd", Gauge, "", "", []string{}}
+	case "HugePagesSurp":
+		cfg = OpenMetricField{"HugePagesSurp", Gauge, "", "", []string{}}
+	case "Hugepagesize":
+		cfg = OpenMetricField{"Hugepagesize", Gauge, "", "", []string{}}
+	case "DirectMap4k":
+		cfg = OpenMetricField{"DirectMap4k", Gauge, "", "", []string{}}
+	case "DirectMap2M":
+		cfg = OpenMetricField{"DirectMap2M", Gauge, "", "", []string{}}
+	case "DirectMap1G":
+		cfg = OpenMetricField{"DirectMap1G", Gauge, "", "", []string{}}
+	}
+	return cfg
+}
+
 func (m *MEM) GetRenderValue(field string, opt FieldOpt) string {
 	cfg := m.DefaultConfig(field)
 	cfg.ApplyOpt(opt)

@@ -41,6 +41,29 @@ func (softnet *Softnet) DefaultConfig(field string) Field {
 	return cfg
 }
 
+func (softnet *Softnet) DefaultOMConfig(field string) OpenMetricField {
+	cfg := OpenMetricField{}
+	switch field {
+	case "CPU":
+		cfg = OpenMetricField{"", Gauge, "", "", []string{"CPU"}}
+	case "Processed":
+		cfg = OpenMetricField{"Processed", Gauge, "", "", []string{"CPU"}}
+	case "Dropped":
+		cfg = OpenMetricField{"Dropped", Gauge, "", "", []string{"CPU"}}
+	case "TimeSqueezed":
+		cfg = OpenMetricField{"TimeSqueezed", Gauge, "", "", []string{"CPU"}}
+	case "CPUCollision":
+		cfg = OpenMetricField{"CPUCollision", Gauge, "", "", []string{"CPU"}}
+	case "ReceivedRps":
+		cfg = OpenMetricField{"ReceivedRps", Gauge, "", "", []string{"CPU"}}
+	case "FlowLimitCount":
+		cfg = OpenMetricField{"FlowLimitCount", Gauge, "", "", []string{"CPU"}}
+	case "SoftnetBacklogLen":
+		cfg = OpenMetricField{"SoftnetBacklogLen", Gauge, "", "", []string{"CPU"}}
+	}
+	return cfg
+}
+
 func (softnet *Softnet) GetRenderValue(field string, opt FieldOpt) string {
 	cfg := softnet.DefaultConfig(field)
 	cfg.ApplyOpt(opt)

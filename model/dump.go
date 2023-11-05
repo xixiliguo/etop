@@ -10,6 +10,7 @@ import (
 
 type Render interface {
 	DefaultConfig(field string) Field
+	DefaultOMConfig(field string) OpenMetricField
 	GetRenderValue(field string, opt FieldOpt) string
 }
 
@@ -67,21 +68,23 @@ func dumpJson(timeStamp int64, opt DumpOption, m Render) {
 	opt.Output.Write(b)
 }
 
-func dumpOpenMetric(timeStamp int64, OMConfig OpenMetricRenderConfig, opt DumpOption, m Render) {
+func dumpOpenMetric(timeStamp int64, opt DumpOption, m Render) {
 
 	buf := bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufferPool.Put(buf)
 
 	for _, f := range opt.Fields {
-		if _, ok := OMConfig[f]; !ok {
+
+		cfg := m.DefaultOMConfig(f)
+		if cfg.Name == "" {
 			continue
 		}
+
 		renderValue := m.GetRenderValue(f, FieldOpt{
-			Raw: opt.RawData,
+			Raw: true,
 		})
-		cfg := OMConfig[f]
-		buf.WriteString("# TYPE" + " " + cfg.Name + " " + typToString[cfg.Typ] + "\n")
+		buf.WriteString("# TYPE" + " " + cfg.Name + " " + omTypToString[cfg.Typ] + "\n")
 		if cfg.Unit != "" {
 			buf.WriteString("# UNIT" + " " + cfg.Name + " " + cfg.Unit + "\n")
 		}

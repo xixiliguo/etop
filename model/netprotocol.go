@@ -28,6 +28,20 @@ func (n *NetProtocol) DefaultConfig(field string) Field {
 	return cfg
 }
 
+func (n *NetProtocol) DefaultOMConfig(field string) OpenMetricField {
+
+	cfg := OpenMetricField{}
+	switch field {
+	case "Name":
+		cfg = OpenMetricField{"", Gauge, "", "", []string{"Name"}}
+	case "Sockets":
+		cfg = OpenMetricField{"Sockets", Gauge, "", "", []string{"Name"}}
+	case "Memory":
+		cfg = OpenMetricField{"Memory", Gauge, "", "", []string{"Name"}}
+	}
+	return cfg
+}
+
 func (n *NetProtocol) GetRenderValue(field string, opt FieldOpt) string {
 
 	cfg := n.DefaultConfig(field)

@@ -12,14 +12,13 @@ import (
 )
 
 type Model struct {
-	OMConfig map[string]OpenMetricRenderConfig
-	Mode     string
-	Store    store.Store
-	log      *slog.Logger
-	Prev     store.Sample
-	Curr     store.Sample
-	Sys      System
-	CPUs     CPUSlice
+	Mode  string
+	Store store.Store
+	log   *slog.Logger
+	Prev  store.Sample
+	Curr  store.Sample
+	Sys   System
+	CPUs  CPUSlice
 	MEM
 	Vm
 	Disks DiskMap
@@ -32,7 +31,6 @@ type Model struct {
 
 func NewSysModel(s *store.LocalStore, log *slog.Logger) (*Model, error) {
 	p := &Model{
-		OMConfig:     DefaultOMRenderConfig,
 		Mode:         "report",
 		Store:        s,
 		log:          log,
@@ -156,7 +154,7 @@ type DumpOption struct {
 func (s *Model) Dump(opt DumpOption) error {
 
 	for _, c := range opt.Fields {
-		name, _ := getNameAndWidthOfField(opt, c)
+		name, _ := getNameAndWidthOfField(opt.Module, c)
 		if name == "" {
 			return fmt.Errorf("%s is not available field for module %s", c, opt.Module)
 		}
@@ -171,7 +169,7 @@ func (s *Model) Dump(opt DumpOption) error {
 	case "json":
 		return s.dumpJson(opt)
 	case "openmetrics":
-		return s.dumpOpenMetrics(s.OMConfig[opt.Module], opt)
+		return s.dumpOpenMetrics(opt)
 	default:
 		return fmt.Errorf("no support output format: %s", opt.Format)
 	}
@@ -216,9 +214,9 @@ func isFilter(opt DumpOption, m Render) bool {
 	return true
 }
 
-func getNameAndWidthOfField(opt DumpOption, f string) (string, int) {
+func getNameAndWidthOfField(module string, f string) (string, int) {
 	var s Render
-	switch opt.Module {
+	switch module {
 	case "system":
 		s = &System{}
 	case "cpu":
@@ -252,7 +250,7 @@ func (s *Model) dumpText(opt DumpOption) error {
 
 	title := fmt.Sprintf("%-25s", "TimeStamp")
 	for _, c := range opt.Fields {
-		name, width := getNameAndWidthOfField(opt, c)
+		name, width := getNameAndWidthOfField(opt.Module, c)
 		if len(name) > width {
 			width = len(name)
 		}
@@ -482,7 +480,7 @@ func (s *Model) dumpJson(opt DumpOption) error {
 
 }
 
-func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, opt DumpOption) error {
+func (s *Model) dumpOpenMetrics(opt DumpOption) error {
 
 	if err := s.CollectSampleByTime(opt.Begin); err != nil {
 		return err
@@ -492,34 +490,34 @@ func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, opt DumpOption)
 
 		switch opt.Module {
 		case "system":
-			dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &s.Sys)
+			dumpOpenMetric(s.Curr.TimeStamp, opt, &s.Sys)
 		case "cpu":
 			for _, c := range s.CPUs {
-				dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &c)
+				dumpOpenMetric(s.Curr.TimeStamp, opt, &c)
 			}
 		case "memory":
-			dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &s.MEM)
+			dumpOpenMetric(s.Curr.TimeStamp, opt, &s.MEM)
 		case "vm":
-			dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &s.Vm)
+			dumpOpenMetric(s.Curr.TimeStamp, opt, &s.Vm)
 		case "disk":
 			for _, disk := range s.Disks.GetKeys() {
 				d := s.Disks[disk]
-				dumpOpenMetric(s.Curr.TimeStamp, omconfig, opt, &d)
+				dumpOpenMetric(s.Curr.TimeStamp, opt, &d)
 			}
 		case "netdev":
 			for _, dev := range s.Nets.GetKeys() {
 				n := s.Nets[dev]
-				dumpText(s.Curr.TimeStamp, opt, &n)
+				dumpOpenMetric(s.Curr.TimeStamp, opt, &n)
 			}
 		case "network":
-			dumpText(s.Curr.TimeStamp, opt, &s.NetStat)
+			dumpOpenMetric(s.Curr.TimeStamp, opt, &s.NetStat)
 		case "networkprotocol":
 			for _, n := range s.NetProtocols {
-				dumpText(s.Curr.TimeStamp, opt, &n)
+				dumpOpenMetric(s.Curr.TimeStamp, opt, &n)
 			}
 		case "softnet":
 			for _, soft := range s.Softnets {
-				dumpText(s.Curr.TimeStamp, opt, &soft)
+				dumpOpenMetric(s.Curr.TimeStamp, opt, &soft)
 			}
 		case "process":
 			processList := []Process{}
@@ -537,7 +535,7 @@ func (s *Model) dumpOpenMetrics(omconfig OpenMetricRenderConfig, opt DumpOption)
 			}
 			cnt := 0
 			for _, p := range processList {
-				dumpText(s.Curr.TimeStamp, opt, &p)
+				dumpOpenMetric(s.Curr.TimeStamp, opt, &p)
 				cnt++
 				if opt.Top > 0 && opt.Top == cnt {
 					break

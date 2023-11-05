@@ -45,6 +45,30 @@ func (v *Vm) DefaultConfig(field string) Field {
 	}
 	return cfg
 }
+func (v *Vm) DefaultOMConfig(field string) OpenMetricField {
+	cfg := OpenMetricField{}
+	switch field {
+	case "PageIn":
+		cfg = OpenMetricField{"PageIn", Gauge, "", "", []string{}}
+	case "PageOut":
+		cfg = OpenMetricField{"PageOut", Gauge, "", "", []string{}}
+	case "SwapIn":
+		cfg = OpenMetricField{"SwapIn", Gauge, "", "", []string{}}
+	case "SwapOut":
+		cfg = OpenMetricField{"SwapOut", Gauge, "", "", []string{}}
+	case "PageScanKswapd":
+		cfg = OpenMetricField{"PageScanKswapd", Gauge, "", "", []string{}}
+	case "PageScanDirect":
+		cfg = OpenMetricField{"PageScanDirect", Gauge, "", "", []string{}}
+	case "PageStealKswapd":
+		cfg = OpenMetricField{"PageStealKswapd", Gauge, "", "", []string{}}
+	case "PageStealDirect":
+		cfg = OpenMetricField{"PageStealDirect", Gauge, "", "", []string{}}
+	case "OOMKill":
+		cfg = OpenMetricField{"OOMKill", Gauge, "", "", []string{}}
+	}
+	return cfg
+}
 
 func (v *Vm) GetRenderValue(field string, opt FieldOpt) string {
 	cfg := v.DefaultConfig(field)

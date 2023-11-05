@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "Mem", "R/s", "W/s"}
+	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
 	GENERALDEFAULTORDER = "CPU"
 	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "UserCPU", "SysCPU", "Pri", "Nice", "Ppid", "Thr", "OnCPU", "StartTime"}
 	CPUDEFAULTORDER     = "CPU"
 	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "Minflt", "Majflt", "Vsize", "RSS"}
 	MEMDEFAULTORDER     = "Mem"
-	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "Rchar/s", "Wchar/s", "Syscr/s", "Syscw/s", "R/s", "W/s", "CW/s"}
+	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "ReadCharPerSec", "WriteCharPerSec", "SyscRPerSec", "SyscWPerSec", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec"}
 	IODEFAULTORDER      = "Disk"
 )
 
@@ -42,6 +42,7 @@ type Process struct {
 	searchprogram      *vm.Program
 	prevVisibleColumns []string
 	visibleColumns     []string
+	visibleColumnsText []string
 	defaultOrder       string
 	visbleData         []model.Process
 	source             *model.Model
@@ -101,10 +102,10 @@ func NewProcess(status *tview.TextView) *Process {
 	process.sortView.
 		ShowSecondaryText(false).
 		SetSelectedFunc(func(i int, mainText, secondText string, r rune) {
-			if process.sortField == mainText {
+			if process.sortField == process.visibleColumns[i] {
 				process.descOrder = !process.descOrder
 			} else {
-				process.sortField = mainText
+				process.sortField = process.visibleColumns[i]
 				process.descOrder = true
 			}
 			process.update()
@@ -112,7 +113,8 @@ func NewProcess(status *tview.TextView) *Process {
 		SetTitle("Sort by").
 		SetTitleAlign(tview.AlignLeft).
 		SetBorder(true)
-	process.setSortContent(process.visibleColumns, process.defaultOrder)
+
+	process.setVisibleColumns(GENERALLAYOUT, GENERALDEFAULTORDER)
 
 	process.searchView.
 		SetLabel(">  ").
@@ -278,18 +280,20 @@ func (process *Process) SetSource(s *model.Model) {
 	process.update()
 }
 
-func (process *Process) setVisibleColumns(c []string, order string) {
-	process.visibleColumns = c
-	process.setSortContent(c, order)
-}
+func (process *Process) setVisibleColumns(cols []string, order string) {
 
-func (process *Process) setSortContent(visleCol []string, order string) {
 	process.sortView.Clear()
 	process.sortField = order
 	process.descOrder = true
-	for i, f := range process.visibleColumns {
-		process.sortView.AddItem(f, "", 0, nil)
-		if process.sortField == f {
+
+	process.visibleColumns = cols
+	process.visibleColumnsText = make([]string, len(process.visibleColumns))
+	p := model.Process{}
+	for i, col := range cols {
+		text := p.DefaultConfig(col).Name
+		process.visibleColumnsText[i] = text
+		process.sortView.AddItem(text, "", 0, nil)
+		if process.sortField == col {
 			process.sortView.SetCurrentItem(i)
 		}
 	}
@@ -333,6 +337,7 @@ func (process *Process) update() {
 	}
 
 	for i, col := range process.visibleColumns {
+		text := process.visibleColumnsText[i]
 		orderFlag := ""
 		if process.sortField == col {
 			if process.descOrder {
@@ -341,7 +346,7 @@ func (process *Process) update() {
 				orderFlag = "▲"
 			}
 		}
-		process.processView.SetCell(0, i, tview.NewTableCell(col+orderFlag).SetTextColor(tcell.ColorTeal).SetSelectable(false))
+		process.processView.SetCell(0, i, tview.NewTableCell(text+orderFlag).SetTextColor(tcell.ColorTeal).SetSelectable(false))
 	}
 	for r := 0; r < len(process.visbleData); r++ {
 		for i, col := range process.visibleColumns {

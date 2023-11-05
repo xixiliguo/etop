@@ -98,7 +98,7 @@ func (system *System) UpdateCPUInfo() {
 	for r := 0; r < len(system.source.CPUs); r++ {
 		c := system.source.CPUs[r]
 		for i, col := range visbleCols {
-			color := tcell.ColorDefault
+			color := tcell.ColorWhite
 			if col == "Idle" && c.Idle <= (100-CPUBusy) {
 				color = tcell.ColorRed
 			}
@@ -122,7 +122,7 @@ func (system *System) UpdateMEMInfo() {
 	}
 
 	for i, item := range items {
-		color := tcell.ColorDefault
+		color := tcell.ColorWhite
 		if item == "MemAvailable" {
 			avail := system.source.MEM.MemAvailable
 			total := system.source.MEM.MemTotal
@@ -156,7 +156,7 @@ func (system *System) UpdateVMInfo() {
 	}
 
 	for i, item := range items {
-		color := tcell.ColorDefault
+		color := tcell.ColorWhite
 		if item == "OOMKill" && system.source.Vm.OOMKill > 0 {
 			color = tcell.ColorRed
 		}
@@ -180,17 +180,17 @@ func (system *System) UpdateDiskInfo() {
 	system.disk.SetOffset(0, 0)
 
 	visbleCols := model.DefaultDiskFields
-
+	d := model.Disk{}
 	for i, col := range visbleCols {
-
-		system.disk.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorTeal))
+		text := d.DefaultConfig(col).Name
+		system.disk.SetCell(0, i, tview.NewTableCell(text).SetTextColor(tcell.ColorTeal))
 	}
 
 	r := 0
 	for _, n := range system.source.Disks.GetKeys() {
 		disk := system.source.Disks[n]
 		for i, col := range visbleCols {
-			color := tcell.ColorDefault
+			color := tcell.ColorWhite
 			if col == "Util" && disk.Util >= DiskBusy {
 				color = tcell.ColorRed
 			}
@@ -211,10 +211,10 @@ func (system *System) UpdateNetInfo() {
 	system.net.SetOffset(0, 0)
 
 	visbleCols := model.DefaultNetDevFields
-
+	n := model.NetDev{}
 	for i, col := range visbleCols {
-
-		system.net.SetCell(0, i, tview.NewTableCell(col).SetTextColor(tcell.ColorTeal))
+		text := n.DefaultConfig(col).Name
+		system.net.SetCell(0, i, tview.NewTableCell(text).SetTextColor(tcell.ColorTeal))
 	}
 
 	r := 0
@@ -231,22 +231,6 @@ func (system *System) UpdateNetInfo() {
 	}
 
 }
-
-// func (system *System) HasFocus() bool {
-// 	return system.layout.HasFocus()
-// }
-
-// func (system *System) Focus(delegate func(p tview.Primitive)) {
-// 	delegate(system.layout)
-// }
-
-// func (system *System) Draw(screen tcell.Screen) {
-// 	system.Box.DrawForSubclass(screen, system)
-// 	x, y, width, height := system.Box.GetInnerRect()
-
-// 	system.layout.SetRect(x, y, width, height)
-// 	system.layout.Draw(screen)
-// }
 
 func (system *System) setRegionAndSwitchPage(region string) {
 	for i, r := range system.regions {
