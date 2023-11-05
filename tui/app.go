@@ -54,19 +54,15 @@ func NewTUI() *TUI {
 
 	tui.status.SetBorder(true)
 
-	tui.detail.AddPage("Process", tui.process, true, true)
-	tui.detail.AddPage("System", tui.system, true, false)
+	tui.initSearch()
+	tui.initDetails()
+	tui.initBase()
+	tui.initPages()
 
-	tui.detail.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyF1 || event.Name() == "Alt+Rune[1]" {
-			tui.detail.SwitchToPage("Process")
-			return nil
-		} else if event.Key() == tcell.KeyF2 || event.Name() == "Alt+Rune[2]" {
-			tui.detail.SwitchToPage("System")
-			return nil
-		}
-		return event
-	})
+	return tui
+}
+
+func (tui *TUI) initSearch() {
 
 	tui.search.form.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
@@ -92,18 +88,38 @@ func NewTUI() *TUI {
 			return
 		}
 	})
+}
 
+func (tui *TUI) initDetails() {
+	tui.detail.AddPage("Process", tui.process, true, true)
+	tui.detail.AddPage("System", tui.system, true, false)
+
+	tui.detail.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyF1 || event.Name() == "Alt+Rune[1]" {
+			tui.detail.SwitchToPage("Process")
+			return nil
+		} else if event.Key() == tcell.KeyF2 || event.Name() == "Alt+Rune[2]" {
+			tui.detail.SwitchToPage("System")
+			return nil
+		}
+		return event
+	})
+}
+
+func (tui *TUI) initBase() {
 	tui.base.SetDirection(tview.FlexRow).
 		AddItem(tui.header, 3, 1, false).
 		AddItem(tui.basic, 8, 1, false).
 		AddItem(tui.detail, 0, 1, true).
 		AddItem(tui.status, 3, 0, false)
+}
 
+func (tui *TUI) initPages() {
 	tui.pages.AddPage("base", tui.base, true, true).
 		AddPage("search", tui.search, true, false).
 		AddPage("help", tui.help, true, false)
 
-	tui.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	tui.pages.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		name, _ := tui.pages.GetFrontPage()
 		if name == "search" || name == "help" {
 			if event.Key() == tcell.KeyEsc {
@@ -157,7 +173,6 @@ func NewTUI() *TUI {
 		}
 		return event
 	})
-	return tui
 }
 
 func (tui *TUI) Run(path string, beginTime string) error {
