@@ -322,6 +322,9 @@ func (process *Process) update() {
 		}
 	}
 
+	sort.SliceStable(process.visbleData, func(i, j int) bool {
+		return process.visbleData[i].Pid < process.visbleData[j].Pid
+	})
 	if process.sortField != "" {
 		sort.SliceStable(process.visbleData, func(i, j int) bool {
 			return model.SortMap[process.sortField](process.visbleData[i], process.visbleData[j])
