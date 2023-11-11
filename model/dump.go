@@ -70,6 +70,10 @@ func dumpJson(timeStamp int64, opt DumpOption, m Render) {
 
 func dumpOpenMetric(timeStamp int64, opt DumpOption, m Render) {
 
+	if isFilter(opt, m) == false {
+		return
+	}
+
 	buf := bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufferPool.Put(buf)
