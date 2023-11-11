@@ -16,9 +16,9 @@ import (
 var (
 	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
 	GENERALDEFAULTORDER = "CPU"
-	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "UserCPU", "SysCPU", "Pri", "Nice", "Ppid", "Thr", "OnCPU", "StartTime"}
+	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "User", "System", "Priority", "Nice", "Ppid", "NumThreads", "OnCPU", "StartTime"}
 	CPUDEFAULTORDER     = "CPU"
-	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "Minflt", "Majflt", "Vsize", "RSS"}
+	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "MinFlt", "MajFlt", "VSize", "RSS"}
 	MEMDEFAULTORDER     = "Mem"
 	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "ReadCharPerSec", "WriteCharPerSec", "SyscRPerSec", "SyscWPerSec", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec"}
 	IODEFAULTORDER      = "Disk"

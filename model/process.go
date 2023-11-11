@@ -11,9 +11,9 @@ const (
 )
 
 var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
-var AllProcessFields = []string{"Pid", "Comm", "State", "Ppid", "Thr", "StartTime", "OnCPU", "CmdLine",
-	"UserCPU", "SysCPU", "Pri", "Nice", "CPU",
-	"Minflt", "Majflt", "Vsize", "RSS", "Mem",
+var AllProcessFields = []string{"Pid", "Comm", "State", "Ppid", "NumThreads", "StartTime", "OnCPU", "CmdLine",
+	"User", "System", "Priority", "Nice", "CPU",
+	"MinFlt", "MajFlt", "VSize", "RSS", "Mem",
 	"ReadCharPerSec", "WriteCharPerSec",
 	"SyscRPerSec", "SyscWPerSec",
 	"ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk"}
@@ -27,7 +27,7 @@ type Process struct {
 	StartTime  uint64
 	EndTime    uint64
 	ExitCode   uint32
-	Processor  uint
+	OnCPU      uint
 	CmdLine    string
 	PCPU
 	PMEM
@@ -35,22 +35,22 @@ type Process struct {
 }
 
 type PCPU struct {
-	UTime    float64
-	STime    float64
+	User     float64
+	System   float64
 	Priority int
 	Nice     int
-	CPUUsage float64
+	CPU      float64
 }
 
 func (c *PCPU) DefaultConfig(field string) Field {
 	cfg := Field{}
 	switch field {
-	case "UserCPU":
-		cfg = Field{"UserCPU", Raw, 1, "%", 10, false}
-	case "SysCPU":
-		cfg = Field{"SysCPU", Raw, 1, "%", 10, false}
-	case "Pri":
-		cfg = Field{"Pri", Raw, 0, "", 10, false}
+	case "User":
+		cfg = Field{"User", Raw, 1, "%", 10, false}
+	case "System":
+		cfg = Field{"System", Raw, 1, "%", 10, false}
+	case "Priority":
+		cfg = Field{"Priority", Raw, 0, "", 10, false}
 	case "Nice":
 		cfg = Field{"Nice", Raw, 0, "", 10, false}
 	case "CPU":
@@ -62,12 +62,12 @@ func (c *PCPU) DefaultConfig(field string) Field {
 func (c *PCPU) DefaultOMConfig(field string) OpenMetricField {
 	cfg := OpenMetricField{}
 	switch field {
-	case "UserCPU":
-		cfg = OpenMetricField{"UserCPU", Gauge, "", "", []string{"Pid"}}
-	case "SysCPU":
-		cfg = OpenMetricField{"SysCPU", Gauge, "", "", []string{"Pid"}}
-	case "Pri":
-		cfg = OpenMetricField{"Pri", Gauge, "", "", []string{"Pid"}}
+	case "User":
+		cfg = OpenMetricField{"User", Gauge, "", "", []string{"Pid"}}
+	case "System":
+		cfg = OpenMetricField{"System", Gauge, "", "", []string{"Pid"}}
+	case "Priority":
+		cfg = OpenMetricField{"Priority", Gauge, "", "", []string{"Pid"}}
 	case "Nice":
 		cfg = OpenMetricField{"Nice", Gauge, "", "", []string{"Pid"}}
 	case "CPU":
@@ -81,16 +81,16 @@ func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
 	cfg.ApplyOpt(opt)
 	s := ""
 	switch field {
-	case "UserCPU":
-		s = cfg.Render(c.UTime)
-	case "SysCPU":
-		s = cfg.Render(c.STime)
-	case "Pri":
+	case "User":
+		s = cfg.Render(c.User)
+	case "System":
+		s = cfg.Render(c.System)
+	case "Priority":
 		s = cfg.Render(c.Priority)
 	case "Nice":
 		s = cfg.Render(c.Nice)
 	case "CPU":
-		s = cfg.Render(c.CPUUsage)
+		s = cfg.Render(c.CPU)
 	default:
 		s = "no " + field + " for process cpu stat"
 	}
@@ -98,22 +98,22 @@ func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
 }
 
 type PMEM struct {
-	MinFlt   uint
-	MajFlt   uint
-	VSize    uint
-	RSS      int
-	MemUsage float64
+	MinFlt uint
+	MajFlt uint
+	VSize  uint
+	RSS    int
+	Mem    float64
 }
 
 func (m *PMEM) DefaultConfig(field string) Field {
 	cfg := Field{}
 	switch field {
-	case "Minflt":
-		cfg = Field{"Minflt", Raw, 0, "", 10, false}
-	case "Majflt":
-		cfg = Field{"Majflt", Raw, 0, "", 10, false}
-	case "Vsize":
-		cfg = Field{"Vsize", HumanReadableSize, 0, "", 10, false}
+	case "MinFlt":
+		cfg = Field{"MinFlt", Raw, 0, "", 10, false}
+	case "MajFlt":
+		cfg = Field{"MajFlt", Raw, 0, "", 10, false}
+	case "VSize":
+		cfg = Field{"VSize", HumanReadableSize, 0, "", 10, false}
 	case "RSS":
 		cfg = Field{"RSS", HumanReadableSize, 0, "", 10, false}
 	case "Mem":
@@ -125,12 +125,12 @@ func (m *PMEM) DefaultConfig(field string) Field {
 func (m *PMEM) DefaultOMConfig(field string) OpenMetricField {
 	cfg := OpenMetricField{}
 	switch field {
-	case "Minflt":
-		cfg = OpenMetricField{"Minflt", Gauge, "", "", []string{"Pid"}}
-	case "Majflt":
-		cfg = OpenMetricField{"Majflt", Gauge, "", "", []string{"Pid"}}
-	case "Vsize":
-		cfg = OpenMetricField{"Vsize", Gauge, "", "", []string{"Pid"}}
+	case "MinFlt":
+		cfg = OpenMetricField{"MinFlt", Gauge, "", "", []string{"Pid"}}
+	case "MajFlt":
+		cfg = OpenMetricField{"MajFlt", Gauge, "", "", []string{"Pid"}}
+	case "VSize":
+		cfg = OpenMetricField{"VSize", Gauge, "", "", []string{"Pid"}}
 	case "RSS":
 		cfg = OpenMetricField{"RSS", Gauge, "", "", []string{"Pid"}}
 	case "Mem":
@@ -144,16 +144,16 @@ func (m *PMEM) GetRenderValue(field string, opt FieldOpt) string {
 	cfg.ApplyOpt(opt)
 	s := ""
 	switch field {
-	case "Minflt":
+	case "MinFlt":
 		s = cfg.Render(m.MinFlt)
-	case "Majflt":
+	case "MajFlt":
 		s = cfg.Render(m.MajFlt)
-	case "Vsize":
+	case "VSize":
 		s = cfg.Render(m.VSize)
 	case "RSS":
 		s = cfg.Render(m.RSS)
 	case "Mem":
-		s = cfg.Render(m.MemUsage)
+		s = cfg.Render(m.Mem)
 	default:
 		s = "no " + field + " for process mem stat"
 	}
@@ -175,7 +175,7 @@ type PIO struct {
 	ReadBytePerSec           float64
 	WriteBytePerSec          float64
 	CancelledWriteBytePerSec float64
-	DiskUage                 float64
+	Disk                     float64
 }
 
 func (i *PIO) DefaultConfig(field string) Field {
@@ -193,12 +193,12 @@ func (i *PIO) DefaultConfig(field string) Field {
 		cfg = Field{"SyscR/s", Raw, 1, "/s", 10, false}
 	case "SyscWPerSec":
 		cfg = Field{"SyscW/s", Raw, 1, "/s", 10, false}
-	case "Read":
-		cfg = Field{"Read", HumanReadableSize, 0, "", 10, false}
-	case "Write":
-		cfg = Field{"Write", HumanReadableSize, 0, "", 10, false}
-	case "Wcancel":
-		cfg = Field{"Wcancel", HumanReadableSize, 0, "", 10, false}
+	case "ReadBytes":
+		cfg = Field{"ReadBytes", HumanReadableSize, 0, "", 10, false}
+	case "WriteBytes":
+		cfg = Field{"WriteBytes", HumanReadableSize, 0, "", 10, false}
+	case "CancelledWriteBytes":
+		cfg = Field{"CancelledWriteBytes", HumanReadableSize, 0, "", 10, false}
 	case "ReadBytePerSec":
 		cfg = Field{"ReadByte/s", HumanReadableSize, 1, "/s", 10, false}
 	case "WriteBytePerSec":
@@ -226,12 +226,12 @@ func (i *PIO) DefaultOMConfig(field string) OpenMetricField {
 		cfg = OpenMetricField{"SyscRPerSec", Gauge, "", "", []string{"Pid"}}
 	case "SyscWPerSec":
 		cfg = OpenMetricField{"SyscWPerSec", Gauge, "", "", []string{"Pid"}}
-	case "Read":
-		cfg = OpenMetricField{"Read", Gauge, "", "", []string{"Pid"}}
-	case "Write":
-		cfg = OpenMetricField{"Write", Gauge, "", "", []string{"Pid"}}
-	case "Wcancel":
-		cfg = OpenMetricField{"Wcancel", Gauge, "", "", []string{"Pid"}}
+	case "ReadBytes":
+		cfg = OpenMetricField{"ReadBytes", Gauge, "", "", []string{"Pid"}}
+	case "WriteBytes":
+		cfg = OpenMetricField{"WriteBytes", Gauge, "", "", []string{"Pid"}}
+	case "CancelledWriteBytes":
+		cfg = OpenMetricField{"CancelledWriteBytes", Gauge, "", "", []string{"Pid"}}
 	case "ReadBytePerSec":
 		cfg = OpenMetricField{"ReadBytePerSec", Gauge, "", "", []string{"Pid"}}
 	case "WriteBytePerSec":
@@ -265,11 +265,11 @@ func (i *PIO) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(i.SyscRPerSec)
 	case "SyscWPerSec":
 		s = cfg.Render(i.SyscWPerSec)
-	case "Read":
+	case "ReadBytes":
 		s = cfg.Render(i.ReadBytes)
-	case "Write":
+	case "WriteBytes":
 		s = cfg.Render(i.WriteBytes)
-	case "Wcancel":
+	case "CancelledWriteBytes":
 		s = cfg.Render(i.CancelledWriteBytes)
 	case "ReadBytePerSec":
 		s = cfg.Render(i.ReadBytePerSec)
@@ -278,7 +278,7 @@ func (i *PIO) GetRenderValue(field string, opt FieldOpt) string {
 	case "CancelledWriteBytePerSec":
 		s = cfg.Render(i.CancelledWriteBytePerSec)
 	case "Disk":
-		s = cfg.Render(i.DiskUage)
+		s = cfg.Render(i.Disk)
 	default:
 		s = "no " + field + " for process io stat"
 	}
@@ -297,21 +297,21 @@ func (p *Process) DefaultConfig(field string) Field {
 		cfg = Field{"State", Raw, 0, "", 10, false}
 	case "Ppid":
 		cfg = Field{"Ppid", Raw, 0, "", 10, false}
-	case "Thr":
-		cfg = Field{"Thr", Raw, 0, "", 10, false}
+	case "NumThreads":
+		cfg = Field{"NumThreads", Raw, 0, "", 10, false}
 	case "StartTime":
 		cfg = Field{"StartTime", Raw, 0, "", 10, false}
 	case "OnCPU":
 		cfg = Field{"OnCPU", Raw, 0, "", 10, false}
 	case "CmdLine":
 		cfg = Field{"CmdLine", Raw, 0, "", 10, false}
-	case "UserCPU", "SysCPU", "Pri", "Nice", "CPU":
+	case "User", "System", "Priority", "Nice", "CPU":
 		return p.PCPU.DefaultConfig(field)
-	case "Minflt", "Majflt", "Vsize", "RSS", "Mem":
+	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.DefaultConfig(field)
 	case "Rchar", "Wchar", "ReadCharPerSec", "WriteCharPerSec",
 		"SyscR", "SyscW", "SyscRPerSec", "SyscWPerSec",
-		"Read", "Write", "Wcancel", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
+		"ReadBytes", "WriteBytes", "CancelledWriteBytes", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
 		return p.PIO.DefaultConfig(field)
 	}
 	return cfg
@@ -329,21 +329,21 @@ func (p *Process) DefaultOMConfig(field string) OpenMetricField {
 		cfg = OpenMetricField{"State", Gauge, "", "", []string{"Pid"}}
 	case "Ppid":
 		cfg = OpenMetricField{"Ppid", Gauge, "", "", []string{"Pid"}}
-	case "Thr":
-		cfg = OpenMetricField{"Thr", Gauge, "", "", []string{"Pid"}}
+	case "NumThreads":
+		cfg = OpenMetricField{"NumThreads", Gauge, "", "", []string{"Pid"}}
 	case "StartTime":
 		cfg = OpenMetricField{"StartTime", Gauge, "", "", []string{"Pid"}}
 	case "OnCPU":
 		cfg = OpenMetricField{"OnCPU", Gauge, "", "", []string{"Pid"}}
 	case "CmdLine":
 		cfg = OpenMetricField{"CmdLine", Gauge, "", "", []string{"Pid"}}
-	case "UserCPU", "SysCPU", "Pri", "Nice", "CPU":
+	case "User", "System", "Priority", "Nice", "CPU":
 		return p.PCPU.DefaultOMConfig(field)
-	case "Minflt", "Majflt", "Vsize", "RSS", "Mem":
+	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.DefaultOMConfig(field)
 	case "Rchar", "Wchar", "ReadCharPerSec", "WriteCharPerSec",
 		"SyscR", "SyscW", "SyscRPerSec", "SyscWPerSec",
-		"Read", "Write", "Wcancel", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
+		"ReadBytes", "WriteBytes", "CancelledWriteBytes", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
 		return p.PIO.DefaultOMConfig(field)
 	}
 	return cfg
@@ -377,22 +377,22 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(stodesc[p.State])
 	case "Ppid":
 		s = cfg.Render(p.Ppid)
-	case "Thr":
+	case "NumThreads":
 		s = cfg.Render(p.NumThreads)
 	case "StartTime":
 		startTime := time.Unix(int64(p.StartTime), 0).Format(time.RFC3339)
 		s = cfg.Render(startTime)
 	case "OnCPU":
-		s = cfg.Render(p.Processor)
+		s = cfg.Render(p.OnCPU)
 	case "CmdLine":
 		s = cfg.Render(p.CmdLine)
-	case "UserCPU", "SysCPU", "Pri", "Nice", "CPU":
+	case "User", "System", "Priority", "Nice", "CPU":
 		return p.PCPU.GetRenderValue(field, opt)
-	case "Minflt", "Majflt", "Vsize", "RSS", "Mem":
+	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.GetRenderValue(field, opt)
 	case "Rchar", "Wchar", "ReadCharPerSec", "WriteCharPerSec",
 		"SyscR", "SyscW", "SyscRPerSec", "SyscWPerSec",
-		"Read", "Write", "Wcancel", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
+		"ReadBytes", "WriteBytes", "CancelledWriteBytes", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
 		return p.PIO.GetRenderValue(field, opt)
 	}
 	return s
@@ -432,7 +432,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			Ppid:       new.PPID,
 			NumThreads: new.NumThreads,
 			StartTime:  bootTime + new.Starttime/userHZ,
-			Processor:  new.Processor,
+			OnCPU:      new.Processor,
 			CmdLine:    new.CmdLine,
 		}
 		if new.EndTime != 0 {
@@ -444,17 +444,17 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		}
 
 		// get cpu info
-		p.UTime = SubWithInterval(float64(new.UTime), float64(old.UTime), float64(interval))
-		p.STime = SubWithInterval(float64(new.STime), float64(old.STime), float64(interval))
+		p.User = SubWithInterval(float64(new.UTime), float64(old.UTime), float64(interval))
+		p.System = SubWithInterval(float64(new.STime), float64(old.STime), float64(interval))
 		p.Priority = new.Priority
 		p.Nice = new.Nice
-		p.CPUUsage = p.UTime + p.STime
+		p.CPU = p.User + p.System
 
 		p.MinFlt = new.MinFlt - old.MinFlt
 		p.MajFlt = new.MajFlt - old.MajFlt
 		p.VSize = new.VSize
 		p.RSS = new.RSS * curr.PageSize
-		p.MemUsage = float64(p.RSS) * 100 / 1024 / float64(*curr.MemTotal)
+		p.Mem = float64(p.RSS) * 100 / 1024 / float64(*curr.MemTotal)
 
 		p.RChar = new.RChar - old.RChar
 		p.WChar = new.WChar - old.WChar
@@ -479,7 +479,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 	}
 	if totalIO != 0 {
 		for pid, proc := range processMap {
-			proc.DiskUage = float64(proc.ReadBytes+proc.WriteBytes) * 100 / float64(totalIO)
+			proc.Disk = float64(proc.ReadBytes+proc.WriteBytes) * 100 / float64(totalIO)
 			processMap[pid] = proc
 		}
 	}

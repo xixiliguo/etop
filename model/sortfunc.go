@@ -7,20 +7,20 @@ var SortMap = map[string]sortFunc{
 	"Comm":                     SortByComm,
 	"State":                    SortByState,
 	"Ppid":                     SortByPpid,
-	"Thr":                      SortByNumThreads,
+	"NumThreads":               SortByNumThreads,
 	"StartTime":                SortByStartTime,
-	"OnCPU":                    SortByProcessor,
+	"OnCPU":                    SortByOnCPU,
 	"CmdLine":                  SortByCmdLine,
-	"UserCPU":                  SortByUTime,
-	"SysCPU":                   SortBySTime,
-	"Pri":                      SortByPriority,
+	"User":                     SortByUser,
+	"System":                   SortBySystem,
+	"Priority":                 SortByPriority,
 	"Nice":                     SortByNice,
-	"CPU":                      SortByCPUUsage,
-	"Minflt":                   SortByMinFlt,
-	"Majflt":                   SortByMajFlt,
-	"Vsize":                    SortByVSize,
+	"CPU":                      SortByCPU,
+	"MinFlt":                   SortByMinFlt,
+	"MajFlt":                   SortByMajFlt,
+	"VSize":                    SortByVSize,
 	"RSS":                      SortByRSS,
-	"Mem":                      SortByMemUsage,
+	"Mem":                      SortByMem,
 	"Rchar":                    SortByRChar,
 	"Wchar":                    SortByWChar,
 	"ReadCharPerSec":           SortByReadCharPerSec,
@@ -29,13 +29,13 @@ var SortMap = map[string]sortFunc{
 	"SyscW":                    SortBySyscW,
 	"SyscRPerSec":              SortBySyscRPerSec,
 	"SyscWPerSec":              SortBySyscWPerSec,
-	"Read":                     SortByReadBytes,
-	"Write":                    SortByWriteBytes,
-	"Wcancel":                  SortByCancelledWriteBytes,
+	"ReadBytes":                SortByReadBytes,
+	"WriteBytes":               SortByWriteBytes,
+	"CancelledWriteBytes":      SortByCancelledWriteBytes,
 	"ReadBytePerSec":           SortByReadBytePerSec,
 	"WriteBytePerSec":          SortByWriteBytePerSec,
 	"CancelledWriteBytePerSec": SortByCancelledWriteBytePerSec,
-	"Disk":                     SortByDiskUage,
+	"Disk":                     SortByDisk,
 }
 
 func SortByPid(i, j Process) bool {
@@ -76,20 +76,20 @@ func SortByStartTime(i, j Process) bool {
 	return i.StartTime > j.StartTime
 }
 
-func SortByProcessor(i, j Process) bool {
-	return i.Processor > j.Processor
+func SortByOnCPU(i, j Process) bool {
+	return i.OnCPU > j.OnCPU
 }
 
 func SortByCmdLine(i, j Process) bool {
 	return i.CmdLine > j.CmdLine
 }
 
-func SortByUTime(i, j Process) bool {
-	return i.UTime > j.UTime
+func SortByUser(i, j Process) bool {
+	return i.User > j.User
 }
 
-func SortBySTime(i, j Process) bool {
-	return i.STime > j.STime
+func SortBySystem(i, j Process) bool {
+	return i.System > j.System
 }
 
 func SortByPriority(i, j Process) bool {
@@ -100,8 +100,8 @@ func SortByNice(i, j Process) bool {
 	return i.Nice > j.Nice
 }
 
-func SortByCPUUsage(i, j Process) bool {
-	return i.CPUUsage > j.CPUUsage
+func SortByCPU(i, j Process) bool {
+	return i.CPU > j.CPU
 }
 
 func SortByMinFlt(i, j Process) bool {
@@ -120,8 +120,8 @@ func SortByRSS(i, j Process) bool {
 	return i.RSS > j.RSS
 }
 
-func SortByMemUsage(i, j Process) bool {
-	return i.MemUsage > j.MemUsage
+func SortByMem(i, j Process) bool {
+	return i.Mem > j.Mem
 }
 
 func SortByRChar(i, j Process) bool {
@@ -180,6 +180,6 @@ func SortByCancelledWriteBytePerSec(i, j Process) bool {
 	return i.CancelledWriteBytePerSec > j.CancelledWriteBytePerSec
 }
 
-func SortByDiskUage(i, j Process) bool {
-	return i.DiskUage > j.DiskUage
+func SortByDisk(i, j Process) bool {
+	return i.Disk > j.Disk
 }
