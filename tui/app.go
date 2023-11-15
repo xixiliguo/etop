@@ -25,6 +25,7 @@ type TUI struct {
 	basic   *Basic
 	process *Process
 	system  *System
+	cgroup  *Cgroup
 	detail  *tview.Pages
 	status  *tview.TextView
 	search  *InputDialog
@@ -51,6 +52,7 @@ func NewTUI() *TUI {
 	tui.log = util.CreateLogger(tui.status, true)
 
 	tui.process = NewProcess(tui.status)
+	tui.cgroup = NewCgroup(tui.status)
 
 	tui.status.SetBorder(true)
 
@@ -83,6 +85,7 @@ func (tui *TUI) initSearch() {
 			tui.basic.Update(tui.sm)
 			tui.process.SetSource(tui.sm)
 			tui.system.SetSource(tui.sm)
+			tui.cgroup.SetSource(tui.sm)
 			tui.search.form.SetText("")
 			tui.pages.HidePage("search")
 			return
@@ -93,6 +96,7 @@ func (tui *TUI) initSearch() {
 func (tui *TUI) initDetails() {
 	tui.detail.AddPage("Process", tui.process, true, true)
 	tui.detail.AddPage("System", tui.system, true, false)
+	tui.detail.AddPage("Cgroup", tui.cgroup, true, false)
 
 	tui.detail.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyF1 || event.Name() == "Alt+Rune[1]" {
@@ -101,11 +105,27 @@ func (tui *TUI) initDetails() {
 		} else if event.Key() == tcell.KeyF2 || event.Name() == "Alt+Rune[2]" {
 			tui.detail.SwitchToPage("System")
 			return nil
+		} else if event.Key() == tcell.KeyF3 || event.Name() == "Alt+Rune[3]" {
+			if len(tui.cgroup.visbleData) > 1 {
+				tui.detail.SwitchToPage("Cgroup")
+			}
+			return nil
+		}
+		name, _ := tui.detail.GetFrontPage()
+		if name == "Cgroup" && event.Rune() == 'z' {
+			fullPath := tui.cgroup.SelectedCgroupPath()
+			filterRule := fmt.Sprintf("Cgroup startsWith %q", fullPath)
+			if err := tui.process.SetFilterRule(filterRule); err != nil {
+				tui.status.Clear()
+				fmt.Fprintf(tui.status, "%s %s", fullPath, err)
+			} else {
+				tui.detail.SwitchToPage("Process")
+			}
+			return nil
 		}
 		return event
 	})
 }
-
 func (tui *TUI) initBase() {
 	tui.base.SetDirection(tview.FlexRow).
 		AddItem(tui.header, 3, 1, false).
@@ -128,7 +148,7 @@ func (tui *TUI) initPages() {
 			}
 			return event
 		}
-		if tui.GetFocus() == tui.process.searchView {
+		if cur := tui.GetFocus(); cur == tui.process.searchView || cur == tui.cgroup.searchView {
 			return event
 		}
 		if event.Rune() == 't' {
@@ -143,6 +163,7 @@ func (tui *TUI) initPages() {
 				tui.basic.Update(tui.sm)
 				tui.process.SetSource(tui.sm)
 				tui.system.SetSource(tui.sm)
+				tui.cgroup.SetSource(tui.sm)
 			}
 			return nil
 		} else if event.Rune() == 'T' {
@@ -157,6 +178,7 @@ func (tui *TUI) initPages() {
 				tui.basic.Update(tui.sm)
 				tui.process.SetSource(tui.sm)
 				tui.system.SetSource(tui.sm)
+				tui.cgroup.SetSource(tui.sm)
 			}
 			return nil
 		} else if event.Rune() == 'b' {
@@ -204,6 +226,7 @@ func (tui *TUI) Run(path string, beginTime string) error {
 	tui.basic.Update(sm)
 	tui.process.SetSource(sm)
 	tui.system.SetSource(sm)
+	tui.cgroup.SetSource(sm)
 
 	if err := tui.Application.SetRoot(tui.pages, true).SetFocus(tui.pages).Run(); err != nil {
 		return err
@@ -237,6 +260,7 @@ func (tui *TUI) RunWithLive(interval time.Duration) error {
 				tui.basic.Update(sm)
 				tui.process.SetSource(sm)
 				tui.system.SetSource(sm)
+				tui.cgroup.SetSource(sm)
 			})
 
 			collectDuration := time.Now().Sub(start)
