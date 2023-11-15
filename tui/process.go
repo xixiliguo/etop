@@ -214,7 +214,7 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 				sortWidth = 0
 			} else {
 				process.sortDisplay = true
-				sortWidth = 9
+				sortWidth = 13
 			}
 			upper.ResizeItem(process.sortView, sortWidth, 0)
 			process.Focus(setFocus)
