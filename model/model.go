@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -26,6 +27,7 @@ type Model struct {
 	NetProtocols NetProtocolMap
 	Softnets     SoftnetSlice
 	Processes    ProcessMap
+	Cgroup
 }
 
 func NewSysModel(s *store.LocalStore, log *slog.Logger) (*Model, error) {
@@ -44,6 +46,7 @@ func NewSysModel(s *store.LocalStore, log *slog.Logger) (*Model, error) {
 		NetProtocols: make(NetProtocolMap),
 		Softnets:     []Softnet{},
 		Processes:    make(ProcessMap),
+		Cgroup:       Cgroup{},
 	}
 	return p, nil
 }
@@ -52,7 +55,7 @@ func (s *Model) CollectLiveSample(exit *store.ExitProcess) error {
 
 	s.Prev = s.Curr
 	s.Curr = store.NewSample()
-	if err := store.CollectSampleFromSys(&s.Curr, exit); err != nil {
+	if err := store.CollectSampleFromSys(&s.Curr, exit, s.log); err != nil {
 		return err
 	}
 	s.CollectField()
@@ -130,7 +133,7 @@ func (s *Model) CollectField() {
 	s.NetProtocols.Collect(&s.Prev, &s.Curr)
 	s.Softnets.Collect(&s.Prev, &s.Curr)
 	s.Sys.Processes, s.Sys.Threads = s.Processes.Collect(&s.Prev, &s.Curr)
-
+	s.Cgroup.Collect(s.Prev.CgroupSample, s.Curr.CgroupSample, s.Curr.TimeStamp-s.Prev.TimeStamp)
 }
 
 type DumpOption struct {
@@ -200,6 +203,8 @@ func verifyFilterText(opt *DumpOption) (err error) {
 		s = &Softnet{}
 	case "process":
 		s = &Process{}
+	case "cgroup":
+		s = &Cgroup{}
 	}
 	opt.FilterProgram, err = expr.Compile(opt.FilterText, expr.Env(s), expr.AsBool())
 	return err
@@ -236,6 +241,8 @@ func getNameAndWidthOfField(module string, f string) (string, int) {
 		s = &Softnet{}
 	case "process":
 		s = &Process{}
+	case "cgroup":
+		s = &Cgroup{}
 	}
 	cfg := s.DefaultConfig(f)
 	return cfg.Name, cfg.Width
@@ -305,6 +312,8 @@ func (s *Model) dumpText(opt DumpOption) error {
 					break
 				}
 			}
+		case "cgroup":
+			dumpTextForCgroup(s.Curr.TimeStamp, opt, s.Cgroup)
 		}
 		if err := s.CollectNext(); err != nil {
 			if err == store.ErrOutOfRange {
@@ -441,6 +450,10 @@ func (s *Model) dumpJson(opt DumpOption) error {
 				}
 			}
 			opt.Output.WriteString("]")
+		case "cgroup":
+			re := dumpJsonForCgroup(s.Curr.TimeStamp, opt, s.Cgroup)
+			b, _ := json.Marshal(re)
+			opt.Output.Write(b)
 		}
 		if err := s.CollectNext(); err != nil {
 			if err == store.ErrOutOfRange {
@@ -504,6 +517,8 @@ func (s *Model) dumpOpenMetrics(opt DumpOption) error {
 					break
 				}
 			}
+		case "cgroup":
+			dumpOpenMetricForCgroup(s.Curr.TimeStamp, opt, s.Cgroup)
 		}
 		if err := s.CollectNext(); err != nil {
 			if err == store.ErrOutOfRange {

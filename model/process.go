@@ -19,7 +19,7 @@ var (
 )
 
 var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
-var AllProcessFields = []string{"Pid", "Comm", "State", "Ppid", "NumThreads", "StartTime", "OnCPU", "CmdLine",
+var AllProcessFields = []string{"Pid", "Comm", "State", "Ppid", "NumThreads", "StartTime", "OnCPU", "CmdLine", "Cgroup",
 	"User", "System", "Priority", "Nice", "CPU",
 	"MinFlt", "MajFlt", "VSize", "RSS", "Mem",
 	"ReadCharPerSec", "WriteCharPerSec",
@@ -37,6 +37,7 @@ type Process struct {
 	ExitCode   uint32
 	OnCPU      uint
 	CmdLine    string
+	Cgroup     string
 	PCPU
 	PMEM
 	PIO
@@ -313,6 +314,8 @@ func (p *Process) DefaultConfig(field string) Field {
 		cfg = Field{"OnCPU", Raw, 0, "", 10, false}
 	case "CmdLine":
 		cfg = Field{"CmdLine", Raw, 0, "", 10, false}
+	case "Cgroup":
+		cfg = Field{"Cgroup", Raw, 0, "", 50, false}
 	case "User", "System", "Priority", "Nice", "CPU":
 		return p.PCPU.DefaultConfig(field)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
@@ -345,6 +348,8 @@ func (p *Process) DefaultOMConfig(field string) OpenMetricField {
 		cfg = OpenMetricField{"OnCPU", Gauge, "", "", []string{"Pid"}}
 	case "CmdLine":
 		cfg = OpenMetricField{"CmdLine", Gauge, "", "", []string{"Pid"}}
+	case "Cgroup":
+		cfg = OpenMetricField{"Cgroup", Gauge, "", "", []string{"Pid"}}
 	case "User", "System", "Priority", "Nice", "CPU":
 		return p.PCPU.DefaultOMConfig(field)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
@@ -394,6 +399,8 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(p.OnCPU)
 	case "CmdLine":
 		s = cfg.Render(p.CmdLine)
+	case "Cgroup":
+		s = cfg.Render(p.Cgroup)
 	case "User", "System", "Priority", "Nice", "CPU":
 		return p.PCPU.GetRenderValue(field, opt)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
@@ -557,6 +564,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			StartTime:  (bootTime + new.Starttime) / userHZ,
 			OnCPU:      new.Processor,
 			CmdLine:    new.CmdLine,
+			Cgroup:     new.Cgroup,
 		}
 		if new.EndTime != 0 {
 			// exited process from ebpf have not cmdline info
@@ -610,14 +618,24 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 	return processes, threads
 }
 
-func SubWithInterval[T int | int64 | float64](curr, prev, interval T) T {
+func PercentWithInterval[T uint64 | int | int64 | float64](curr, prev T, interval int64) float64 {
 	if interval == 0 {
 		return 0
 	}
 	if curr < prev {
 		return 0
 	}
-	return (curr - prev) / interval
+	return float64(curr-prev) * 100 / float64(interval)
+}
+
+func SubWithInterval[T uint64 | int | int64 | float64](curr, prev, interval T) float64 {
+	if interval == 0 {
+		return 0
+	}
+	if curr < prev {
+		return 0
+	}
+	return float64(curr-prev) / float64(interval)
 }
 
 func init() {

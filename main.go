@@ -582,6 +582,21 @@ func main() {
 							return dumpCommand(c, "process", fs)
 						},
 					},
+					{
+						Name:  "cgroup",
+						Usage: "Dump cgroup stat",
+						Flags: append(dumpFlag[:6], dumpFlag[7:]...),
+						Action: func(c *cli.Context) error {
+							fs := model.DefaultCgroupFields
+							if c.Bool("all") == true {
+								fs = model.AllCgroupFields
+							}
+							if f := c.StringSlice("fields"); len(f) != 0 {
+								fs = f
+							}
+							return dumpCommand(c, "cgroup", fs)
+						},
+					},
 				},
 			},
 			{

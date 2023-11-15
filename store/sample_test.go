@@ -1,6 +1,7 @@
 package store
 
 import (
+	"log/slog"
 	"os"
 	"testing"
 
@@ -109,7 +110,7 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 		},
 	}
 	realData := NewSample()
-	CollectSampleFromSys(&realData, nil)
+	CollectSampleFromSys(&realData, nil, slog.Default())
 	testCases = append(testCases, realData)
 	for i, testCase := range testCases {
 		var b []byte

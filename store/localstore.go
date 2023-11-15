@@ -534,7 +534,7 @@ func (local *LocalStore) getDataBytes(idx Index, buff *[]byte) error {
 }
 
 func (local *LocalStore) CollectSample(s *Sample) error {
-	return CollectSampleFromSys(s, local.exit)
+	return CollectSampleFromSys(s, local.exit, local.Log)
 }
 
 func (local *LocalStore) WriteSample(s *Sample) (bool, error) {

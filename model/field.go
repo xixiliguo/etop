@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"unsafe"
 )
 
@@ -84,6 +85,11 @@ func (f Field) Render(value any) string {
 			return v
 		}
 		buf = append(buf, v...)
+	case []string:
+		if f.Suffix == "" && f.FixWidth == false {
+			return strings.Join(v, " ")
+		}
+		buf = append(buf, strings.Join(v, " ")...)
 	default:
 		return fmt.Sprintf("%T is unknown type", v)
 	}

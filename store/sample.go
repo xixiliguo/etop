@@ -3,6 +3,7 @@ package store
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ type Sample struct {
 	TimeStamp    int64  // unix time when sample was generated
 	SystemSample        // system information
 	ProcSamples  PidMap // process information
+	CgroupSample *CgroupSample
 }
 
 type SystemSample struct {
@@ -152,6 +154,7 @@ type ProcSample struct {
 	procfs.ProcStat
 	procfs.ProcIO
 	CmdLine  string
+	Cgroup   string
 	EndTime  uint64
 	ExitCode uint32
 }
@@ -186,7 +189,7 @@ func (s *Sample) Unmarshal(b []byte) error {
 	return cbor.Unmarshal(b, s)
 }
 
-func CollectSampleFromSys(s *Sample, exit *ExitProcess) error {
+func CollectSampleFromSys(s *Sample, exit *ExitProcess, log *slog.Logger) error {
 
 	//collect one sample
 	var (
@@ -296,10 +299,37 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess) error {
 		}
 		cmdLines, _ := proc.CmdLine()
 		p.CmdLine = strings.Join(cmdLines, " ")
+		if isCgroup2() {
+			if cgroups, err := proc.Cgroups(); err == nil {
+				for _, cg := range cgroups {
+					if cg.HierarchyID == 0 && len(cg.Controllers) == 0 {
+						p.Cgroup = cg.Path
+					}
+				}
+			}
+		}
 		s.ProcSamples[p.PID] = p
 	}
 	if exit != nil {
 		s.ProcSamples.mergeWithExitProcess(exit)
+	}
+
+	// collect cgroupv2 if enabled
+	if isCgroup2() {
+		root := &CgroupSample{
+			Path:       "/",
+			Name:       "/",
+			Child:      make(map[string]*CgroupSample),
+			IsNotExist: make(map[CgroupFile]struct{}),
+		}
+		if err := root.collectStat(); err != nil {
+			msg := fmt.Sprintf("%s", err)
+			log.Warn(msg)
+		} else if err := walkCgroupNode(root, log); err != nil {
+			msg := fmt.Sprintf("%s", err)
+			log.Warn(msg)
+		}
+		s.CgroupSample = root
 	}
 	return nil
 }

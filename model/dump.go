@@ -3,6 +3,7 @@ package model
 import (
 	"bytes"
 	"encoding/json"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -50,6 +51,20 @@ func dumpText(timeStamp int64, opt DumpOption, m Render) {
 	buf.WriteTo(opt.Output)
 }
 
+func dumpTextForCgroup(timeStamp int64, opt DumpOption, c Cgroup) {
+
+	dumpText(timeStamp, opt, &c)
+
+	names := []string{}
+	for _, child := range c.Child {
+		names = append(names, child.Name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		dumpTextForCgroup(timeStamp, opt, *c.Child[name])
+	}
+}
+
 func dumpJson(timeStamp int64, opt DumpOption, m Render) {
 
 	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
@@ -66,6 +81,36 @@ func dumpJson(timeStamp int64, opt DumpOption, m Render) {
 	}
 	b, _ := json.Marshal(buf)
 	opt.Output.Write(b)
+}
+
+func dumpJsonForCgroup(timeStamp int64, opt DumpOption, c Cgroup) map[string]any {
+
+	dateTime := time.Unix(timeStamp, 0).Format(time.RFC3339)
+	bufMap := map[string]any{}
+
+	bufMap["Timestamp"] = dateTime
+	for _, f := range opt.Fields {
+		renderValue := c.GetRenderValue(f, FieldOpt{
+			Raw: opt.RawData,
+		})
+		bufMap[c.DefaultConfig(f).Name] = renderValue
+	}
+
+	childs := []any{}
+
+	names := []string{}
+	for _, child := range c.Child {
+		names = append(names, child.Name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		child := c.Child[name]
+		childs = append(childs, dumpJsonForCgroup(timeStamp, opt, *child))
+	}
+
+	bufMap["Child"] = childs
+	return bufMap
 }
 
 func dumpOpenMetric(timeStamp int64, opt DumpOption, m Render) {
@@ -115,4 +160,19 @@ func dumpOpenMetric(timeStamp int64, opt DumpOption, m Render) {
 		buf.WriteString("\n")
 	}
 	buf.WriteTo(opt.Output)
+}
+
+func dumpOpenMetricForCgroup(timeStamp int64, opt DumpOption, c Cgroup) {
+
+	dumpOpenMetric(timeStamp, opt, &c)
+
+	names := []string{}
+	for _, child := range c.Child {
+		names = append(names, child.Name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		dumpOpenMetricForCgroup(timeStamp, opt, *c.Child[name])
+	}
+
 }
