@@ -99,7 +99,7 @@ func (system *System) UpdateCPUInfo() {
 		c := system.source.CPUs[r]
 		for i, col := range visbleCols {
 			color := tcell.ColorWhite
-			if col == "Idle" && c.Idle <= (100-CPUBusy) {
+			if c.Idle <= (100 - CPUBusy) {
 				color = tcell.ColorRed
 			}
 			system.cpu.SetCell(r+1,
@@ -191,7 +191,7 @@ func (system *System) UpdateDiskInfo() {
 		disk := system.source.Disks[n]
 		for i, col := range visbleCols {
 			color := tcell.ColorWhite
-			if col == "Util" && disk.Util >= DiskBusy {
+			if disk.Util >= DiskBusy {
 				color = tcell.ColorRed
 			}
 			system.disk.SetCell(r+1,

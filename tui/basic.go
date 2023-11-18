@@ -9,11 +9,11 @@ import (
 
 const (
 	cpuFmtStr      = "%-7sUser %10s%5sSystem %8s%5sIowait %8s%5sIdle %10s%5sIRQ %11s%5sSoftIRQ %7s"
-	cpuBusyFmtStr  = "%-7sUser %10s%5sSystem %8s%5sIowait %8s%5sIdle [red]%10s[white]%5sIRQ %11s%5sSoftIRQ %7s"
+	cpuBusyFmtStr  = "[red]%-7sUser %10s%5sSystem %8s%5sIowait %8s%5sIdle %10s%5sIRQ %11s%5sSoftIRQ %7s[white]"
 	memFmtStr      = "%-7sTotal %9s%5sFree %10s%5sAvail %9s%5sSlab %10s%5sBuffer %8s%5sCache %9s"
 	memBusyFmtStr  = "%-7sTotal %9s%5sFree %10s%5sAvail [red]%9s[white]%5sSlab %10s%5sBuffer %8s%5sCache %9s"
 	diskFmtStr     = "%-5s%10s|%-10s "
-	diskBusyFmtStr = "%-5s[red]%10s|%-10s[white] "
+	diskBusyFmtStr = "[red]%-5s%10s|%-10s[white] "
 )
 
 type Basic struct {
