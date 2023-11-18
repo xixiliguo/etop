@@ -11,22 +11,22 @@ var content = `
 	<Shift>+t       - show preview sample
 	<F1>, <Alt>+1   - switch to process view
 	<F2>, <Alt>+2   - switch to system view
-	'b'             - open Dialog to search specific sample
+	'b'             - open dialog to search specific sample
 
 process view:
-	's'             - sort by specific field
-	'/'             - filter
-	'g'             - show general info
-	'c'             - show cpu info
-	'm'             - show memory info
-	'd'             - show disk info
+	's'             - show/hide sort view
+	'/'             - show/hide filter view
+	'g'             - show process-level general info
+	'c'             - show process-level cpu info
+	'm'             - show process-level memory info
+	'd'             - show process-level disk info
 
 system view:
-	'c'             - show cpu info
-	'm'             - show memory info
-	'v'             - show vm info
-	'd'             - show disk info
-	'n'             - show networ info
+	'c'             - show system-level cpu info
+	'm'             - show system-level memory info
+	'v'             - show system-level vm info
+	'd'             - show system-level disk info
+	'n'             - show system-level network info
 
 	Type 'ESC' to close
 `
