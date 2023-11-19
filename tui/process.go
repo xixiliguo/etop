@@ -18,9 +18,9 @@ var (
 	GENERALDEFAULTORDER = "CPU"
 	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "User", "System", "Priority", "Nice", "Ppid", "NumThreads", "OnCPU", "StartTime"}
 	CPUDEFAULTORDER     = "CPU"
-	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "MinFlt", "MajFlt", "VSize", "RSS"}
+	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "MajFlt", "MinFlt", "VSize", "RSS"}
 	MEMDEFAULTORDER     = "Mem"
-	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "ReadCharPerSec", "WriteCharPerSec", "SyscRPerSec", "SyscWPerSec", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec"}
+	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "ReadCharPerSec", "WriteCharPerSec", "SyscRPerSec", "SyscWPerSec"}
 	IODEFAULTORDER      = "Disk"
 )
 
