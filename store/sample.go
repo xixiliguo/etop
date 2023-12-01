@@ -14,6 +14,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var bootTimeTick uint64
+
 // Sample represent all system info and process info.
 type Sample struct {
 	TimeStamp    int64  // unix time when sample was generated
@@ -25,6 +27,7 @@ type SystemSample struct {
 	HostName      string
 	KernelVersion string
 	PageSize      int
+	BootTimeTick  uint64
 	procfs.LoadAvg
 	procfs.Stat
 	procfs.Meminfo
@@ -197,6 +200,7 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess) error {
 	s.HostName = string(u.Nodename[:])
 	s.KernelVersion = string(u.Release[:])
 	s.PageSize = os.Getpagesize()
+	s.BootTimeTick = bootTimeTick
 	if fs, err = procfs.NewFS("/proc"); err != nil {
 		return err
 	}
@@ -298,4 +302,14 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess) error {
 		s.ProcSamples.mergeWithExitProcess(exit)
 	}
 	return nil
+}
+
+func init() {
+	ts := unix.Timespec{}
+	unix.ClockGettime(unix.CLOCK_REALTIME, &ts)
+	pid := os.Getpid()
+	p, _ := procfs.NewProc(pid)
+	stat, _ := p.Stat()
+	re := (ts.Sec*1000000000+ts.Nsec)/10000000 - int64(stat.Starttime)
+	bootTimeTick = uint64(re)
 }

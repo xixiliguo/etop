@@ -1,6 +1,7 @@
 package model
 
 import (
+	"os"
 	"time"
 
 	"github.com/xixiliguo/etop/store"
@@ -8,6 +9,10 @@ import (
 
 const (
 	userHZ = 100
+)
+
+var (
+	enableBootTimeTick = true
 )
 
 var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
@@ -416,7 +421,10 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 
 	for pid := range curr.ProcSamples {
 
-		bootTime := curr.SystemSample.BootTime
+		bootTime := curr.BootTimeTick
+		if enableBootTimeTick == false {
+			bootTime = curr.BootTime * 100
+		}
 		new := curr.ProcSamples[pid]
 		old := prev.ProcSamples[pid]
 
@@ -431,7 +439,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			State:      new.State,
 			Ppid:       new.PPID,
 			NumThreads: new.NumThreads,
-			StartTime:  bootTime + new.Starttime/userHZ,
+			StartTime:  (bootTime + new.Starttime) / userHZ,
 			OnCPU:      new.Processor,
 			CmdLine:    new.CmdLine,
 		}
@@ -439,7 +447,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			// exited process from ebpf have not cmdline info
 			// use old one
 			p.CmdLine = old.CmdLine
-			p.EndTime = bootTime + new.EndTime/userHZ
+			p.EndTime = (bootTime + new.EndTime) / userHZ
 			p.ExitCode = new.ExitCode
 		}
 
@@ -495,4 +503,10 @@ func SubWithInterval[T int | int64 | float64](curr, prev, interval T) T {
 		return 0
 	}
 	return (curr - prev) / interval
+}
+
+func init() {
+	if os.Getenv("boottimetick") == "off" {
+		enableBootTimeTick = false
+	}
 }
