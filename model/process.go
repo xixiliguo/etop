@@ -422,7 +422,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 	for pid := range curr.ProcSamples {
 
 		bootTime := curr.BootTimeTick
-		if enableBootTimeTick == false {
+		if bootTime == 0 || enableBootTimeTick == false {
 			bootTime = curr.BootTime * 100
 		}
 		new := curr.ProcSamples[pid]
