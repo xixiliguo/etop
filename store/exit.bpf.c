@@ -71,6 +71,11 @@ int handle_exit(struct trace_event_raw_sched_process_template *ctx)
     e.utime += BPF_CORE_READ(task, signal, utime) / 10000000;
     e.stime = BPF_CORE_READ(task, stime) / 10000000;
     e.stime += BPF_CORE_READ(task, signal, stime) / 10000000;
+    u64 sum_exec_runtime = BPF_CORE_READ(task, se.sum_exec_runtime) / 10000000;
+    sum_exec_runtime += BPF_CORE_READ(task, signal, sum_sched_runtime) / 10000000;
+    e.stime = e.stime * sum_exec_runtime / (e.utime + e.stime);
+    e.utime = sum_exec_runtime - e.stime;
+
     e.start_time = BPF_CORE_READ(task, start_time) / 10000000;
     e.end_time = now / 10000000;
     e.num_threads = BPF_CORE_READ(task, signal, nr_threads);
