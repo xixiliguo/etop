@@ -354,7 +354,7 @@ func (local *LocalStore) openFile(shard int64, writeonly bool) (err error) {
 		local.Index.Close()
 		return err
 	}
-	if writeonly == true && syscall.Flock(int(local.Index.Fd()), lock) != nil {
+	if writeonly == true && syscall.Flock(int(local.Data.Fd()), lock) != nil {
 		return fmt.Errorf("can not acquire lock for file %s", dataPath)
 	}
 
