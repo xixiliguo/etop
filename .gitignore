@@ -2,3 +2,6 @@
 etop
 dist/
 temp/
+data_*
+index_*
+etop.log
