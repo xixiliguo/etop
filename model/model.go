@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"sort"
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
@@ -135,20 +134,20 @@ func (s *Model) CollectField() {
 }
 
 type DumpOption struct {
-	Begin          int64
-	End            int64
-	Module         string
-	Output         *os.File
-	Format         string
-	Fields         []string
-	FilterText     string
-	FilterProgram  *vm.Program
-	SortField      string
-	AscendingOrder bool
-	Top            int
-	DisableTitle   bool
-	RepeatTitle    int
-	RawData        bool
+	Begin           int64
+	End             int64
+	Module          string
+	Output          *os.File
+	Format          string
+	Fields          []string
+	FilterText      string
+	FilterProgram   *vm.Program
+	SortField       string
+	DescendingOrder bool
+	Top             int
+	DisableTitle    bool
+	RepeatTitle     int
+	RawData         bool
 }
 
 func (s *Model) Dump(opt DumpOption) error {
@@ -297,19 +296,7 @@ func (s *Model) dumpText(opt DumpOption) error {
 				dumpText(s.Curr.TimeStamp, opt, &soft)
 			}
 		case "process":
-			processList := []Process{}
-			for _, p := range s.Processes {
-				processList = append(processList, p)
-			}
-
-			sort.SliceStable(processList, func(i, j int) bool {
-				return SortMap[opt.SortField](processList[i], processList[j])
-			})
-			if opt.AscendingOrder == true {
-				for i := 0; i < len(processList)/2; i++ {
-					processList[i], processList[len(processList)-1-i] = processList[len(processList)-1-i], processList[i]
-				}
-			}
+			processList := s.Processes.Iterate(nil, opt.SortField, opt.DescendingOrder)
 			cnt := 0
 			for _, p := range processList {
 				dumpText(s.Curr.TimeStamp, opt, &p)
@@ -435,19 +422,7 @@ func (s *Model) dumpJson(opt DumpOption) error {
 			}
 			opt.Output.WriteString("]")
 		case "process":
-			processList := []Process{}
-			for _, p := range s.Processes {
-				processList = append(processList, p)
-			}
-
-			sort.SliceStable(processList, func(i, j int) bool {
-				return SortMap[opt.SortField](processList[i], processList[j])
-			})
-			if opt.AscendingOrder == true {
-				for i := 0; i < len(processList)/2; i++ {
-					processList[i], processList[len(processList)-1-i] = processList[len(processList)-1-i], processList[i]
-				}
-			}
+			processList := s.Processes.Iterate(nil, opt.SortField, opt.DescendingOrder)
 			cnt := 0
 			opt.Output.WriteString("[")
 			first := true
@@ -520,19 +495,7 @@ func (s *Model) dumpOpenMetrics(opt DumpOption) error {
 				dumpOpenMetric(s.Curr.TimeStamp, opt, &soft)
 			}
 		case "process":
-			processList := []Process{}
-			for _, p := range s.Processes {
-				processList = append(processList, p)
-			}
-
-			sort.SliceStable(processList, func(i, j int) bool {
-				return SortMap[opt.SortField](processList[i], processList[j])
-			})
-			if opt.AscendingOrder == true {
-				for i := 0; i < len(processList)/2; i++ {
-					processList[i], processList[len(processList)-1-i] = processList[len(processList)-1-i], processList[i]
-				}
-			}
+			processList := s.Processes.Iterate(nil, opt.SortField, opt.DescendingOrder)
 			cnt := 0
 			for _, p := range processList {
 				dumpOpenMetric(s.Curr.TimeStamp, opt, &p)

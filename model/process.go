@@ -2,8 +2,11 @@ package model
 
 import (
 	"os"
+	"sort"
 	"time"
 
+	"github.com/antonmedv/expr"
+	"github.com/antonmedv/expr/vm"
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -254,9 +257,9 @@ func (i *PIO) GetRenderValue(field string, opt FieldOpt) string {
 	cfg.ApplyOpt(opt)
 	s := ""
 	switch field {
-	case "Rchar":
+	case "RChar":
 		s = cfg.Render(i.RChar)
-	case "Wchar":
+	case "WChar":
 		s = cfg.Render(i.WChar)
 	case "ReadCharPerSec":
 		s = cfg.Render(i.ReadCharPerSec)
@@ -314,7 +317,7 @@ func (p *Process) DefaultConfig(field string) Field {
 		return p.PCPU.DefaultConfig(field)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.DefaultConfig(field)
-	case "Rchar", "Wchar", "ReadCharPerSec", "WriteCharPerSec",
+	case "RChar", "WChar", "ReadCharPerSec", "WriteCharPerSec",
 		"SyscR", "SyscW", "SyscRPerSec", "SyscWPerSec",
 		"ReadBytes", "WriteBytes", "CancelledWriteBytes", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
 		return p.PIO.DefaultConfig(field)
@@ -346,7 +349,7 @@ func (p *Process) DefaultOMConfig(field string) OpenMetricField {
 		return p.PCPU.DefaultOMConfig(field)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.DefaultOMConfig(field)
-	case "Rchar", "Wchar", "ReadCharPerSec", "WriteCharPerSec",
+	case "RChar", "WChar", "ReadCharPerSec", "WriteCharPerSec",
 		"SyscR", "SyscW", "SyscRPerSec", "SyscWPerSec",
 		"ReadBytes", "WriteBytes", "CancelledWriteBytes", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
 		return p.PIO.DefaultOMConfig(field)
@@ -395,7 +398,7 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 		return p.PCPU.GetRenderValue(field, opt)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.GetRenderValue(field, opt)
-	case "Rchar", "Wchar", "ReadCharPerSec", "WriteCharPerSec",
+	case "RChar", "WChar", "ReadCharPerSec", "WriteCharPerSec",
 		"SyscR", "SyscW", "SyscRPerSec", "SyscWPerSec",
 		"ReadBytes", "WriteBytes", "CancelledWriteBytes", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
 		return p.PIO.GetRenderValue(field, opt)
@@ -409,6 +412,118 @@ type sortFunc func(i, j Process) bool
 
 type ProcessMap map[int]Process
 
+func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string, descOrder bool) []Process {
+
+	res := make([]Process, 0, 1024)
+	if searchprogram != nil {
+		for _, p := range processMap {
+			output, _ := expr.Run(searchprogram, p)
+			if output.(bool) {
+				res = append(res, p)
+			}
+		}
+	} else {
+		for _, p := range processMap {
+			res = append(res, p)
+		}
+	}
+
+	sort.SliceStable(res, func(i, j int) bool {
+		return res[i].Pid < res[j].Pid
+	})
+
+	sort.SliceStable(res, func(i, j int) bool {
+		switch sortField {
+		case "Pid":
+			return res[i].Pid > res[j].Pid
+		case "Comm":
+			return res[i].Comm > res[j].Comm
+		case "State":
+			stodesc := map[string]string{
+				"R": "Running",
+				"S": "Sleeping",
+				"D": "Uninterruptible",
+				"I": "Idle",
+				"Z": "Zombie",
+				"T": "Stopped",
+				"t": "Tracing stop",
+				"X": "Dead",
+				"x": "Dead",
+				"K": "Wakekill",
+				"W": "Waking",
+				"P": "Parked",
+			}
+			return stodesc[res[i].State] > stodesc[res[j].State]
+		case "Ppid":
+			return res[i].Ppid > res[j].Ppid
+		case "NumThreads":
+			return res[i].NumThreads > res[j].NumThreads
+		case "StartTime":
+			return res[i].StartTime > res[j].StartTime
+		case "OnCPU":
+			return res[i].OnCPU > res[j].OnCPU
+		case "CmdLine":
+			return res[i].CmdLine > res[j].CmdLine
+		case "User":
+			return res[i].User > res[j].User
+		case "System":
+			return res[i].System > res[j].System
+		case "Priority":
+			return res[i].Priority > res[j].Priority
+		case "Nice":
+			return res[i].Nice > res[j].Nice
+		case "CPU":
+			return res[i].CPU > res[j].CPU
+		case "MinFlt":
+			return res[i].MinFlt > res[j].MinFlt
+		case "MajFlt":
+			return res[i].MajFlt > res[j].MajFlt
+		case "VSize":
+			return res[i].VSize > res[j].VSize
+		case "RSS":
+			return res[i].RSS > res[j].RSS
+		case "Mem":
+			return res[i].Mem > res[j].Mem
+		case "RChar":
+			return res[i].RChar > res[j].RChar
+		case "WChar":
+			return res[i].WChar > res[j].WChar
+		case "ReadCharPerSec":
+			return res[i].ReadCharPerSec > res[j].ReadCharPerSec
+		case "WriteCharPerSec":
+			return res[i].WriteCharPerSec > res[j].WriteCharPerSec
+		case "SyscR":
+			return res[i].SyscR > res[j].SyscR
+		case "SyscW":
+			return res[i].SyscW > res[j].SyscW
+		case "SyscRPerSec":
+			return res[i].SyscRPerSec > res[j].SyscRPerSec
+		case "SyscWPerSec":
+			return res[i].SyscWPerSec > res[j].SyscWPerSec
+		case "ReadBytes":
+			return res[i].ReadBytes > res[j].ReadBytes
+		case "WriteBytes":
+			return res[i].WriteBytes > res[j].WriteBytes
+		case "CancelledWriteBytes":
+			return res[i].CancelledWriteBytes > res[j].CancelledWriteBytes
+		case "ReadBytePerSec":
+			return res[i].ReadBytePerSec > res[j].ReadBytePerSec
+		case "WriteBytePerSec":
+			return res[i].WriteBytePerSec > res[j].WriteBytePerSec
+		case "CancelledWriteBytePerSec":
+			return res[i].CancelledWriteBytePerSec > res[j].CancelledWriteBytePerSec
+		case "Disk":
+			return res[i].Disk > res[j].Disk
+		}
+		return false
+	})
+	if descOrder == false {
+		for i := 0; i < len(res)/2; i++ {
+			res[i], res[len(res)-1-i] = res[len(res)-1-i], res[i]
+		}
+	}
+	return res
+}
 func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threads uint64) {
 
 	for k := range processMap {

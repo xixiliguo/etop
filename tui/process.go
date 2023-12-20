@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 	"slices"
-	"sort"
 	"time"
 
 	"github.com/antonmedv/expr"
@@ -124,18 +123,7 @@ func NewProcess(status *tview.TextView) *Process {
 		SetDoneFunc(func(key tcell.Key) {
 			if key == tcell.KeyEnter {
 				input := process.searchView.GetText()
-				if input == "" {
-					process.searchText = ""
-					process.searchprogram = nil
-					process.update()
-					return
-				}
-				program, err := expr.Compile(input, expr.Env(model.Process{}), expr.AsBool())
-				if err == nil {
-					process.searchText = input
-					process.searchprogram = program
-					process.update()
-				} else {
+				if err := process.SetFilterRule(input); err != nil {
 					process.status.Clear()
 					fmt.Fprintf(process.status, "%s", err)
 				}
@@ -275,6 +263,22 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 	})
 }
 
+func (process *Process) SetFilterRule(input string) error {
+	if input == "" {
+		process.searchText = ""
+		process.searchprogram = nil
+		process.update()
+		return nil
+	}
+	program, err := expr.Compile(input, expr.Env(model.Process{}), expr.AsBool())
+	if err == nil {
+		process.searchText = input
+		process.searchprogram = program
+		process.update()
+	}
+	return err
+}
+
 func (process *Process) SetSource(s *model.Model) {
 	process.source = s
 	process.update()
@@ -308,36 +312,7 @@ func (process *Process) update() {
 	}
 	process.SetTitle(title)
 
-	process.visbleData = process.visbleData[:0]
-	if process.searchText != "" {
-		for _, s := range process.source.Processes {
-			output, _ := expr.Run(process.searchprogram, s)
-			if output.(bool) {
-				process.visbleData = append(process.visbleData, s)
-			}
-		}
-	} else {
-		for _, p := range process.source.Processes {
-			process.visbleData = append(process.visbleData, p)
-		}
-	}
-
-	sort.SliceStable(process.visbleData, func(i, j int) bool {
-		return process.visbleData[i].Pid < process.visbleData[j].Pid
-	})
-	if process.sortField != "" {
-		sort.SliceStable(process.visbleData, func(i, j int) bool {
-			return model.SortMap[process.sortField](process.visbleData[i], process.visbleData[j])
-		})
-		if process.descOrder == false {
-			for i := 0; i < len(process.visbleData)/2; i++ {
-				process.visbleData[i],
-					process.visbleData[len(process.visbleData)-1-i] =
-					process.visbleData[len(process.visbleData)-1-i],
-					process.visbleData[i]
-			}
-		}
-	}
+	process.visbleData = process.source.Processes.Iterate(process.searchprogram, process.sortField, process.descOrder)
 
 	for i, col := range process.visibleColumns {
 		text := process.visibleColumnsText[i]

@@ -138,19 +138,19 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 	}
 
 	opt := model.DumpOption{
-		Begin:          begin,
-		End:            end,
-		Module:         module,
-		Output:         output,
-		Format:         c.String("output-format"),
-		Fields:         fields,
-		FilterText:     c.String("filter"),
-		SortField:      c.String("sort"),
-		AscendingOrder: c.Bool("ascending-order"),
-		Top:            c.Int("top"),
-		DisableTitle:   c.Bool("disable-title"),
-		RepeatTitle:    c.Int("repeat-title"),
-		RawData:        c.Bool("raw"),
+		Begin:           begin,
+		End:             end,
+		Module:          module,
+		Output:          output,
+		Format:          c.String("output-format"),
+		Fields:          fields,
+		FilterText:      c.String("filter"),
+		SortField:       c.String("sort"),
+		DescendingOrder: !c.Bool("ascending-order"),
+		Top:             c.Int("top"),
+		DisableTitle:    c.Bool("disable-title"),
+		RepeatTitle:     c.Int("repeat-title"),
+		RawData:         c.Bool("raw"),
 	}
 	return sm.Dump(opt)
 }
