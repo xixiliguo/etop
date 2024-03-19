@@ -581,23 +581,23 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.Nice = new.Nice
 		p.CPU = p.User + p.System
 
-		p.MinFlt = new.MinFlt - old.MinFlt
-		p.MajFlt = new.MajFlt - old.MajFlt
+		p.MinFlt = Sub(new.MinFlt, old.MinFlt)
+		p.MajFlt = Sub(new.MajFlt, old.MajFlt)
 		p.VSize = new.VSize
 		p.RSS = new.RSS * curr.PageSize
 		p.Mem = float64(p.RSS) * 100 / 1024 / float64(*curr.MemTotal)
 
-		p.RChar = new.RChar - old.RChar
-		p.WChar = new.WChar - old.WChar
+		p.RChar = Sub(new.RChar, old.RChar)
+		p.WChar = Sub(new.WChar, old.WChar)
 		p.ReadCharPerSec = SubWithInterval(float64(new.RChar), float64(old.RChar), float64(interval))
 		p.WriteCharPerSec = SubWithInterval(float64(new.WChar), float64(old.WChar), float64(interval))
-		p.SyscR = new.SyscR - old.SyscR
-		p.SyscW = new.SyscW - old.SyscW
+		p.SyscR = Sub(new.SyscR, old.SyscR)
+		p.SyscW = Sub(new.SyscW, old.SyscW)
 		p.SyscRPerSec = SubWithInterval(float64(new.SyscR), float64(old.SyscR), float64(interval))
 		p.SyscWPerSec = SubWithInterval(float64(new.SyscW), float64(old.SyscW), float64(interval))
-		p.ReadBytes = new.ReadBytes - old.ReadBytes
-		p.WriteBytes = new.WriteBytes - old.WriteBytes
-		p.CancelledWriteBytes = new.CancelledWriteBytes - old.CancelledWriteBytes
+		p.ReadBytes = Sub(new.ReadBytes, old.ReadBytes)
+		p.WriteBytes = Sub(new.WriteBytes, old.WriteBytes)
+		p.CancelledWriteBytes = Sub(new.CancelledWriteBytes, old.CancelledWriteBytes)
 		p.ReadBytePerSec = float64(p.ReadBytes) / float64(interval)
 		p.WriteBytePerSec = float64(p.WriteBytes) / float64(interval)
 		p.CancelledWriteBytePerSec = float64(p.CancelledWriteBytes) / float64(interval)
@@ -636,6 +636,13 @@ func SubWithInterval[T uint64 | int | int64 | float64](curr, prev, interval T) f
 		return 0
 	}
 	return float64(curr-prev) / float64(interval)
+}
+
+func Sub[T uint64 | int | int64 | float64 | uint](curr, prev T) T {
+	if curr < prev {
+		return 0
+	}
+	return curr - prev
 }
 
 func init() {
