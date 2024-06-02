@@ -45,38 +45,29 @@ struct event
 
 struct event *unused __attribute__((unused));
 
-SEC("tp/sched/sched_process_exit")
-int handle_exit(struct trace_event_raw_sched_process_template *ctx)
+SEC("kprobe/acct_process")
+int handle_exit(struct pt_regs *ctx)
 {
     struct event e;
     __builtin_memset(&e, 0, sizeof(e));
-    int pid, tid;
+    int pid;
 
     u64 id = bpf_get_current_pid_tgid();
     pid = id >> 32;
-    tid = (u32)id;
-
-    if (pid != tid)
-        return 0;
 
     u64 now = bpf_ktime_get_ns();
     struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 
     e.pid = pid;
     e.ppid = BPF_CORE_READ(task, real_parent, tgid);
-    e.exit_code = (BPF_CORE_READ(task, exit_code) >> 8) & 0xff;
+    
+    e.exit_code = (BPF_CORE_READ(task, signal, pacct.ac_exitcode ) >> 8) & 0xff;
     bpf_get_current_comm(&e.comm, sizeof(e.comm));
 
-    e.utime = BPF_CORE_READ(task, utime) / 10000000;
-    e.utime += BPF_CORE_READ(task, signal, utime) / 10000000;
-    e.stime = BPF_CORE_READ(task, stime) / 10000000;
-    e.stime += BPF_CORE_READ(task, signal, stime) / 10000000;
-    u64 sum_exec_runtime = BPF_CORE_READ(task, se.sum_exec_runtime) / 10000000;
-    sum_exec_runtime += BPF_CORE_READ(task, signal, sum_sched_runtime) / 10000000;
-    e.stime = e.stime * sum_exec_runtime / (e.utime + e.stime);
-    e.utime = sum_exec_runtime - e.stime;
+    e.utime = BPF_CORE_READ(task, signal, pacct.ac_utime) / 10000000;
+    e.stime = BPF_CORE_READ(task, signal, pacct.ac_stime) / 10000000;
 
-    e.start_time = BPF_CORE_READ(task, start_time) / 10000000;
+    e.start_time = BPF_CORE_READ(task, group_leader, start_time) / 10000000;
     e.end_time = now / 10000000;
     e.num_threads = BPF_CORE_READ(task, signal, nr_threads);
 
@@ -86,10 +77,9 @@ int handle_exit(struct trace_event_raw_sched_process_template *ctx)
     e.delayacct_blkio_ticks = BPF_CORE_READ(task, delays, blkio_delay) + BPF_CORE_READ(task, delays, swapin_delay);
     e.delayacct_blkio_ticks = e.delayacct_blkio_ticks / 10000000;
 
-    e.min_flt = BPF_CORE_READ(task, min_flt);
-    e.min_flt += BPF_CORE_READ(task, signal, min_flt);
-    e.maj_flt = BPF_CORE_READ(task, maj_flt);
-    e.maj_flt += BPF_CORE_READ(task, signal, maj_flt);
+    e.min_flt = BPF_CORE_READ(task, signal, pacct.ac_minflt);
+    e.maj_flt = BPF_CORE_READ(task, signal, pacct.ac_majflt);
+
     const struct mm_struct *mm = BPF_CORE_READ(task, mm);
     if (mm)
     {

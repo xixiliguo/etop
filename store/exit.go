@@ -50,9 +50,9 @@ func (e *ExitProcess) Collect() {
 	defer objs.Close()
 	btf.FlushKernelSpec()
 
-	kp, err := link.Tracepoint("sched", "sched_process_exit", objs.HandleExit, nil)
+	kp, err := link.Kprobe("acct_process", objs.HandleExit, nil)
 	if err != nil {
-		msg := fmt.Sprintf("opening tracepoint: %s", err)
+		msg := fmt.Sprintf("opening kprobe: %s", err)
 		e.log.Error(msg)
 		return
 	}
