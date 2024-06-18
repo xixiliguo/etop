@@ -153,6 +153,7 @@ func newVmstat(file string) (VmStat, error) {
 type ProcSample struct {
 	procfs.ProcStat
 	procfs.ProcIO
+	procfs.ProcSchedstat
 	CmdLine  string
 	Cgroup   string
 	EndTime  uint64
@@ -295,6 +296,9 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess, log *slog.Logger) error 
 			continue
 		}
 		if p.ProcIO, err = proc.IO(); err != nil {
+			continue
+		}
+		if p.ProcSchedstat, err = proc.Schedstat(); err != nil {
 			continue
 		}
 		cmdLines, _ := proc.CmdLine()

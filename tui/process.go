@@ -15,7 +15,7 @@ import (
 var (
 	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
 	GENERALDEFAULTORDER = "CPU"
-	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "User", "System", "Priority", "Nice", "Ppid", "NumThreads", "OnCPU", "StartTime"}
+	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "User", "System", "Priority", "Nice", "Ppid", "NumThreads", "OnCPU", "RunDelay", "BlkDelay", "StartTime"}
 	CPUDEFAULTORDER     = "CPU"
 	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "MajFlt", "MinFlt", "VSize", "RSS"}
 	MEMDEFAULTORDER     = "Mem"

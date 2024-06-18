@@ -20,7 +20,7 @@ var (
 
 var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
 var AllProcessFields = []string{"Pid", "Comm", "State", "Ppid", "NumThreads", "StartTime", "OnCPU", "CmdLine", "Cgroup",
-	"User", "System", "Priority", "Nice", "CPU",
+	"User", "System", "Priority", "Nice", "CPU", "RunDelay", "BlkDelay",
 	"MinFlt", "MajFlt", "VSize", "RSS", "Mem",
 	"ReadCharPerSec", "WriteCharPerSec",
 	"SyscRPerSec", "SyscWPerSec",
@@ -49,6 +49,8 @@ type PCPU struct {
 	Priority int
 	Nice     int
 	CPU      float64
+	RunDelay uint64
+	BlkDelay uint64
 }
 
 func (c *PCPU) DefaultConfig(field string) Field {
@@ -64,6 +66,10 @@ func (c *PCPU) DefaultConfig(field string) Field {
 		cfg = Field{"Nice", Raw, 0, "", 10, false}
 	case "CPU":
 		cfg = Field{"CPU", Raw, 1, "%", 10, false}
+	case "RunDelay":
+		cfg = Field{"RunDelay", Raw, 1, " ms", 10, false}
+	case "BlkDelay":
+		cfg = Field{"BlkDelay", Raw, 1, " ms", 10, false}
 	}
 	return cfg
 }
@@ -81,6 +87,10 @@ func (c *PCPU) DefaultOMConfig(field string) OpenMetricField {
 		cfg = OpenMetricField{"Nice", Gauge, "", "", []string{"Pid"}}
 	case "CPU":
 		cfg = OpenMetricField{"CPU", Gauge, "", "", []string{"Pid"}}
+	case "RunDelay":
+		cfg = OpenMetricField{"RunDelay", Gauge, "", "", []string{"Pid"}}
+	case "BlkDelay":
+		cfg = OpenMetricField{"BlkDelay", Gauge, "", "", []string{"Pid"}}
 	}
 	return cfg
 }
@@ -100,6 +110,10 @@ func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(c.Nice)
 	case "CPU":
 		s = cfg.Render(c.CPU)
+	case "RunDelay":
+		s = cfg.Render(c.RunDelay)
+	case "BlkDelay":
+		s = cfg.Render(c.BlkDelay)
 	default:
 		s = "no " + field + " for process cpu stat"
 	}
@@ -316,7 +330,7 @@ func (p *Process) DefaultConfig(field string) Field {
 		cfg = Field{"CmdLine", Raw, 0, "", 10, false}
 	case "Cgroup":
 		cfg = Field{"Cgroup", Raw, 0, "", 50, false}
-	case "User", "System", "Priority", "Nice", "CPU":
+	case "User", "System", "Priority", "Nice", "CPU", "RunDelay", "BlkDelay":
 		return p.PCPU.DefaultConfig(field)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.DefaultConfig(field)
@@ -350,7 +364,7 @@ func (p *Process) DefaultOMConfig(field string) OpenMetricField {
 		cfg = OpenMetricField{"CmdLine", Gauge, "", "", []string{"Pid"}}
 	case "Cgroup":
 		cfg = OpenMetricField{"Cgroup", Gauge, "", "", []string{"Pid"}}
-	case "User", "System", "Priority", "Nice", "CPU":
+	case "User", "System", "Priority", "Nice", "CPU", "RunDelay", "BlkDelay":
 		return p.PCPU.DefaultOMConfig(field)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.DefaultOMConfig(field)
@@ -401,7 +415,7 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(p.CmdLine)
 	case "Cgroup":
 		s = cfg.Render(p.Cgroup)
-	case "User", "System", "Priority", "Nice", "CPU":
+	case "User", "System", "Priority", "Nice", "CPU", "RunDelay", "BlkDelay":
 		return p.PCPU.GetRenderValue(field, opt)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.GetRenderValue(field, opt)
@@ -481,6 +495,10 @@ func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string
 			return res[i].Nice > res[j].Nice
 		case "CPU":
 			return res[i].CPU > res[j].CPU
+		case "RunDelay":
+			return res[i].RunDelay > res[j].RunDelay
+		case "BlkDelay":
+			return res[i].BlkDelay > res[j].BlkDelay
 		case "MinFlt":
 			return res[i].MinFlt > res[j].MinFlt
 		case "MajFlt":
@@ -580,6 +598,8 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.Priority = new.Priority
 		p.Nice = new.Nice
 		p.CPU = p.User + p.System
+		p.RunDelay = Sub(new.WaitingNanoseconds, old.WaitingNanoseconds) / 1000000
+		p.BlkDelay = Sub(new.DelayAcctBlkIOTicks, old.DelayAcctBlkIOTicks) * 10
 
 		p.MinFlt = Sub(new.MinFlt, old.MinFlt)
 		p.MajFlt = Sub(new.MajFlt, old.MajFlt)
