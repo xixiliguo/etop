@@ -337,9 +337,7 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess, log *slog.Logger) error 
 func init() {
 	ts := unix.Timespec{}
 	unix.ClockGettime(unix.CLOCK_REALTIME, &ts)
-	pid := os.Getpid()
-	p, _ := procfs.NewProc(pid)
-	stat, _ := p.Stat()
-	re := (ts.Sec*1000000000+ts.Nsec)/10000000 - int64(stat.Starttime)
-	bootTimeTick = uint64(re)
+	ts1 := unix.Timespec{}
+	unix.ClockGettime(unix.CLOCK_BOOTTIME, &ts1)
+	bootTimeTick = uint64(ts.Nano()-ts1.Nano()) / 10000000
 }
