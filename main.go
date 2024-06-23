@@ -585,7 +585,7 @@ func main() {
 					{
 						Name:  "cgroup",
 						Usage: "Dump cgroup stat",
-						Flags: append(dumpFlag[:6], dumpFlag[7:]...),
+						Flags: dumpFlag,
 						Action: func(c *cli.Context) error {
 							fs := model.DefaultCgroupFields
 							if c.Bool("all") == true {
