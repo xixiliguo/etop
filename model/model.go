@@ -1,14 +1,22 @@
 package model
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
 	"github.com/xixiliguo/etop/store"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
 type Model struct {
@@ -175,6 +183,74 @@ func (s *Model) Dump(opt DumpOption) error {
 	default:
 		return fmt.Errorf("no support output format: %s", opt.Format)
 	}
+}
+
+type DumpOtelOption struct {
+	Begin  int64
+	End    int64
+	Output string
+}
+
+func (s *Model) DumpToOtel(opt DumpOtelOption) (err error) {
+	if err := s.CollectSampleByTime(opt.Begin); err != nil {
+		return err
+	}
+	ctx := context.Background()
+	var export metric.Exporter
+	progress := false
+	if opt.Output == "http" {
+		export, err = otlpmetrichttp.New(ctx)
+		progress = true
+	} else {
+		export, err = stdoutmetric.New(
+			stdoutmetric.WithPrettyPrint(),
+		)
+	}
+
+	// export, err := stdoutmetric.New(
+	// 	stdoutmetric.WithPrettyPrint(),
+	// )
+	if err != nil {
+		return err
+	}
+
+	cnt := 0
+	rm := metricdata.ResourceMetrics{
+		Resource: resource.NewSchemaless(
+			semconv.ServiceName("etop"),
+			semconv.ServiceInstanceID(s.Curr.HostName),
+		),
+	}
+
+	for opt.End >= s.Curr.TimeStamp {
+		var sm metricdata.ScopeMetrics
+		s.CPUs.GetOtelMetric(s.Curr.TimeStamp, &sm)
+		s.MEM.GetOtelMetric(s.Curr.TimeStamp, &sm)
+		s.Disks.GetOtelMetric(s.Curr.TimeStamp, &sm)
+		s.Nets.GetOtelMetric(s.Curr.TimeStamp, &sm)
+		rm.ScopeMetrics = append(rm.ScopeMetrics, sm)
+		if err := s.CollectNext(); err != nil {
+			if err == store.ErrOutOfRange {
+				break
+			}
+			return err
+		}
+
+		if err := export.Export(ctx, &rm); err != nil {
+			return err
+		}
+		cnt++
+		if progress {
+			fmt.Printf("Dump Otel data from %s to %s: %d samples\033[0K\r",
+				time.Unix(opt.Begin, 0).Format(time.RFC3339),
+				time.Unix(opt.End, 0).Format(time.RFC3339), cnt)
+		}
+		rm.ScopeMetrics = rm.ScopeMetrics[:0]
+	}
+	if progress {
+		fmt.Printf("\n")
+	}
+	return export.Shutdown(ctx)
 }
 
 func verifyFilterText(opt *DumpOption) (err error) {

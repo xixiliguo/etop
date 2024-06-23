@@ -1,7 +1,12 @@
 package model
 
 import (
+	"time"
+
 	"github.com/xixiliguo/etop/store"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 var DefaultMEMFields = []string{
@@ -478,4 +483,63 @@ func getValueOrDefault[T uint64 | float64](m *T) T {
 		return 0
 	}
 	return *m
+}
+
+func (m *MEM) GetOtelMetric(timeStamp int64, sm *metricdata.ScopeMetrics) {
+
+	sm.Scope = instrumentation.Scope{Name: "memory", Version: "0.0.1"}
+	md := metricdata.Metrics{
+		Name: "memory",
+	}
+	data := metricdata.Gauge[int64]{}
+
+	data.DataPoints = append(data.DataPoints, []metricdata.DataPoint[int64]{
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "total")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.MemTotal),
+		},
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "free")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.MemFree),
+		},
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "avail")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.MemAvailable),
+		},
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "buffer")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.Buffers),
+		},
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "cache")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.Cached),
+		},
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "shmem")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.Shmem),
+		},
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "slab")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.Slab),
+		},
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "reclaimable.slab")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.SReclaimable),
+		},
+		{
+			Attributes: attribute.NewSet(attribute.String("state", "unreclaim.slab")),
+			Time:       time.Unix(timeStamp, 0),
+			Value:      int64(m.SUnreclaim),
+		},
+	}...)
+	md.Data = data
+	sm.Metrics = append(sm.Metrics, md)
 }

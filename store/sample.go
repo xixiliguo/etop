@@ -201,8 +201,9 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess, log *slog.Logger) error 
 	s.TimeStamp = time.Now().Unix()
 	u := unix.Utsname{}
 	unix.Uname(&u)
-	s.HostName = string(u.Nodename[:])
-	s.KernelVersion = string(u.Release[:])
+
+	s.HostName = unix.ByteSliceToString(u.Nodename[:])
+	s.KernelVersion = unix.ByteSliceToString(u.Release[:])
 	s.PageSize = os.Getpagesize()
 	s.BootTimeTick = bootTimeTick
 	if fs, err = procfs.NewFS("/proc"); err != nil {

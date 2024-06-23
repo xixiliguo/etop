@@ -3,8 +3,12 @@ package model
 import (
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/xixiliguo/etop/store"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 var DefaultNetDevFields = []string{
@@ -250,4 +254,60 @@ func (netMap NetDevMap) GetKeys() []string {
 		return keys[i] < keys[j]
 	})
 	return keys
+}
+
+func (netMap NetDevMap) GetOtelMetric(timeStamp int64, sm *metricdata.ScopeMetrics) {
+
+	sm.Scope = instrumentation.Scope{Name: "net", Version: "0.0.1"}
+
+	// RxBytePerSec   float64
+	// RxPacketPerSec float64
+	// TxBytePerSec   float64
+	// TxPacketPerSec float64
+
+	netDevPacket := metricdata.Metrics{
+		Name: "netdev.packet",
+		Data: metricdata.Gauge[float64]{},
+	}
+	netDevPacketData := metricdata.Gauge[float64]{}
+	netDevByte := metricdata.Metrics{
+		Name: "netdev.byte",
+	}
+	netDevByteData := metricdata.Gauge[float64]{}
+
+	for _, n := range netMap.GetKeys() {
+		netDev := netMap[n]
+		name := attribute.String("netdev", n)
+
+		netDevPacketData.DataPoints = append(netDevPacketData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name, attribute.String("direction", "rx")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      netDev.RxPacketPerSec,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("direction", "tx")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      netDev.TxPacketPerSec,
+			},
+		}...)
+
+		netDevByteData.DataPoints = append(netDevByteData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name, attribute.String("direction", "rx")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      netDev.RxBytePerSec,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("direction", "tx")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      netDev.TxBytePerSec,
+			},
+		}...)
+
+	}
+	netDevPacket.Data = netDevPacketData
+	netDevByte.Data = netDevByteData
+
+	sm.Metrics = append(sm.Metrics, netDevPacket, netDevByte)
 }

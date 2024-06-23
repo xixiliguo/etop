@@ -3,9 +3,13 @@ package model
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/prometheus/procfs"
 	"github.com/xixiliguo/etop/store"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 var DefaultCPUFields = []string{
@@ -144,6 +148,73 @@ func (cpus *CPUSlice) Collect(prev, curr *store.Sample) {
 		c.Index = fmt.Sprintf("%d", i)
 		*cpus = append(*cpus, c)
 	}
+}
+
+func (cpus *CPUSlice) GetOtelMetric(timeStamp int64, sm *metricdata.ScopeMetrics) {
+
+	sm.Scope = instrumentation.Scope{Name: "cpu", Version: "0.0.1"}
+	m := metricdata.Metrics{
+		Name: "cpu.usage",
+	}
+	data := metricdata.Gauge[float64]{}
+
+	for _, c := range *cpus {
+		idx := attribute.String("cpu", c.Index)
+		data.DataPoints = append(data.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "user")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.User,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "nice")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.Nice,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "system")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.System,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "idle")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.Idle,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "iowait")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.Iowait,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "irq")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.IRQ,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "soft_irq")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.SoftIRQ,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "steal")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.Steal,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "guest")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.Guest,
+			},
+			{
+				Attributes: attribute.NewSet(idx, attribute.String("mode", "guest_nice")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      c.GuestNice,
+			},
+		}...)
+	}
+	m.Data = data
+	sm.Metrics = append(sm.Metrics, m)
 }
 
 func calcCpuUsage(prev, curr procfs.CPUStat) CPU {

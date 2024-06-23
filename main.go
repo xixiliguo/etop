@@ -90,6 +90,46 @@ var (
 			Usage:   "dump data from `PATH`",
 		},
 	}
+
+	dumpOtelFlag = []cli.Flag{
+		&cli.StringFlag{
+			Name:    "begin",
+			Aliases: []string{"b"},
+			Value:   time.Now().Format("2006-01-02") + " 00:00",
+			Usage: "`TIME` indicate start point of dump\n" +
+				"			relate value:  1h, mean 1 hour ago from now from now\n" +
+				"			absolute value: 2006-01-02 15:04, 01-02 15:04, 15:04\n" +
+				"			 ",
+			DefaultText: time.Now().Format("2006-01-02") + " 00:00",
+		},
+		&cli.StringFlag{
+			Name:        "end",
+			Aliases:     []string{"e"},
+			Value:       time.Now().Format("2006-01-02") + " 23:59",
+			Usage:       "`TIME` indicate end point of dump, same format with --begin",
+			DefaultText: time.Now().Format("2006-01-02") + " 23:59",
+		},
+		&cli.StringFlag{
+			Name:    "duration",
+			Aliases: []string{"d"},
+			Value:   "",
+			Usage:   "e.g 1h, 30m10s. if `DURATION` is specified, ignore --end value",
+		},
+
+		&cli.StringFlag{
+			Name:    "output",
+			Aliases: []string{"o"},
+			Value:   "",
+			Usage:   "output destination, default to stdout",
+		},
+
+		&cli.StringFlag{
+			Name:    "path",
+			Aliases: []string{"p"},
+			Value:   "/var/log/etop",
+			Usage:   "dump data from `PATH`",
+		},
+	}
 )
 
 func dumpCommand(c *cli.Context, module string, fields []string) error {
@@ -153,6 +193,51 @@ func dumpCommand(c *cli.Context, module string, fields []string) error {
 		RawData:         c.Bool("raw"),
 	}
 	return sm.Dump(opt)
+}
+
+func dumpToOtel(c *cli.Context) error {
+	path := c.String("path")
+	path, _ = filepath.Abs(path)
+	logFile, err := os.OpenFile(filepath.Join(path, "etop.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	local, err := store.NewLocalStore(
+		store.WithPathAndLogger(path, util.CreateLogger(logFile, false)),
+	)
+	if err != nil {
+		return err
+	}
+	sm, err := model.NewSysModel(local, util.CreateLogger(logFile, false))
+	if err != nil {
+		return err
+	}
+
+	begin, err := util.ConvertToUnixTime(c.String("begin"))
+	if err != nil {
+		return err
+	}
+	end := int64(0)
+	if duration := c.String("duration"); duration == "" {
+		end, err = util.ConvertToUnixTime(c.String("end"))
+		if err != nil {
+			return err
+		}
+	} else {
+		d, err := time.ParseDuration(duration)
+		if err != nil {
+			return err
+		}
+		end = begin + int64(d/time.Second)
+	}
+
+	opt := model.DumpOtelOption{
+		Begin:  begin,
+		End:    end,
+		Output: c.String("output"),
+	}
+
+	return sm.DumpToOtel(opt)
 }
 
 func main() {
@@ -595,6 +680,14 @@ func main() {
 								fs = f
 							}
 							return dumpCommand(c, "cgroup", fs)
+						},
+					},
+					{
+						Name:  "otel",
+						Usage: "Dump and send to otel backend",
+						Flags: dumpOtelFlag,
+						Action: func(c *cli.Context) error {
+							return dumpToOtel(c)
 						},
 					},
 				},

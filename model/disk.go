@@ -2,8 +2,12 @@ package model
 
 import (
 	"sort"
+	"time"
 
 	"github.com/xixiliguo/etop/store"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 var DefaultDiskFields = []string{
@@ -193,20 +197,26 @@ func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
 		d.ReadBytePerSec = float64(d.ReadSectors*512) / float64(interval)
 		d.WriteBytePerSec = float64(d.WriteSectors*512) / float64(interval)
 		d.DiscardBytePerSec = float64(d.DiscardBytePerSec*512) / float64(interval)
-
-		d.ReadAvgIOSize = float64(d.ReadSectors*512) / float64((d.ReadIOs))
-		d.WriteAvgIOSize = float64(d.WriteSectors*512) / float64((d.WriteIOs))
-		d.DiscardAvgIOSize = float64(d.DiscardSectors*512) / float64((d.DiscardIOs))
-		d.AvgIOSize = float64(d.ReadSectors+d.WriteSectors+d.DiscardSectors) * 512 / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
-
-		d.ReadAvgWait = float64(d.ReadTicks) / float64((d.ReadIOs))
-		d.WriteAvgWait = float64(d.WriteTicks) / float64((d.WriteIOs))
-		d.DiscardAvgWait = float64(d.DiscardTicks) / float64((d.DiscardIOs))
-		d.AvgIOWait = float64(d.ReadTicks+d.WriteTicks+d.DiscardTicks) / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
+		if d.ReadIOs != 0 {
+			d.ReadAvgIOSize = float64(d.ReadSectors*512) / float64((d.ReadIOs))
+			d.ReadAvgWait = float64(d.ReadTicks) / float64((d.ReadIOs))
+		}
+		if d.WriteIOs != 0 {
+			d.WriteAvgIOSize = float64(d.WriteSectors*512) / float64((d.WriteIOs))
+			d.WriteAvgWait = float64(d.WriteTicks) / float64((d.WriteIOs))
+		}
+		if d.DiscardIOs != 0 {
+			d.DiscardAvgIOSize = float64(d.DiscardSectors*512) / float64((d.DiscardIOs))
+			d.DiscardAvgWait = float64(d.DiscardTicks) / float64((d.DiscardIOs))
+		}
+		if d.ReadIOs+d.WriteIOs+d.DiscardIOs != 0 {
+			d.AvgIOSize = float64(d.ReadSectors+d.WriteSectors+d.DiscardSectors) * 512 / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
+			d.AvgIOWait = float64(d.ReadTicks+d.WriteTicks+d.DiscardTicks) / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
+			d.AvgIOTime = float64(d.IOsTotalTicks) / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
+		}
 
 		d.AvgQueueLength = float64(d.WeightedIOTicks) / 1000 / float64(interval)
 
-		d.AvgIOTime = float64(d.IOsTotalTicks) / float64((d.ReadIOs + d.WriteIOs + d.DiscardIOs))
 		d.Util = float64(d.IOsTotalTicks) / 1000 * 100 / float64(interval)
 		diskMap[name] = d
 	}
@@ -223,4 +233,160 @@ func (diskMap DiskMap) GetKeys() []string {
 		return keys[i] < keys[j]
 	})
 	return keys
+}
+
+func (diskMap DiskMap) GetOtelMetric(timeStamp int64, sm *metricdata.ScopeMetrics) {
+
+	sm.Scope = instrumentation.Scope{Name: "disk", Version: "0.0.1"}
+	diskIO := metricdata.Metrics{
+		Name: "disk.io",
+		Data: metricdata.Gauge[float64]{},
+	}
+	diskIOData := metricdata.Gauge[float64]{}
+	diskByte := metricdata.Metrics{
+		Name: "disk.byte",
+	}
+	diskByteData := metricdata.Gauge[float64]{}
+	diskUsage := metricdata.Metrics{
+		Name: "disk.usage",
+	}
+	diskUsageData := metricdata.Gauge[float64]{}
+	diskIOSize := metricdata.Metrics{
+		Name: "disk.io.size",
+	}
+	diskIOSizeData := metricdata.Gauge[float64]{}
+	diskQueueLen := metricdata.Metrics{
+		Name: "disk.io.queue.len",
+	}
+	diskQueueLenData := metricdata.Gauge[float64]{}
+	diskFlight := metricdata.Metrics{
+		Name: "disk.flight",
+	}
+	diskFlightData := metricdata.Gauge[float64]{}
+	diskIOWait := metricdata.Metrics{
+		Name: "disk.iowait",
+	}
+	diskIOWaitData := metricdata.Gauge[float64]{}
+	diskIOTime := metricdata.Metrics{
+		Name: "disk.iotime",
+	}
+	diskIOTimeData := metricdata.Gauge[float64]{}
+	for _, n := range diskMap.GetKeys() {
+		disk := diskMap[n]
+		name := attribute.String("disk", n)
+
+		diskIOData.DataPoints = append(diskIOData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "read")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.ReadPerSec,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "write")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.WritePerSec,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "discard")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.DiscardPerSec,
+			},
+		}...)
+
+		diskByteData.DataPoints = append(diskByteData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "read")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.ReadBytePerSec,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "write")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.WriteBytePerSec,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "discard")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.DiscardBytePerSec,
+			},
+		}...)
+
+		diskUsageData.DataPoints = append(diskUsageData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.Util,
+			},
+		}...)
+
+		diskIOSizeData.DataPoints = append(diskIOSizeData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "read")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.ReadAvgIOSize,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "write")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.WriteAvgIOSize,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "discard")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.DiscardAvgIOSize,
+			},
+		}...)
+
+		diskQueueLenData.DataPoints = append(diskQueueLenData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.AvgQueueLength,
+			},
+		}...)
+
+		diskFlightData.DataPoints = append(diskFlightData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      float64(disk.IOsInProgress),
+			},
+		}...)
+
+		diskIOWaitData.DataPoints = append(diskIOWaitData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "read")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.ReadAvgWait,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "write")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.WriteAvgWait,
+			},
+			{
+				Attributes: attribute.NewSet(name, attribute.String("action", "discard")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.DiscardAvgWait,
+			},
+		}...)
+
+		diskIOTimeData.DataPoints = append(diskIOTimeData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(name),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      disk.AvgIOTime,
+			},
+		}...)
+
+	}
+	diskIO.Data = diskIOData
+	diskByte.Data = diskByteData
+	diskUsage.Data = diskUsageData
+	diskIOSize.Data = diskIOSizeData
+	diskQueueLen.Data = diskQueueLenData
+	diskFlight.Data = diskFlightData
+	diskIOWait.Data = diskIOWaitData
+	diskIOTime.Data = diskIOTimeData
+	sm.Metrics = append(sm.Metrics, diskIO, diskByte, diskUsage, diskIOSize, diskQueueLen, diskFlight, diskIOWait, diskIOTime)
 }
