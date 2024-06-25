@@ -263,12 +263,12 @@ func (s *Model) dumpText(opt DumpOption) error {
 		title += fmt.Sprintf(" %-*s", width, name)
 	}
 	title += "\n"
-	if opt.DisableTitle == false {
+	if !opt.DisableTitle {
 		opt.Output.WriteString(title)
 	}
 	cnt := 0
 	for opt.End >= s.Curr.TimeStamp {
-		if opt.DisableTitle == false && opt.RepeatTitle != 0 && cnt%opt.RepeatTitle == 0 {
+		if !opt.DisableTitle && opt.RepeatTitle != 0 && cnt%opt.RepeatTitle == 0 {
 			opt.Output.WriteString(title)
 		}
 		switch opt.Module {
@@ -336,22 +336,22 @@ func (s *Model) dumpJson(opt DumpOption) error {
 	opt.Output.WriteString("[\n")
 	first := true
 	for opt.End >= s.Curr.TimeStamp {
-		if first == true {
+		if first {
 			first = false
 		} else {
 			opt.Output.WriteString(",\n\n")
 		}
 		switch opt.Module {
 		case "system":
-			if isFilter(opt, &s.Sys) == true {
+			if isFilter(opt, &s.Sys) {
 				dumpJson(s.Curr.TimeStamp, opt, &s.Sys)
 			}
 		case "cpu":
 			opt.Output.WriteString("[")
 			first := true
 			for _, c := range s.CPUs {
-				if isFilter(opt, &c) == true {
-					if first == true {
+				if isFilter(opt, &c) {
+					if first {
 						first = false
 					} else {
 						opt.Output.WriteString(",\n")
@@ -361,11 +361,11 @@ func (s *Model) dumpJson(opt DumpOption) error {
 			}
 			opt.Output.WriteString("]")
 		case "memory":
-			if isFilter(opt, &s.MEM) == true {
+			if isFilter(opt, &s.MEM) {
 				dumpJson(s.Curr.TimeStamp, opt, &s.MEM)
 			}
 		case "vm":
-			if isFilter(opt, &s.Vm) == true {
+			if isFilter(opt, &s.Vm) {
 				dumpJson(s.Curr.TimeStamp, opt, &s.Vm)
 			}
 		case "disk":
@@ -373,8 +373,8 @@ func (s *Model) dumpJson(opt DumpOption) error {
 			first := true
 			for _, disk := range s.Disks.GetKeys() {
 				d := s.Disks[disk]
-				if isFilter(opt, &d) == true {
-					if first == true {
+				if isFilter(opt, &d) {
+					if first {
 						first = false
 					} else {
 						opt.Output.WriteString(",\n")
@@ -388,8 +388,8 @@ func (s *Model) dumpJson(opt DumpOption) error {
 			first := true
 			for _, dev := range s.Nets.GetKeys() {
 				n := s.Nets[dev]
-				if isFilter(opt, &n) == true {
-					if first == true {
+				if isFilter(opt, &n) {
+					if first {
 						first = false
 					} else {
 						opt.Output.WriteString(",\n")
@@ -399,15 +399,15 @@ func (s *Model) dumpJson(opt DumpOption) error {
 			}
 			opt.Output.WriteString("]")
 		case "network":
-			if isFilter(opt, &s.NetStat) == true {
+			if isFilter(opt, &s.NetStat) {
 				dumpJson(s.Curr.TimeStamp, opt, &s.NetStat)
 			}
 		case "networkprotocol":
 			opt.Output.WriteString("[")
 			first := true
 			for _, n := range s.NetProtocols {
-				if isFilter(opt, &n) == true {
-					if first == true {
+				if isFilter(opt, &n) {
+					if first {
 						first = false
 					} else {
 						opt.Output.WriteString(",\n")
@@ -420,8 +420,8 @@ func (s *Model) dumpJson(opt DumpOption) error {
 			opt.Output.WriteString("[")
 			first := true
 			for _, soft := range s.Softnets {
-				if isFilter(opt, &soft) == true {
-					if first == true {
+				if isFilter(opt, &soft) {
+					if first {
 						first = false
 					} else {
 						opt.Output.WriteString(",\n")
@@ -436,8 +436,8 @@ func (s *Model) dumpJson(opt DumpOption) error {
 			opt.Output.WriteString("[")
 			first := true
 			for _, p := range processList {
-				if isFilter(opt, &p) == true {
-					if first == true {
+				if isFilter(opt, &p) {
+					if first {
 						first = false
 					} else {
 						opt.Output.WriteString(",\n")

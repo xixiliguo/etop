@@ -373,7 +373,7 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 
 	if file, ok := FiledToCgroupFile[field]; ok {
 		if _, ok := c.IsNotExist[file]; ok {
-			if cfg.FixWidth == true {
+			if cfg.FixWidth {
 				return fmt.Sprintf("%-[1]*s", cfg.Width, "-")
 			}
 			return "-"
@@ -392,13 +392,13 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 		}
 
 		s = indents + "└── " + c.Name
-		if c.IsExpand == false && len(c.Child) != 0 {
+		if !c.IsExpand && len(c.Child) != 0 {
 			s = indents + "└─+ " + c.Name
 		}
 		if c.Level == 0 {
 			s = "/"
 		}
-		if cfg.FixWidth == true {
+		if cfg.FixWidth {
 			pad := cfg.Width - runewidth.StringWidth(s)
 			if pad > 0 {
 				s = s + strings.Repeat(" ", pad)
@@ -876,7 +876,6 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 		child.Collect(prevChild, currChild, interval)
 		c.Child[child.Name] = child
 	}
-	return
 }
 
 func (c *Cgroup) GetChildCgroupByNames(names []string) *Cgroup {
@@ -899,7 +898,7 @@ func (c *Cgroup) Iterate(searchprogram *vm.Program, sortField string, descOrder 
 
 	if searchprogram != nil {
 		output, _ := expr.Run(searchprogram, c)
-		if output.(bool) == false {
+		if !output.(bool) {
 			isMatch = false
 		}
 	}
@@ -914,11 +913,11 @@ func (c *Cgroup) Iterate(searchprogram *vm.Program, sortField string, descOrder 
 		}
 	}
 
-	if isMatch == false && len(childReSult) == 0 {
+	if !isMatch && len(childReSult) == 0 {
 		return []*Cgroup{}
 	}
 	cgs := []*Cgroup{c}
-	if c.IsExpand == false {
+	if !c.IsExpand {
 		return cgs
 	}
 	cgs = append(cgs, childReSult...)
@@ -1105,7 +1104,7 @@ func (c *Cgroup) sortChild(sortField string, descOrder bool) []*Cgroup {
 		return false
 	})
 
-	if descOrder == false {
+	if !descOrder {
 		for i := 0; i < len(childs)/2; i++ {
 			childs[i], childs[len(childs)-1-i] = childs[len(childs)-1-i], childs[i]
 		}

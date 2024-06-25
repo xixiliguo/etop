@@ -115,5 +115,4 @@ func (sys *System) Collect(prev, curr *store.Sample) {
 	sys.ClonePerSec = float64(curr.ProcessCreated-prev.ProcessCreated) / float64(interval)
 	sys.ContextSwitchPerSec = float64(curr.ContextSwitches-prev.ContextSwitches) / float64(interval)
 
-	return
 }

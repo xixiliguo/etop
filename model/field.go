@@ -81,12 +81,12 @@ func (f Field) Render(value any) string {
 			buf = strconv.AppendFloat(buf, v, 'f', f.Precision, 64)
 		}
 	case string:
-		if f.Suffix == "" && f.FixWidth == false {
+		if f.Suffix == "" && !f.FixWidth {
 			return v
 		}
 		buf = append(buf, v...)
 	case []string:
-		if f.Suffix == "" && f.FixWidth == false {
+		if f.Suffix == "" && !f.FixWidth {
 			return strings.Join(v, " ")
 		}
 		buf = append(buf, strings.Join(v, " ")...)
@@ -96,7 +96,7 @@ func (f Field) Render(value any) string {
 
 	buf = append(buf, f.Suffix...)
 
-	if f.FixWidth == true {
+	if f.FixWidth {
 		width := f.Width
 		if len(f.Name) > width {
 			width = len(f.Name)
@@ -143,5 +143,4 @@ func (f *Field) ApplyOpt(opt FieldOpt) {
 		f.Format = Raw
 		f.Suffix = ""
 	}
-	return
 }

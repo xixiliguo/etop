@@ -110,5 +110,4 @@ func (v *Vm) Collect(prev, curr *store.Sample) {
 	v.PageStealKswapd = curr.PageStealKswapd - prev.PageStealKswapd
 	v.PageStealDirect = curr.PageStealDirect - prev.PageStealDirect
 	v.OOMKill = curr.OOMKill - prev.OOMKill
-	return
 }

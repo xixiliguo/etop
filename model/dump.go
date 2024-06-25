@@ -29,7 +29,7 @@ var bufferMapPool = sync.Pool{
 
 func dumpText(timeStamp int64, opt DumpOption, m Render) {
 
-	if isFilter(opt, m) == false {
+	if !isFilter(opt, m) {
 		return
 	}
 
@@ -115,7 +115,7 @@ func dumpJsonForCgroup(timeStamp int64, opt DumpOption, c Cgroup) map[string]any
 
 func dumpOpenMetric(timeStamp int64, opt DumpOption, m Render) {
 
-	if isFilter(opt, m) == false {
+	if !isFilter(opt, m) {
 		return
 	}
 
@@ -145,7 +145,7 @@ func dumpOpenMetric(timeStamp int64, opt DumpOption, m Render) {
 			buf.WriteString("{")
 			first := true
 			for _, l := range cfg.Labels {
-				if first == true {
+				if first {
 					first = false
 				} else {
 					buf.WriteString(",")

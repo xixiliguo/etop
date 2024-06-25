@@ -241,10 +241,10 @@ func (netMap NetDevMap) GetKeys() []string {
 		keys = append(keys, kk)
 	}
 	sort.Slice(keys, func(i, j int) bool {
-		if strings.HasPrefix(keys[i], "eth") && strings.HasPrefix(keys[j], "eth") == false {
+		if strings.HasPrefix(keys[i], "eth") && !strings.HasPrefix(keys[j], "eth") {
 			return true
 		}
-		if strings.HasPrefix(keys[j], "eth") && strings.HasPrefix(keys[i], "eth") == false {
+		if strings.HasPrefix(keys[j], "eth") && !strings.HasPrefix(keys[i], "eth") {
 			return false
 		}
 		return keys[i] < keys[j]

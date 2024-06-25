@@ -427,10 +427,6 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 	return s
 }
 
-type sortFunc func(i, j Process) bool
-
-//go:generate go run sort.go
-
 type ProcessMap map[int]Process
 
 func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string, descOrder bool) []Process {
@@ -542,7 +538,7 @@ func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string
 		}
 		return false
 	})
-	if descOrder == false {
+	if !descOrder {
 		for i := 0; i < len(res)/2; i++ {
 			res[i], res[len(res)-1-i] = res[len(res)-1-i], res[i]
 		}
@@ -562,7 +558,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 	for pid := range curr.ProcSamples {
 
 		bootTime := curr.BootTimeTick
-		if bootTime == 0 || enableBootTimeTick == false {
+		if bootTime == 0 || !enableBootTimeTick {
 			bootTime = curr.BootTime * 100
 		}
 		new := curr.ProcSamples[pid]
