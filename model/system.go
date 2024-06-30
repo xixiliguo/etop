@@ -4,7 +4,7 @@ import (
 	"github.com/xixiliguo/etop/store"
 )
 
-var DefaultSystemFields = []string{"Load1", "Load5", "Load15",
+var DefaultSystemFields = []string{"Load1", "Load5", "Load15", "NumCPU",
 	"Processes", "Threads",
 	"ProcessesRunning", "ProcessesBlocked",
 	"ClonePerSec", "ContextSwitchPerSec"}
@@ -13,6 +13,7 @@ type System struct {
 	Load1               float64
 	Load5               float64
 	Load15              float64
+	NumCPU              uint64
 	Processes           uint64
 	Threads             uint64
 	ProcessesRunning    uint64
@@ -31,6 +32,8 @@ func (sys *System) DefaultConfig(field string) Field {
 		cfg = Field{"Load5", Raw, 0, "", 10, false}
 	case "Load15":
 		cfg = Field{"Load15", Raw, 0, "", 10, false}
+	case "NumCPU":
+		cfg = Field{"NumCPU", Raw, 0, "", 10, false}
 	case "Processes":
 		cfg = Field{"Process", Raw, 0, "", 10, false}
 	case "Threads":
@@ -85,6 +88,8 @@ func (sys *System) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(sys.Load5)
 	case "Load15":
 		s = cfg.Render(sys.Load15)
+	case "NumCPU":
+		s = cfg.Render(sys.NumCPU)
 	case "Processes":
 		s = cfg.Render(sys.Processes)
 	case "Threads":
@@ -108,6 +113,7 @@ func (sys *System) Collect(prev, curr *store.Sample) {
 	sys.Load1 = curr.Load1
 	sys.Load5 = curr.Load5
 	sys.Load15 = curr.Load15
+	sys.NumCPU = uint64(len(curr.CPU))
 	sys.ProcessesRunning = curr.ProcessesRunning
 	sys.ProcessesBlocked = curr.ProcessesBlocked
 

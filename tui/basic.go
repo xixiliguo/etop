@@ -52,10 +52,11 @@ func NewBasic() *Basic {
 func (basic *Basic) Update(sm *model.Model) {
 
 	basic.load.Clear()
-	fmt.Fprintf(basic.load, "%-7sLoad1 %9s%5sLoad5 %9s%5sLoad15 %8s",
+	fmt.Fprintf(basic.load, "%-7sLoad1 %9s%5sLoad5 %9s%5sLoad15 %8s%5sNumCPU %8s",
 		"Load", sm.Sys.GetRenderValue("Load1", model.FieldOpt{}), "",
 		sm.Sys.GetRenderValue("Load5", model.FieldOpt{}), "",
-		sm.Sys.GetRenderValue("Load15", model.FieldOpt{}))
+		sm.Sys.GetRenderValue("Load15", model.FieldOpt{}), "",
+		sm.Sys.GetRenderValue("NumCPU", model.FieldOpt{}))
 
 	basic.proc.Clear()
 	fmt.Fprintf(basic.proc, "%-7sProcess %7s%5sThread %8s%5sRunning %7s%5sBlocked %7s%5sClone %9s%5sCtxSw %9s",
