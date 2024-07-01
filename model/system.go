@@ -50,32 +50,6 @@ func (sys *System) DefaultConfig(field string) Field {
 	return cfg
 }
 
-func (sys *System) DefaultOMConfig(field string) OpenMetricField {
-
-	cfg := OpenMetricField{}
-	switch field {
-	case "Load1":
-		cfg = OpenMetricField{"Load1", Gauge, "", "", []string{}}
-	case "Load5":
-		cfg = OpenMetricField{"Load5", Gauge, "", "", []string{}}
-	case "Load15":
-		cfg = OpenMetricField{"Load15", Gauge, "", "", []string{}}
-	case "Processes":
-		cfg = OpenMetricField{"Process", Gauge, "", "", []string{}}
-	case "Threads":
-		cfg = OpenMetricField{"Thread", Gauge, "", "", []string{}}
-	case "ProcessesRunning":
-		cfg = OpenMetricField{"Running", Gauge, "", "", []string{}}
-	case "ProcessesBlocked":
-		cfg = OpenMetricField{"Blocked", Gauge, "", "", []string{}}
-	case "ClonePerSec":
-		cfg = OpenMetricField{"ClonePerSec", Gauge, "", "", []string{}}
-	case "ContextSwitchPerSec":
-		cfg = OpenMetricField{"ContextSwitchPerSec", Gauge, "", "", []string{}}
-	}
-	return cfg
-}
-
 func (sys *System) GetRenderValue(field string, opt FieldOpt) string {
 
 	cfg := sys.DefaultConfig(field)

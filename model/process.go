@@ -74,27 +74,6 @@ func (c *PCPU) DefaultConfig(field string) Field {
 	return cfg
 }
 
-func (c *PCPU) DefaultOMConfig(field string) OpenMetricField {
-	cfg := OpenMetricField{}
-	switch field {
-	case "User":
-		cfg = OpenMetricField{"User", Gauge, "", "", []string{"Pid"}}
-	case "System":
-		cfg = OpenMetricField{"System", Gauge, "", "", []string{"Pid"}}
-	case "Priority":
-		cfg = OpenMetricField{"Priority", Gauge, "", "", []string{"Pid"}}
-	case "Nice":
-		cfg = OpenMetricField{"Nice", Gauge, "", "", []string{"Pid"}}
-	case "CPU":
-		cfg = OpenMetricField{"CPU", Gauge, "", "", []string{"Pid"}}
-	case "RunDelay":
-		cfg = OpenMetricField{"RunDelay", Gauge, "", "", []string{"Pid"}}
-	case "BlkDelay":
-		cfg = OpenMetricField{"BlkDelay", Gauge, "", "", []string{"Pid"}}
-	}
-	return cfg
-}
-
 func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
 	cfg := c.DefaultConfig(field)
 	cfg.ApplyOpt(opt)
@@ -141,23 +120,6 @@ func (m *PMEM) DefaultConfig(field string) Field {
 		cfg = Field{"RSS", HumanReadableSize, 0, "", 10, false}
 	case "Mem":
 		cfg = Field{"Mem", Raw, 1, "%", 10, false}
-	}
-	return cfg
-}
-
-func (m *PMEM) DefaultOMConfig(field string) OpenMetricField {
-	cfg := OpenMetricField{}
-	switch field {
-	case "MinFlt":
-		cfg = OpenMetricField{"MinFlt", Gauge, "", "", []string{"Pid"}}
-	case "MajFlt":
-		cfg = OpenMetricField{"MajFlt", Gauge, "", "", []string{"Pid"}}
-	case "VSize":
-		cfg = OpenMetricField{"VSize", Gauge, "", "", []string{"Pid"}}
-	case "RSS":
-		cfg = OpenMetricField{"RSS", Gauge, "", "", []string{"Pid"}}
-	case "Mem":
-		cfg = OpenMetricField{"Mem", Gauge, "", "", []string{"Pid"}}
 	}
 	return cfg
 }
@@ -234,39 +196,6 @@ func (i *PIO) DefaultConfig(field string) Field {
 	return cfg
 }
 
-func (i *PIO) DefaultOMConfig(field string) OpenMetricField {
-	cfg := OpenMetricField{}
-	switch field {
-	case "ReadCharPerSec":
-		cfg = OpenMetricField{"ReadCharPerSec", Gauge, "", "", []string{"Pid"}}
-	case "WriteCharPerSec":
-		cfg = OpenMetricField{"WriteCharPerSec", Gauge, "", "", []string{"Pid"}}
-	case "SyscR":
-		cfg = OpenMetricField{"SyscR", Gauge, "", "", []string{"Pid"}}
-	case "SyscW":
-		cfg = OpenMetricField{"SyscW", Gauge, "", "", []string{"Pid"}}
-	case "SyscRPerSec":
-		cfg = OpenMetricField{"SyscRPerSec", Gauge, "", "", []string{"Pid"}}
-	case "SyscWPerSec":
-		cfg = OpenMetricField{"SyscWPerSec", Gauge, "", "", []string{"Pid"}}
-	case "ReadBytes":
-		cfg = OpenMetricField{"ReadBytes", Gauge, "", "", []string{"Pid"}}
-	case "WriteBytes":
-		cfg = OpenMetricField{"WriteBytes", Gauge, "", "", []string{"Pid"}}
-	case "CancelledWriteBytes":
-		cfg = OpenMetricField{"CancelledWriteBytes", Gauge, "", "", []string{"Pid"}}
-	case "ReadBytePerSec":
-		cfg = OpenMetricField{"ReadBytePerSec", Gauge, "", "", []string{"Pid"}}
-	case "WriteBytePerSec":
-		cfg = OpenMetricField{"WriteBytePerSec", Gauge, "", "", []string{"Pid"}}
-	case "CancelledWriteBytePerSec":
-		cfg = OpenMetricField{"CancelledWriteBytePerSec", Gauge, "", "", []string{"Pid"}}
-	case "Disk":
-		cfg = OpenMetricField{"Disk", Gauge, "", "", []string{"Pid"}}
-	}
-	return cfg
-}
-
 func (i *PIO) GetRenderValue(field string, opt FieldOpt) string {
 	cfg := i.DefaultConfig(field)
 	cfg.ApplyOpt(opt)
@@ -338,40 +267,6 @@ func (p *Process) DefaultConfig(field string) Field {
 		"SyscR", "SyscW", "SyscRPerSec", "SyscWPerSec",
 		"ReadBytes", "WriteBytes", "CancelledWriteBytes", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
 		return p.PIO.DefaultConfig(field)
-	}
-	return cfg
-}
-
-func (p *Process) DefaultOMConfig(field string) OpenMetricField {
-
-	cfg := OpenMetricField{}
-	switch field {
-	case "Pid":
-		cfg = OpenMetricField{"", Gauge, "", "", []string{"Pid"}}
-	case "Comm":
-		cfg = OpenMetricField{"Comm", Gauge, "", "", []string{"Pid"}}
-	case "State":
-		cfg = OpenMetricField{"State", Gauge, "", "", []string{"Pid"}}
-	case "Ppid":
-		cfg = OpenMetricField{"Ppid", Gauge, "", "", []string{"Pid"}}
-	case "NumThreads":
-		cfg = OpenMetricField{"NumThreads", Gauge, "", "", []string{"Pid"}}
-	case "StartTime":
-		cfg = OpenMetricField{"StartTime", Gauge, "", "", []string{"Pid"}}
-	case "OnCPU":
-		cfg = OpenMetricField{"OnCPU", Gauge, "", "", []string{"Pid"}}
-	case "CmdLine":
-		cfg = OpenMetricField{"CmdLine", Gauge, "", "", []string{"Pid"}}
-	case "Cgroup":
-		cfg = OpenMetricField{"Cgroup", Gauge, "", "", []string{"Pid"}}
-	case "User", "System", "Priority", "Nice", "CPU", "RunDelay", "BlkDelay":
-		return p.PCPU.DefaultOMConfig(field)
-	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
-		return p.PMEM.DefaultOMConfig(field)
-	case "RChar", "WChar", "ReadCharPerSec", "WriteCharPerSec",
-		"SyscR", "SyscW", "SyscRPerSec", "SyscWPerSec",
-		"ReadBytes", "WriteBytes", "CancelledWriteBytes", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk":
-		return p.PIO.DefaultOMConfig(field)
 	}
 	return cfg
 }

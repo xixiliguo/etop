@@ -89,39 +89,6 @@ func (d *Disk) DefaultConfig(field string) Field {
 	return cfg
 }
 
-func (d *Disk) DefaultOMConfig(field string) OpenMetricField {
-	cfg := OpenMetricField{}
-	switch field {
-	case "Disk":
-		cfg = OpenMetricField{"", Gauge, "", "", []string{"Disk"}}
-	case "Util":
-		cfg = OpenMetricField{"Util", Gauge, "", "", []string{"Disk"}}
-	case "Read":
-		cfg = OpenMetricField{"Read", Gauge, "", "", []string{"Disk"}}
-	case "ReadPerSec":
-		cfg = OpenMetricField{"ReadPerSec", Gauge, "", "", []string{"Disk"}}
-	case "ReadBytePerSec":
-		cfg = OpenMetricField{"ReadBytePerSec", Gauge, "", "", []string{"Disk"}}
-	case "Write":
-		cfg = OpenMetricField{"Write", Gauge, "", "", []string{"Disk"}}
-	case "WritePerSec":
-		cfg = OpenMetricField{"WritePerSec", Gauge, "", "", []string{"Disk"}}
-	case "WriteBytePerSec":
-		cfg = OpenMetricField{"WriteBytePerSec", Gauge, "", "", []string{"Disk"}}
-	case "AvgIOSize":
-		cfg = OpenMetricField{"AvgIOSize", Gauge, "", "", []string{"Disk"}}
-	case "AvgQueueLen":
-		cfg = OpenMetricField{"AvgQueueLen", Gauge, "", "", []string{"Disk"}}
-	case "InFlight":
-		cfg = OpenMetricField{"InFlight", Gauge, "", "", []string{"Disk"}}
-	case "AvgIOWait":
-		cfg = OpenMetricField{"AvgIOWait", Gauge, "", "", []string{"Disk"}}
-	case "AvgIOTime":
-		cfg = OpenMetricField{"AvgIOTime", Gauge, "", "", []string{"Disk"}}
-	}
-	return cfg
-}
-
 func (d *Disk) GetRenderValue(field string, opt FieldOpt) string {
 
 	cfg := d.DefaultConfig(field)

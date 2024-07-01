@@ -95,56 +95,6 @@ func (n *NetDev) DefaultConfig(field string) Field {
 	return cfg
 }
 
-func (n *NetDev) DefaultOMConfig(field string) OpenMetricField {
-
-	cfg := OpenMetricField{}
-	switch field {
-	case "Name":
-		cfg = OpenMetricField{"", Gauge, "", "", []string{"Name"}}
-	case "RxBytes":
-		cfg = OpenMetricField{"RxBytes", Gauge, "", "", []string{"Name"}}
-	case "RxPackets":
-		cfg = OpenMetricField{"RxPackets", Gauge, "", "", []string{"Name"}}
-	case "RxErrors":
-		cfg = OpenMetricField{"RxErrors", Gauge, "", "", []string{"Name"}}
-	case "RxDropped":
-		cfg = OpenMetricField{"RxDropped", Gauge, "", "", []string{"Name"}}
-	case "RxFIFO":
-		cfg = OpenMetricField{"RxFIFO", Gauge, "", "", []string{"Name"}}
-	case "RxFrame":
-		cfg = OpenMetricField{"RxFrame", Gauge, "", "", []string{"Name"}}
-	case "RxCompressed":
-		cfg = OpenMetricField{"RxCompressed", Gauge, "", "", []string{"Name"}}
-	case "RxMulticast":
-		cfg = OpenMetricField{"RxMulticast", Gauge, "", "", []string{"Name"}}
-	case "TxBytes":
-		cfg = OpenMetricField{"TxBytes", Gauge, "", "", []string{"Name"}}
-	case "TxPackets":
-		cfg = OpenMetricField{"TxPackets", Gauge, "", "", []string{"Name"}}
-	case "TxErrors":
-		cfg = OpenMetricField{"TxErrors", Gauge, "", "", []string{"Name"}}
-	case "TxDropped":
-		cfg = OpenMetricField{"TxDropped", Gauge, "", "", []string{"Name"}}
-	case "TxFIFO":
-		cfg = OpenMetricField{"TxFIFO", Gauge, "", "", []string{"Name"}}
-	case "TxCollisions":
-		cfg = OpenMetricField{"TxCollisions", Gauge, "", "", []string{"Name"}}
-	case "TxCarrier":
-		cfg = OpenMetricField{"TxCarrier", Gauge, "", "", []string{"Name"}}
-	case "TxCompressed":
-		cfg = OpenMetricField{"TxCompressed", Gauge, "", "", []string{"Name"}}
-	case "RxBytePerSec":
-		cfg = OpenMetricField{"RxBytePerSec", Gauge, "", "", []string{"Name"}}
-	case "RxPacketPerSec":
-		cfg = OpenMetricField{"RxPacketPerSec", Gauge, "", "", []string{"Name"}}
-	case "TxBytePerSec":
-		cfg = OpenMetricField{"TxBytePerSec", Gauge, "", "", []string{"Name"}}
-	case "TxPacketPerSec":
-		cfg = OpenMetricField{"TxPacketPerSec", Gauge, "", "", []string{"Name"}}
-	}
-	return cfg
-}
-
 func (n *NetDev) GetRenderValue(field string, opt FieldOpt) string {
 
 	cfg := n.DefaultConfig(field)

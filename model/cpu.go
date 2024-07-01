@@ -61,35 +61,6 @@ func (c *CPU) DefaultConfig(field string) Field {
 	return cfg
 }
 
-func (c *CPU) DefaultOMConfig(field string) OpenMetricField {
-	cfg := OpenMetricField{}
-	switch field {
-	case "Index":
-		cfg = OpenMetricField{"", Gauge, "", "", []string{"Index"}}
-	case "User":
-		cfg = OpenMetricField{"User", Gauge, "", "", []string{"Index"}}
-	case "Nice":
-		cfg = OpenMetricField{"Nice", Gauge, "", "", []string{"Index"}}
-	case "System":
-		cfg = OpenMetricField{"System", Gauge, "", "", []string{"Index"}}
-	case "Idle":
-		cfg = OpenMetricField{"Idle", Gauge, "", "", []string{"Index"}}
-	case "Iowait":
-		cfg = OpenMetricField{"Iowait", Gauge, "", "", []string{"Index"}}
-	case "IRQ":
-		cfg = OpenMetricField{"IRQ", Gauge, "", "", []string{"Index"}}
-	case "SoftIRQ":
-		cfg = OpenMetricField{"SoftIRQ", Gauge, "", "", []string{"Index"}}
-	case "Steal":
-		cfg = OpenMetricField{"Steal", Gauge, "", "", []string{"Index"}}
-	case "Guest":
-		cfg = OpenMetricField{"Guest", Gauge, "", "", []string{"Index"}}
-	case "GuestNice":
-		cfg = OpenMetricField{"GuestNice", Gauge, "", "", []string{"Index"}}
-	}
-	return cfg
-}
-
 func (c *CPU) GetRenderValue(field string, opt FieldOpt) string {
 
 	cfg := c.DefaultConfig(field)

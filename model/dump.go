@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 )
 
 type Render interface {
 	DefaultConfig(field string) Field
-	DefaultOMConfig(field string) OpenMetricField
 	GetRenderValue(field string, opt FieldOpt) string
 }
 
@@ -111,68 +109,4 @@ func dumpJsonForCgroup(timeStamp int64, opt DumpOption, c Cgroup) map[string]any
 
 	bufMap["Child"] = childs
 	return bufMap
-}
-
-func dumpOpenMetric(timeStamp int64, opt DumpOption, m Render) {
-
-	if !isFilter(opt, m) {
-		return
-	}
-
-	buf := bufferPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer bufferPool.Put(buf)
-
-	for _, f := range opt.Fields {
-
-		cfg := m.DefaultOMConfig(f)
-		if cfg.Name == "" {
-			continue
-		}
-
-		renderValue := m.GetRenderValue(f, FieldOpt{
-			Raw: true,
-		})
-		buf.WriteString("# TYPE" + " " + cfg.Name + " " + omTypToString[cfg.Typ] + "\n")
-		if cfg.Unit != "" {
-			buf.WriteString("# UNIT" + " " + cfg.Name + " " + cfg.Unit + "\n")
-		}
-		if cfg.Help != "" {
-			buf.WriteString("# HELP" + " " + cfg.Name + " " + cfg.Help + "\n")
-		}
-		buf.WriteString(cfg.Name)
-		if len(cfg.Labels) != 0 {
-			buf.WriteString("{")
-			first := true
-			for _, l := range cfg.Labels {
-				if first {
-					first = false
-				} else {
-					buf.WriteString(",")
-				}
-				buf.WriteString(l + "=" + `"` + m.GetRenderValue(l, FieldOpt{}) + `"`)
-			}
-			buf.WriteString("}")
-		}
-
-		buf.WriteString(" " + renderValue)
-		buf.WriteString(" " + strconv.FormatInt(timeStamp, 10))
-		buf.WriteString("\n")
-	}
-	buf.WriteTo(opt.Output)
-}
-
-func dumpOpenMetricForCgroup(timeStamp int64, opt DumpOption, c Cgroup) {
-
-	dumpOpenMetric(timeStamp, opt, &c)
-
-	names := []string{}
-	for _, child := range c.Child {
-		names = append(names, child.Name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		dumpOpenMetricForCgroup(timeStamp, opt, *c.Child[name])
-	}
-
 }

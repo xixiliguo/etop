@@ -178,8 +178,6 @@ func (s *Model) Dump(opt DumpOption) error {
 		return s.dumpText(opt)
 	case "json":
 		return s.dumpJson(opt)
-	case "openmetrics":
-		return s.dumpOpenMetrics(opt)
 	default:
 		return fmt.Errorf("no support output format: %s", opt.Format)
 	}
@@ -540,72 +538,6 @@ func (s *Model) dumpJson(opt DumpOption) error {
 		}
 	}
 	opt.Output.WriteString("\n]\n")
-	return nil
-
-}
-
-func (s *Model) dumpOpenMetrics(opt DumpOption) error {
-
-	if err := s.CollectSampleByTime(opt.Begin); err != nil {
-		return err
-	}
-
-	for opt.End >= s.Curr.TimeStamp {
-
-		switch opt.Module {
-		case "system":
-			dumpOpenMetric(s.Curr.TimeStamp, opt, &s.Sys)
-		case "cpu":
-			for _, c := range s.CPUs {
-				dumpOpenMetric(s.Curr.TimeStamp, opt, &c)
-			}
-		case "memory":
-			dumpOpenMetric(s.Curr.TimeStamp, opt, &s.MEM)
-		case "vm":
-			dumpOpenMetric(s.Curr.TimeStamp, opt, &s.Vm)
-		case "disk":
-			for _, disk := range s.Disks.GetKeys() {
-				d := s.Disks[disk]
-				dumpOpenMetric(s.Curr.TimeStamp, opt, &d)
-			}
-		case "netdev":
-			for _, dev := range s.Nets.GetKeys() {
-				n := s.Nets[dev]
-				dumpOpenMetric(s.Curr.TimeStamp, opt, &n)
-			}
-		case "network":
-			dumpOpenMetric(s.Curr.TimeStamp, opt, &s.NetStat)
-		case "networkprotocol":
-			for _, n := range s.NetProtocols {
-				dumpOpenMetric(s.Curr.TimeStamp, opt, &n)
-			}
-		case "softnet":
-			for _, soft := range s.Softnets {
-				dumpOpenMetric(s.Curr.TimeStamp, opt, &soft)
-			}
-		case "process":
-			processList := s.Processes.Iterate(nil, opt.SortField, opt.DescendingOrder)
-			cnt := 0
-			for _, p := range processList {
-				dumpOpenMetric(s.Curr.TimeStamp, opt, &p)
-				cnt++
-				if opt.Top > 0 && opt.Top == cnt {
-					break
-				}
-			}
-		case "cgroup":
-			dumpOpenMetricForCgroup(s.Curr.TimeStamp, opt, s.Cgroup)
-		}
-		if err := s.CollectNext(); err != nil {
-			if err == store.ErrOutOfRange {
-				opt.Output.WriteString("# EOF\n")
-				return nil
-			}
-			return err
-		}
-
-	}
-	opt.Output.WriteString("# EOF\n")
 	return nil
 
 }
