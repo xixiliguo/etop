@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 	"path/filepath"
-	"slices"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
@@ -34,6 +33,8 @@ var (
 type Cgroup struct {
 	*tview.Flex
 	status             *tview.TextView
+	statuxText         string
+	noSelect           bool
 	regions            []string
 	currRegionIdx      int
 	header             *tview.TextView
@@ -57,20 +58,19 @@ type Cgroup struct {
 func NewCgroup(status *tview.TextView) *Cgroup {
 
 	cgroup := &Cgroup{
-		Flex:               tview.NewFlex(),
-		status:             status,
-		header:             tview.NewTextView(),
-		cgroupView:         tview.NewTable(),
-		sortView:           tview.NewList(),
-		sortField:          "Name",
-		descOrder:          false,
-		sortDisplay:        false,
-		searchView:         tview.NewInputField(),
-		searchDisplay:      false,
-		searchText:         "",
-		prevVisibleColumns: CGROUPGENERALLAYOUT,
-		visibleColumns:     CGROUPGENERALLAYOUT,
-		defaultOrder:       CGROUPGENERALDEFAULTORDER,
+		Flex:           tview.NewFlex(),
+		status:         status,
+		header:         tview.NewTextView(),
+		cgroupView:     tview.NewTable(),
+		sortView:       tview.NewList(),
+		sortField:      "Name",
+		descOrder:      false,
+		sortDisplay:    false,
+		searchView:     tview.NewInputField(),
+		searchDisplay:  false,
+		searchText:     "",
+		visibleColumns: CGROUPGENERALLAYOUT,
+		defaultOrder:   CGROUPGENERALDEFAULTORDER,
 	}
 
 	cgroup.regions = []string{"g", "c", "m", "d", "p"}
@@ -91,6 +91,7 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 			}
 			selected := cgroup.visbleData[row-1]
 			selected.IsExpand = !selected.IsExpand
+			cgroup.noSelect = true
 			cgroup.update()
 		}).
 		SetSelectionChangedFunc(func(row int, column int) {
@@ -99,7 +100,8 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 			if 0 <= idx && idx < len(cgroup.visbleData) {
 				c := cgroup.visbleData[idx]
 				extra := filepath.Join(c.Path, c.Name)
-				fmt.Fprintf(cgroup.status, "%s", extra)
+				cgroup.statuxText = extra
+				cgroup.status.SetText(extra)
 			}
 		})
 	cgroup.SetBorder(true).
@@ -357,7 +359,9 @@ func (cgroup *Cgroup) update() {
 		}
 	}
 
-	if slices.Compare(cgroup.prevVisibleColumns, cgroup.visibleColumns) != 0 {
-		cgroup.cgroupView.Select(1, 0)
+	if cgroup.noSelect {
+		cgroup.noSelect = false
+		return
 	}
+	cgroup.cgroupView.Select(1, 0)
 }

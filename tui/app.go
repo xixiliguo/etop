@@ -83,9 +83,8 @@ func (tui *TUI) initSearch() {
 			}
 			tui.header.Update(tui.sm)
 			tui.basic.Update(tui.sm)
-			tui.process.SetSource(tui.sm)
-			tui.system.SetSource(tui.sm)
-			tui.cgroup.SetSource(tui.sm)
+			tui.SetSource(tui.sm)
+
 			tui.search.form.SetText("")
 			tui.pages.HidePage("search")
 			return
@@ -101,13 +100,16 @@ func (tui *TUI) initDetails() {
 	tui.detail.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyF1 || event.Name() == "Alt+Rune[1]" {
 			tui.detail.SwitchToPage("Process")
+			tui.status.Clear().SetText(tui.process.statusText)
 			return nil
 		} else if event.Key() == tcell.KeyF2 || event.Name() == "Alt+Rune[2]" {
 			tui.detail.SwitchToPage("System")
+			tui.status.Clear()
 			return nil
 		} else if event.Key() == tcell.KeyF3 || event.Name() == "Alt+Rune[3]" {
 			if len(tui.cgroup.visbleData) > 1 {
 				tui.detail.SwitchToPage("Cgroup")
+				tui.status.Clear().SetText(tui.cgroup.statuxText)
 			}
 			return nil
 		}
@@ -161,9 +163,8 @@ func (tui *TUI) initPages() {
 				}
 				tui.header.Update(tui.sm)
 				tui.basic.Update(tui.sm)
-				tui.process.SetSource(tui.sm)
-				tui.system.SetSource(tui.sm)
-				tui.cgroup.SetSource(tui.sm)
+				tui.SetSource(tui.sm)
+
 			}
 			return nil
 		} else if event.Rune() == 'T' {
@@ -176,9 +177,7 @@ func (tui *TUI) initPages() {
 				}
 				tui.header.Update(tui.sm)
 				tui.basic.Update(tui.sm)
-				tui.process.SetSource(tui.sm)
-				tui.system.SetSource(tui.sm)
-				tui.cgroup.SetSource(tui.sm)
+				tui.SetSource(tui.sm)
 			}
 			return nil
 		} else if event.Rune() == 'b' {
@@ -195,6 +194,19 @@ func (tui *TUI) initPages() {
 		}
 		return event
 	})
+}
+
+func (tui *TUI) SetSource(sm *model.Model) {
+	tui.cgroup.SetSource(sm)
+	tui.system.SetSource(sm)
+	tui.process.SetSource(sm)
+	switch name, _ := tui.detail.GetFrontPage(); name {
+	case "Process":
+		tui.process.processView.Select(1, 0)
+	case "System":
+	case "Cgroup":
+		tui.cgroup.cgroupView.Select(1, 0)
+	}
 }
 
 func (tui *TUI) Run(path string, beginTime string) error {
@@ -223,9 +235,7 @@ func (tui *TUI) Run(path string, beginTime string) error {
 	tui.sm = sm
 	tui.header.Update(sm)
 	tui.basic.Update(sm)
-	tui.process.SetSource(sm)
-	tui.system.SetSource(sm)
-	tui.cgroup.SetSource(sm)
+	tui.SetSource(sm)
 
 	if err := tui.Application.SetRoot(tui.pages, true).SetFocus(tui.pages).Run(); err != nil {
 		return err
@@ -257,9 +267,7 @@ func (tui *TUI) RunWithLive(interval time.Duration) error {
 			tui.QueueUpdateDraw(func() {
 				tui.header.Update(sm)
 				tui.basic.Update(sm)
-				tui.process.SetSource(sm)
-				tui.system.SetSource(sm)
-				tui.cgroup.SetSource(sm)
+				tui.SetSource(sm)
 			})
 
 			collectDuration := time.Since(start)

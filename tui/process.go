@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/expr-lang/expr"
@@ -26,6 +25,7 @@ var (
 type Process struct {
 	*tview.Flex
 	status             *tview.TextView
+	statusText         string
 	regions            []string
 	currRegionIdx      int
 	header             *tview.TextView
@@ -84,13 +84,14 @@ func NewProcess(status *tview.TextView) *Process {
 				if extra == "" {
 					extra = p.Comm
 				}
-				fmt.Fprintf(process.status, "%s", extra)
 				if p.State == "x" || p.State == "X" {
-					fmt.Fprintf(process.status, " exit code %d at %s",
+
+					extra += fmt.Sprintf(" exit code %d at %s",
 						p.ExitCode,
 						time.Unix(int64(p.EndTime), 0).Format(time.RFC3339))
 				}
-
+				process.statusText = extra
+				process.status.SetText(process.statusText)
 			}
 		})
 	process.SetBorder(true).
@@ -337,8 +338,5 @@ func (process *Process) update() {
 					SetMaxWidth(width))
 		}
 	}
-
-	if slices.Compare(process.prevVisibleColumns, process.visibleColumns) != 0 {
-		process.processView.Select(1, 0)
-	}
+	process.processView.Select(1, 0)
 }
