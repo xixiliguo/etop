@@ -30,7 +30,6 @@ type Process struct {
 	currRegionIdx      int
 	header             *tview.TextView
 	processView        *tview.Table
-	processDisplay     bool
 	sortView           *tview.List
 	sortField          string
 	descOrder          bool
@@ -155,7 +154,6 @@ func (process *Process) Focus(delegate func(p tview.Primitive)) {
 		return
 	}
 	delegate(process.processView)
-	return
 }
 
 func (process *Process) setRegionAndSwitchView(region string) {
@@ -177,7 +175,6 @@ func (process *Process) setRegionAndSwitchView(region string) {
 		process.setVisibleColumns(IOLAYOUT, IODEFAULTORDER)
 	}
 	process.update()
-	return
 }
 
 func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
@@ -197,7 +194,7 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 		if event.Rune() == 's' {
 			upper := process.GetItem(0).(*tview.Flex)
 			sortWidth := 0
-			if process.sortDisplay == true {
+			if process.sortDisplay {
 				process.sortDisplay = false
 				sortWidth = 0
 			} else {
@@ -210,7 +207,7 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 		}
 		if event.Rune() == '/' {
 			searchWidth := 0
-			if process.searchDisplay == true {
+			if process.searchDisplay {
 				process.searchDisplay = false
 				searchWidth = 0
 			} else {
@@ -259,7 +256,6 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 			}
 			return
 		}
-		return
 	})
 }
 

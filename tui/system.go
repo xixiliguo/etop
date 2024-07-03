@@ -240,7 +240,6 @@ func (system *System) setRegionAndSwitchPage(region string) {
 	}
 	system.header.Highlight(region)
 	system.content.SwitchToPage(system.regionToPage[region])
-	return
 }
 
 func (system *System) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {

@@ -43,7 +43,7 @@ func NewHelp() *Help {
 
 	help.SetTitle("Help").SetBorder(true).SetTitleAlign(tview.AlignLeft)
 
-	fmt.Fprintf(help, content)
+	fmt.Fprint(help, content)
 
 	return help
 }

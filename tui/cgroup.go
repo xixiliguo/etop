@@ -38,7 +38,6 @@ type Cgroup struct {
 	currRegionIdx      int
 	header             *tview.TextView
 	cgroupView         *tview.Table
-	processDisplay     bool
 	sortView           *tview.List
 	sortField          string
 	descOrder          bool
@@ -178,7 +177,6 @@ func (cgroup *Cgroup) Focus(delegate func(p tview.Primitive)) {
 		return
 	}
 	delegate(cgroup.cgroupView)
-	return
 }
 
 func (cgroup *Cgroup) setRegionAndSwitchView(region string) {
@@ -202,7 +200,6 @@ func (cgroup *Cgroup) setRegionAndSwitchView(region string) {
 		cgroup.setVisibleColumns(CGROUPPRESSURELAYOUT, CGROUPPRESSUREDEFAULTORDER)
 	}
 	cgroup.update()
-	return
 }
 
 func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
@@ -222,7 +219,7 @@ func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p
 		if event.Rune() == 's' {
 			upper := cgroup.GetItem(0).(*tview.Flex)
 			sortWidth := 0
-			if cgroup.sortDisplay == true {
+			if cgroup.sortDisplay {
 				cgroup.sortDisplay = false
 				sortWidth = 0
 			} else {
@@ -235,7 +232,7 @@ func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p
 		}
 		if event.Rune() == '/' {
 			searchWidth := 0
-			if cgroup.searchDisplay == true {
+			if cgroup.searchDisplay {
 				cgroup.searchDisplay = false
 				searchWidth = 0
 			} else {
@@ -287,7 +284,6 @@ func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p
 			}
 			return
 		}
-		return
 	})
 }
 

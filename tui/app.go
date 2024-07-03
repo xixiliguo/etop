@@ -207,6 +207,9 @@ func (tui *TUI) Run(path string, beginTime string) error {
 		return err
 	}
 	sm, err := model.NewSysModel(local, tui.log)
+	if err != nil {
+		return err
+	}
 
 	begin := int64(0)
 	if begin, err = util.ConvertToUnixTime(beginTime); err != nil {
@@ -214,10 +217,6 @@ func (tui *TUI) Run(path string, beginTime string) error {
 	}
 
 	if err := sm.CollectSampleByTime(begin); err != nil {
-		return err
-	}
-
-	if err != nil {
 		return err
 	}
 
@@ -263,7 +262,7 @@ func (tui *TUI) RunWithLive(interval time.Duration) error {
 				tui.cgroup.SetSource(sm)
 			})
 
-			collectDuration := time.Now().Sub(start)
+			collectDuration := time.Since(start)
 			sleepDuration := time.Duration(1 * time.Second)
 			if interval-collectDuration > 1*time.Second {
 				sleepDuration = interval - collectDuration
