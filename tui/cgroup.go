@@ -359,6 +359,5 @@ func (cgroup *Cgroup) update() {
 
 	if slices.Compare(cgroup.prevVisibleColumns, cgroup.visibleColumns) != 0 {
 		cgroup.cgroupView.Select(1, 0)
-		cgroup.prevVisibleColumns = cgroup.visibleColumns
 	}
 }
