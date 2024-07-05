@@ -136,20 +136,11 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 		SetDoneFunc(func(key tcell.Key) {
 			if key == tcell.KeyEnter {
 				input := cgroup.searchView.GetText()
-				if input == "" {
-					cgroup.searchText = ""
-					cgroup.searchprogram = nil
-					cgroup.update()
-					return
-				}
-				program, err := expr.Compile(input, expr.Env(model.Cgroup{}), expr.AsBool())
-				if err == nil {
-					cgroup.searchText = input
-					cgroup.searchprogram = program
-					cgroup.update()
-				} else {
+				if err := cgroup.SetFilterRule(input); err != nil {
 					cgroup.status.Clear()
 					fmt.Fprintf(cgroup.status, "%s", err)
+				} else {
+					cgroup.update()
 				}
 			}
 		}).
@@ -291,8 +282,25 @@ func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p
 
 func (cgroup *Cgroup) SelectedCgroupPath() string {
 	row, _ := cgroup.cgroupView.GetSelection()
+	if row > len(cgroup.visbleData) {
+		return ""
+	}
 	c := cgroup.visbleData[row-1]
 	return filepath.Join(c.Path, c.Name)
+}
+
+func (cgroup *Cgroup) SetFilterRule(input string) error {
+	if input == "" {
+		cgroup.searchText = ""
+		cgroup.searchprogram = nil
+		return nil
+	}
+	program, err := expr.Compile(input, expr.Env(model.Cgroup{}), expr.AsBool())
+	if err == nil {
+		cgroup.searchText = input
+		cgroup.searchprogram = program
+	}
+	return err
 }
 
 func (cgroup *Cgroup) SetSource(s *model.Model) {

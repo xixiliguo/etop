@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/expr-lang/expr"
@@ -126,6 +127,8 @@ func NewProcess(status *tview.TextView) *Process {
 				if err := process.SetFilterRule(input); err != nil {
 					process.status.Clear()
 					fmt.Fprintf(process.status, "%s", err)
+				} else {
+					process.update()
 				}
 			}
 		}).
@@ -260,18 +263,29 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 	})
 }
 
+func (process *Process) SelectedCgroupName() string {
+	row, _ := process.processView.GetSelection()
+	if row > len(process.visbleData) {
+		return ""
+	}
+	c := process.visbleData[row-1]
+	names := strings.Split(c.Cgroup, "/")
+	if len(names) > 0 {
+		return names[len(names)-1]
+	}
+	return ""
+}
+
 func (process *Process) SetFilterRule(input string) error {
 	if input == "" {
 		process.searchText = ""
 		process.searchprogram = nil
-		process.update()
 		return nil
 	}
 	program, err := expr.Compile(input, expr.Env(model.Process{}), expr.AsBool())
 	if err == nil {
 		process.searchText = input
 		process.searchprogram = program
-		process.update()
 	}
 	return err
 }

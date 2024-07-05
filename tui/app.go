@@ -121,7 +121,20 @@ func (tui *TUI) initDetails() {
 				tui.status.Clear()
 				fmt.Fprintf(tui.status, "%s %s", fullPath, err)
 			} else {
+				tui.process.update()
 				tui.detail.SwitchToPage("Process")
+			}
+			return nil
+		}
+		if name == "Process" && event.Rune() == 'z' {
+			name := tui.process.SelectedCgroupName()
+			filterRule := fmt.Sprintf("Name == %q", name)
+			if err := tui.cgroup.SetFilterRule(filterRule); err != nil {
+				tui.status.Clear()
+				fmt.Fprintf(tui.status, "%s %s", name, err)
+			} else {
+				tui.cgroup.update()
+				tui.detail.SwitchToPage("Cgroup")
 			}
 			return nil
 		}
