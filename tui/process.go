@@ -87,8 +87,8 @@ func NewProcess(status *tview.TextView) *Process {
 				}
 				if p.State == "x" || p.State == "X" {
 
-					extra += fmt.Sprintf(" exit code %d at %s",
-						p.ExitCode,
+					extra += fmt.Sprintf(" %s at %s",
+						p.ShowExitInfo(),
 						time.Unix(int64(p.EndTime), 0).Format(time.RFC3339))
 				}
 				process.statusText = extra

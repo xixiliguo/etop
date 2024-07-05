@@ -19,7 +19,7 @@ struct event
 {
     int pid;
     int ppid;
-    unsigned int exit_code;
+    long exit_code;
     u8 comm[TASK_COMM_LEN];
     u64 utime;
     u64 stime;
@@ -61,7 +61,7 @@ int handle_exit(struct pt_regs *ctx)
     e.pid = pid;
     e.ppid = BPF_CORE_READ(task, real_parent, tgid);
     
-    e.exit_code = (BPF_CORE_READ(task, signal, pacct.ac_exitcode ) >> 8) & 0xff;
+    e.exit_code = BPF_CORE_READ(task, signal, pacct.ac_exitcode);
     bpf_get_current_comm(&e.comm, sizeof(e.comm));
 
     e.utime = BPF_CORE_READ(task, signal, pacct.ac_utime) / 10000000;

@@ -16,9 +16,8 @@ import (
 type bpfEvent struct {
 	Pid                 int32
 	Ppid                int32
-	ExitCode            uint32
+	ExitCode            int64
 	Comm                [16]uint8
-	_                   [4]byte
 	Utime               uint64
 	Stime               uint64
 	StartTime           uint64

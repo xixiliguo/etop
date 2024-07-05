@@ -3,11 +3,13 @@ package model
 import (
 	"os"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
 	"github.com/xixiliguo/etop/store"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -41,6 +43,30 @@ type Process struct {
 	PCPU
 	PMEM
 	PIO
+}
+
+func (p *Process) ShowExitInfo() string {
+	res := ""
+	status := unix.WaitStatus(p.ExitCode)
+	switch {
+	case status.Exited():
+		code := status.ExitStatus()
+		res = "exit status " + strconv.Itoa(code) // unix
+
+	case status.Signaled():
+		res = "signal: " + status.Signal().String()
+	case status.Stopped():
+		res = "stop signal: " + status.StopSignal().String()
+		if status.StopSignal() == unix.SIGTRAP && status.TrapCause() != 0 {
+			res += " (trap " + strconv.Itoa(status.TrapCause()) + ")"
+		}
+	case status.Continued():
+		res = "continued"
+	}
+	if status.CoreDump() {
+		res += " (core dumped)"
+	}
+	return res
 }
 
 type PCPU struct {

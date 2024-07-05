@@ -130,7 +130,7 @@ func (e *ExitProcess) Collect() {
 				CancelledWriteBytes: int64(event.CancelledWriteBytes),
 			},
 			EndTime:  event.EndTime,
-			ExitCode: event.ExitCode,
+			ExitCode: uint32(event.ExitCode),
 		}
 		e.Unlock()
 	}
