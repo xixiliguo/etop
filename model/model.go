@@ -226,6 +226,7 @@ func (s *Model) DumpToOtel(opt DumpOtelOption) (err error) {
 		s.MEM.GetOtelMetric(s.Curr.TimeStamp, &sm)
 		s.Disks.GetOtelMetric(s.Curr.TimeStamp, &sm)
 		s.Nets.GetOtelMetric(s.Curr.TimeStamp, &sm)
+		s.Processes.GetOtelMetric(s.Curr.TimeStamp, &sm)
 		rm.ScopeMetrics = append(rm.ScopeMetrics, sm)
 		if err := s.CollectNext(); err != nil {
 			if err == store.ErrOutOfRange {

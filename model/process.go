@@ -9,6 +9,9 @@ import (
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
 	"github.com/xixiliguo/etop/store"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"golang.org/x/sys/unix"
 )
 
@@ -553,6 +556,101 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 	}
 
 	return processes, threads
+}
+
+func (processMap ProcessMap) GetOtelMetric(timeStamp int64, sm *metricdata.ScopeMetrics) {
+
+	sm.Scope = instrumentation.Scope{Name: "process", Version: "0.0.1"}
+	cpuUsage := metricdata.Metrics{
+		Name: "process.cpu.usage",
+		Data: metricdata.Gauge[float64]{},
+	}
+	cpuUsageData := metricdata.Gauge[float64]{}
+	cpuDelay := metricdata.Metrics{
+		Name: "process.cpu.delay",
+	}
+	cpuDelayData := metricdata.Gauge[int64]{}
+	memUsage := metricdata.Metrics{
+		Name: "process.mem.usage",
+		Data: metricdata.Gauge[float64]{},
+	}
+	memUsageData := metricdata.Gauge[float64]{}
+
+	diskByte := metricdata.Metrics{
+		Name: "process.disk.byte",
+	}
+	diskByteData := metricdata.Gauge[float64]{}
+
+	for _, p := range processMap {
+		pid := attribute.Int64("pid", int64(p.Pid))
+		comm := attribute.String("comm", p.Comm)
+		state := attribute.String("state", p.State)
+		ppid := attribute.Int64("ppid", int64(p.Ppid))
+
+		cpuUsageData.DataPoints = append(cpuUsageData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid, attribute.String("mode", "user")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      p.User,
+			},
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid, attribute.String("mode", "system")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      p.System,
+			},
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid, attribute.String("mode", "total")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      p.CPU,
+			},
+		}...)
+
+		cpuDelayData.DataPoints = append(cpuDelayData.DataPoints, []metricdata.DataPoint[int64]{
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid, attribute.String("state", "run")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      int64(p.RunDelay),
+			},
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid, attribute.String("state", "block")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      int64(p.BlkDelay),
+			},
+		}...)
+
+		memUsageData.DataPoints = append(memUsageData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      p.Mem,
+			},
+		}...)
+
+		diskByteData.DataPoints = append(diskByteData.DataPoints, []metricdata.DataPoint[float64]{
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid, attribute.String("action", "read")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      p.ReadBytePerSec,
+			},
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid, attribute.String("action", "write")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      p.WriteBytePerSec,
+			},
+			{
+				Attributes: attribute.NewSet(pid, comm, state, ppid, attribute.String("action", "cancel")),
+				Time:       time.Unix(timeStamp, 0),
+				Value:      p.CancelledWriteBytePerSec,
+			},
+		}...)
+
+	}
+	cpuUsage.Data = cpuUsageData
+	cpuDelay.Data = cpuDelayData
+	memUsage.Data = memUsageData
+	diskByte.Data = diskByteData
+
+	sm.Metrics = append(sm.Metrics, cpuUsage, cpuDelay, memUsage, diskByte)
 }
 
 func PercentWithInterval[T uint64 | int | int64 | float64](curr, prev T, interval int64) float64 {
