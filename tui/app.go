@@ -217,6 +217,7 @@ func (tui *TUI) SetSource(sm *model.Model) {
 	case "Process":
 		tui.process.processView.Select(1, 0)
 	case "System":
+		tui.status.Clear()
 	case "Cgroup":
 		tui.cgroup.cgroupView.Select(1, 0)
 	}
