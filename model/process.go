@@ -25,7 +25,7 @@ var (
 
 var DefaultProcessFields = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
 var AllProcessFields = []string{"Pid", "Comm", "State", "Ppid", "NumThreads", "StartTime", "OnCPU", "CmdLine", "Cgroup",
-	"User", "System", "Priority", "Nice", "CPU", "RunDelay", "BlkDelay",
+	"User", "System", "Priority", "Nice", "Policy", "CPU", "RunDelay", "BlkDelay",
 	"MinFlt", "MajFlt", "VSize", "RSS", "Mem",
 	"ReadCharPerSec", "WriteCharPerSec",
 	"SyscRPerSec", "SyscWPerSec",
@@ -77,6 +77,7 @@ type PCPU struct {
 	System   float64
 	Priority int
 	Nice     int
+	Policy   uint
 	CPU      float64
 	RunDelay uint64
 	BlkDelay uint64
@@ -93,6 +94,8 @@ func (c *PCPU) DefaultConfig(field string) Field {
 		cfg = Field{"Priority", Raw, 0, "", 10, false}
 	case "Nice":
 		cfg = Field{"Nice", Raw, 0, "", 10, false}
+	case "Policy":
+		cfg = Field{"Policy", Raw, 0, "", 10, false}
 	case "CPU":
 		cfg = Field{"CPU", Raw, 1, "%", 10, false}
 	case "RunDelay":
@@ -116,6 +119,16 @@ func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(c.Priority)
 	case "Nice":
 		s = cfg.Render(c.Nice)
+	case "Policy":
+		ptodesc := map[uint]string{
+			0: "normal",
+			1: "fifo",
+			2: "rr",
+			3: "batch",
+			5: "idle",
+			6: "deadline",
+		}
+		s = cfg.Render(ptodesc[c.Policy])
 	case "CPU":
 		s = cfg.Render(c.CPU)
 	case "RunDelay":
@@ -288,7 +301,7 @@ func (p *Process) DefaultConfig(field string) Field {
 		cfg = Field{"CmdLine", Raw, 0, "", 10, false}
 	case "Cgroup":
 		cfg = Field{"Cgroup", Raw, 0, "", 50, false}
-	case "User", "System", "Priority", "Nice", "CPU", "RunDelay", "BlkDelay":
+	case "User", "System", "Priority", "Nice", "Policy", "CPU", "RunDelay", "BlkDelay":
 		return p.PCPU.DefaultConfig(field)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.DefaultConfig(field)
@@ -339,7 +352,7 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(p.CmdLine)
 	case "Cgroup":
 		s = cfg.Render(p.Cgroup)
-	case "User", "System", "Priority", "Nice", "CPU", "RunDelay", "BlkDelay":
+	case "User", "System", "Priority", "Nice", "Policy", "CPU", "RunDelay", "BlkDelay":
 		return p.PCPU.GetRenderValue(field, opt)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
 		return p.PMEM.GetRenderValue(field, opt)
@@ -413,6 +426,16 @@ func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string
 			return res[i].Priority > res[j].Priority
 		case "Nice":
 			return res[i].Nice > res[j].Nice
+		case "Policy":
+			ptodesc := map[uint]string{
+				0: "normal",
+				1: "fifo",
+				2: "rr",
+				3: "batch",
+				5: "idle",
+				6: "deadline",
+			}
+			return ptodesc[res[i].Policy] > ptodesc[res[j].Policy]
 		case "CPU":
 			return res[i].CPU > res[j].CPU
 		case "RunDelay":
@@ -517,6 +540,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.System = SubWithInterval(float64(new.STime), float64(old.STime), float64(interval))
 		p.Priority = new.Priority
 		p.Nice = new.Nice
+		p.Policy = new.Policy
 		p.CPU = p.User + p.System
 		p.RunDelay = Sub(new.WaitingNanoseconds, old.WaitingNanoseconds) / 1000000
 		p.BlkDelay = Sub(new.DelayAcctBlkIOTicks, old.DelayAcctBlkIOTicks) * 10
