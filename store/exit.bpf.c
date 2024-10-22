@@ -13,6 +13,8 @@ char __license[] SEC("license") = "Dual MIT/GPL";
 struct
 {
     __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+    __uint(key_size, sizeof(int));
+    __uint(value_size, sizeof(int));
 } events SEC(".maps");
 
 struct event
@@ -44,6 +46,27 @@ struct event
 };
 
 struct event *unused __attribute__((unused));
+
+struct mm_rss_stat___pre62 {
+	atomic_long_t count[4];
+} __attribute__((preserve_access_index));
+
+struct mm_struct___pre62 {
+	struct mm_rss_stat___pre62 rss_stat;
+} __attribute__((preserve_access_index));
+
+struct mm_struct___post62 {
+  struct percpu_counter rss_stat[NR_MM_COUNTERS];
+} __attribute__((preserve_access_index));
+
+// Same as __percpu_counter_read_positive in kernel
+s64 percpu_counter_read_positive(struct percpu_counter *c) {
+  s64 ret;
+  ret = c->count;
+  if (ret >= 0)
+    return ret;
+  return 0;
+}
 
 SEC("kprobe/acct_process")
 int handle_exit(struct pt_regs *ctx)
@@ -85,12 +108,25 @@ int handle_exit(struct pt_regs *ctx)
     {
         e.vss_pages = BPF_CORE_READ(mm, total_vm);
 
-        u64 file_pages = BPF_CORE_READ(mm, rss_stat.count[0].counter);
-        u64 anon_pages = BPF_CORE_READ(mm, rss_stat.count[1].counter);
-        u64 shmem_pages = BPF_CORE_READ(mm, rss_stat.count[3].counter);
-        u64 rss_pages = file_pages + anon_pages + shmem_pages;
+        u64 file_pages = 0;
+        u64 anon_pages = 0;
+        u64 shmem_pages = 0;
 
-        e.rss_pages = rss_pages;
+        if (bpf_core_type_matches(struct mm_struct___pre62)) {
+            const struct mm_struct___pre62 *mms = (struct mm_struct___pre62 *)mm;
+            file_pages = BPF_CORE_READ(mms, rss_stat.count[MM_FILEPAGES].counter);
+            anon_pages = BPF_CORE_READ(mms, rss_stat.count[MM_ANONPAGES].counter);
+            shmem_pages = BPF_CORE_READ(mms, rss_stat.count[MM_SHMEMPAGES].counter);
+        } else if (bpf_core_type_matches(struct mm_struct___post62)) {
+            const struct mm_struct___post62 *mms = (struct mm_struct___post62 *)mm;
+            struct percpu_counter file_percpu = BPF_CORE_READ(mms, rss_stat[MM_FILEPAGES]);
+            struct percpu_counter anon_percpu = BPF_CORE_READ(mms, rss_stat[MM_ANONPAGES]);
+            struct percpu_counter shmem_percpu = BPF_CORE_READ(mms, rss_stat[MM_SHMEMPAGES]);
+            file_pages = percpu_counter_read_positive(&file_percpu);
+            anon_pages = percpu_counter_read_positive(&anon_percpu);
+            shmem_pages = percpu_counter_read_positive(&shmem_percpu);
+        }
+        e.rss_pages = file_pages + anon_pages + shmem_pages;
     }
     else
     {

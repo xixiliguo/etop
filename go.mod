@@ -3,7 +3,7 @@ module github.com/xixiliguo/etop
 go 1.22
 
 require (
-	github.com/cilium/ebpf v0.13.2
+	github.com/cilium/ebpf v0.16.0
 	github.com/expr-lang/expr v1.16.1
 	github.com/fxamacker/cbor/v2 v2.6.0
 	github.com/gdamore/tcell/v2 v2.7.4
