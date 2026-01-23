@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/prometheus/procfs"
+	"github.com/xixiliguo/etop/procfs"
 	"github.com/xixiliguo/etop/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
@@ -106,7 +106,7 @@ func (cpus *CPUSlice) Collect(prev, curr *store.Sample) {
 
 	*cpus = append(*cpus, c)
 
-	indexs := []int64{}
+	indexs := []int{}
 	for i := range curr.CPU {
 		indexs = append(indexs, i)
 	}

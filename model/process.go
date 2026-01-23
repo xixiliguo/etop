@@ -39,8 +39,8 @@ type Process struct {
 	NumThreads int
 	StartTime  uint64
 	EndTime    uint64
-	ExitCode   uint32
-	OnCPU      uint
+	ExitCode   uint64
+	OnCPU      int
 	CmdLine    string
 	Cgroup     string
 	PCPU
@@ -77,7 +77,7 @@ type PCPU struct {
 	System   float64
 	Priority int
 	Nice     int
-	Policy   uint
+	Policy   uint64
 	CPU      float64
 	RunDelay uint64
 	BlkDelay uint64
@@ -120,7 +120,7 @@ func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
 	case "Nice":
 		s = cfg.Render(c.Nice)
 	case "Policy":
-		ptodesc := map[uint]string{
+		ptodesc := map[uint64]string{
 			0: "normal",
 			1: "fifo",
 			2: "rr",
@@ -142,9 +142,9 @@ func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
 }
 
 type PMEM struct {
-	MinFlt uint
-	MajFlt uint
-	VSize  uint
+	MinFlt uint64
+	MajFlt uint64
+	VSize  uint64
 	RSS    int
 	Mem    float64
 }
@@ -324,21 +324,7 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 	case "Comm":
 		s = cfg.Render(p.Comm)
 	case "State":
-		stodesc := map[string]string{
-			"R": "Running",
-			"S": "Sleeping",
-			"D": "Uninterruptible",
-			"I": "Idle",
-			"Z": "Zombie",
-			"T": "Stopped",
-			"t": "Tracing stop",
-			"X": "Dead",
-			"x": "Dead",
-			"K": "Wakekill",
-			"W": "Waking",
-			"P": "Parked",
-		}
-		s = cfg.Render(stodesc[p.State])
+		s = cfg.Render(p.State)
 	case "Ppid":
 		s = cfg.Render(p.Ppid)
 	case "NumThreads":
@@ -393,21 +379,7 @@ func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string
 		case "Comm":
 			return res[i].Comm > res[j].Comm
 		case "State":
-			stodesc := map[string]string{
-				"R": "Running",
-				"S": "Sleeping",
-				"D": "Uninterruptible",
-				"I": "Idle",
-				"Z": "Zombie",
-				"T": "Stopped",
-				"t": "Tracing stop",
-				"X": "Dead",
-				"x": "Dead",
-				"K": "Wakekill",
-				"W": "Waking",
-				"P": "Parked",
-			}
-			return stodesc[res[i].State] > stodesc[res[j].State]
+			return res[i].State > res[j].State
 		case "Ppid":
 			return res[i].Ppid > res[j].Ppid
 		case "NumThreads":
@@ -427,7 +399,7 @@ func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string
 		case "Nice":
 			return res[i].Nice > res[j].Nice
 		case "Policy":
-			ptodesc := map[uint]string{
+			ptodesc := map[uint64]string{
 				0: "normal",
 				1: "fifo",
 				2: "rr",
@@ -518,8 +490,8 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 
 		p := Process{
 			Pid:        new.PID,
-			Comm:       new.Comm,
-			State:      new.State,
+			Comm:       new.Comm[:],
+			State:      new.State.String(),
 			Ppid:       new.PPID,
 			NumThreads: new.NumThreads,
 			StartTime:  (bootTime + new.Starttime) / userHZ,
@@ -527,10 +499,11 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			CmdLine:    new.CmdLine,
 			Cgroup:     new.Cgroup,
 		}
+
 		if new.EndTime != 0 {
 			// exited process from ebpf have not cmdline info
 			// use old one
-			p.CmdLine = old.CmdLine
+			p.CmdLine = new.CmdLine
 			p.EndTime = (bootTime + new.EndTime) / userHZ
 			p.ExitCode = new.ExitCode
 		}
@@ -548,8 +521,8 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.MinFlt = Sub(new.MinFlt, old.MinFlt)
 		p.MajFlt = Sub(new.MajFlt, old.MajFlt)
 		p.VSize = new.VSize
-		p.RSS = new.RSS * curr.PageSize
-		p.Mem = float64(p.RSS) * 100 / 1024 / float64(*curr.MemTotal)
+		p.RSS = int(new.RSS) * curr.PageSize
+		p.Mem = float64(p.RSS) * 100 / 1024 / float64(curr.MemTotal)
 
 		p.RChar = Sub(new.RChar, old.RChar)
 		p.WChar = Sub(new.WChar, old.WChar)
@@ -561,7 +534,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.SyscWPerSec = SubWithInterval(float64(new.SyscW), float64(old.SyscW), float64(interval))
 		p.ReadBytes = Sub(new.ReadBytes, old.ReadBytes)
 		p.WriteBytes = Sub(new.WriteBytes, old.WriteBytes)
-		p.CancelledWriteBytes = Sub(new.CancelledWriteBytes, old.CancelledWriteBytes)
+		p.CancelledWriteBytes = int64(Sub(new.CancelledWriteBytes, old.CancelledWriteBytes))
 		p.ReadBytePerSec = float64(p.ReadBytes) / float64(interval)
 		p.WriteBytePerSec = float64(p.WriteBytes) / float64(interval)
 		p.CancelledWriteBytePerSec = float64(p.CancelledWriteBytes) / float64(interval)

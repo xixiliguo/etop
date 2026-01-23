@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/klauspost/compress/zstd"
 	"github.com/xixiliguo/etop/util"
 )
@@ -163,10 +165,13 @@ type LocalStore struct {
 	shard    int64
 	curIdx   int
 	exit     *ExitProcess
+	buffer   *bytes.Buffer
 }
 
 func NewLocalStore(opts ...Option) (*LocalStore, error) {
-	local := &LocalStore{}
+	local := &LocalStore{
+		buffer: &bytes.Buffer{},
+	}
 	for _, opt := range opts {
 		if err := opt(local); err != nil {
 			return nil, err
@@ -552,11 +557,18 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 
 	var err error
 
-	dataBytes := []byte{}
-	offset := uint32(0)
-	if dataBytes, err = s.Marshal(); err != nil {
+	// dataBytes := []byte{}
+	// offset := uint32(0)
+	// if dataBytes, err = s.Marshal(); err != nil {
+	// 	return newSuffix, err
+	// }
+
+	local.buffer.Reset()
+	if err = cbor.MarshalToBuffer(s, local.buffer); err != nil {
 		return newSuffix, err
 	}
+	dataBytes := local.buffer.Bytes()
+	offset := uint32(0)
 
 	if local.mode == ZstdCompress {
 		dataBytes = local.enc.EncodeAll(dataBytes, make([]byte, 0, len(dataBytes)))

@@ -8,9 +8,9 @@ var DefaultNetProtocolFields = []string{"Name", "Sockets", "Memory", "Pressure"}
 
 type NetProtocol struct {
 	Name     string
-	Sockets  int64
-	Memory   int64
-	Pressure int
+	Sockets  uint64
+	Memory   int
+	Pressure string
 }
 
 type NetProtocolMap map[string]NetProtocol
@@ -58,7 +58,7 @@ func (netProtocolMap NetProtocolMap) Collect(prev, curr *store.Sample) {
 	for name, v := range curr.NetProtocolStats {
 		memory := v.Memory
 		if v.Memory >= 0 {
-			memory = v.Memory * int64(curr.PageSize)
+			memory = v.Memory * curr.PageSize
 		}
 		netProtocolMap[name] = NetProtocol{
 			Name:     v.Name,

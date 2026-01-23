@@ -2,13 +2,13 @@ package model
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
 	"github.com/mattn/go-runewidth"
+	"github.com/xixiliguo/etop/cgroupfs"
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -99,7 +99,7 @@ var FiledToCgroupFile = map[string]store.CgroupFile{
 }
 
 type Cgroup struct {
-	Path        string
+	FullPath    string
 	Name        string
 	Level       int
 	Inode       uint64
@@ -107,7 +107,7 @@ type Cgroup struct {
 	Child       map[string]*Cgroup
 	IsNotExist  map[store.CgroupFile]struct{}
 	Controllers string
-	store.CgoupStat
+	cgroupfs.CgoupStat
 	UsagePercent      float64
 	UserPercent       float64
 	SystemPercent     float64
@@ -381,10 +381,8 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 	}
 
 	switch field {
-	case "Cgroup":
-		s = cfg.Render(filepath.Join(c.Path, c.Name))
-	case "Path":
-		s = cfg.Render(c.Path)
+	case "Cgroup", "Path":
+		s = cfg.Render(c.FullPath)
 	case "Name":
 		indents := ""
 		if c.Level > 1 {
@@ -581,19 +579,16 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 	}
 
 	if prev == nil || curr.Name != prev.Name || curr.Inode != prev.Inode {
-		prev = &store.CgroupSample{
-			Child: make(map[string]*store.CgroupSample),
-		}
+		prev = &store.CgroupSample{}
 	}
 
 	*c = Cgroup{
-		Path:                        curr.Path,
+		FullPath:                    curr.FullPath,
 		Name:                        curr.Name,
 		Level:                       curr.Level,
 		Inode:                       curr.Inode,
 		IsExpand:                    true,
 		Child:                       make(map[string]*Cgroup),
-		IsNotExist:                  curr.IsNotExist,
 		Controllers:                 curr.Controllers,
 		CgoupStat:                   curr.CgoupStat,
 		UsagePercent:                PercentWithInterval(curr.UsageUsec, prev.UsageUsec, interval*1000000),
@@ -625,8 +620,8 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 		SlabUnreclaimable:           curr.SlabUnreclaimable,
 		PgfaultPerSec:               SubWithInterval(curr.Pgfault, prev.Pgfault, uint64(interval)),
 		PgmajfaultPerSec:            SubWithInterval(curr.Pgmajfault, prev.Pgmajfault, uint64(interval)),
-		WorkingsetRefaultPerSec:     SubWithInterval(curr.WorkingsetRefault, prev.WorkingsetRefault, uint64(interval)),
-		WorkingsetActivatePerSec:    SubWithInterval(curr.WorkingsetActivate, prev.WorkingsetActivate, uint64(interval)),
+		WorkingsetRefaultPerSec:     SubWithInterval(curr.WorkingsetRefaultAnon, prev.WorkingsetRefaultAnon, uint64(interval)),
+		WorkingsetActivatePerSec:    SubWithInterval(curr.WorkingsetActivateAnon, prev.WorkingsetActivateAnon, uint64(interval)),
 		WorkingsetNodereclaimPerSec: SubWithInterval(curr.WorkingsetNodereclaim, prev.WorkingsetNodereclaim, uint64(interval)),
 		PgrefillPerSec:              SubWithInterval(curr.Pgrefill, prev.Pgrefill, uint64(interval)),
 		PgscanPerSec:                SubWithInterval(curr.Pgscan, prev.Pgscan, uint64(interval)),
@@ -641,20 +636,20 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 		ThpCollapseAllocPerSec:      SubWithInterval(curr.ThpCollapseAlloc, prev.ThpCollapseAlloc, uint64(interval)),
 		CpuSetCpus:                  curr.CpuSetCpus,
 		CpuSetCpusEffective:         curr.CpuSetCpusEffective,
-		CpuSetMems:                  curr.CpuSetMems,
-		CpuSetMemsEffective:         curr.CpuSetMemsEffective,
-		CpuWeight:                   curr.CpuWeight,
-		CpuMax:                      curr.CpuMax,
-		MemoryCurrent:               curr.MemoryCurrent,
+		CpuSetMems:                  "curr.CpuSetMems",
+		CpuSetMemsEffective:         "curr.CpuSetMemsEffective",
+		CpuWeight:                   0,
+		CpuMax:                      "curr.CpuMax",
+		MemoryCurrent:               0,
 		MemoryLow:                   curr.MemoryLow,
 		MemoryHigh:                  curr.MemoryHigh,
 		MemoryMin:                   curr.MemoryMin,
 		MemoryMax:                   curr.MemoryMax,
-		MemoryPeak:                  curr.MemoryPeak,
-		SwapCurrent:                 curr.SwapCurrent,
-		SwapMax:                     curr.SwapMax,
-		ZswapCurrent:                curr.ZswapCurrent,
-		ZswapMax:                    curr.ZswapMax,
+		MemoryPeak:                  0,
+		SwapCurrent:                 0,
+		SwapMax:                     0,
+		ZswapCurrent:                0,
+		ZswapMax:                    0,
 		EventLow:                    curr.MemoryEvents.Low - prev.MemoryEvents.Low,
 		EventHigh:                   curr.MemoryEvents.High - prev.MemoryEvents.High,
 		EventMax:                    curr.MemoryEvents.Max - prev.MemoryEvents.Max,
@@ -700,7 +695,7 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 		child := &Cgroup{
 			Child: make(map[string]*Cgroup),
 		}
-		child.Collect(prevChild, currChild, interval)
+		child.Collect(&prevChild, &currChild, interval)
 		c.Child[child.Name] = child
 	}
 }

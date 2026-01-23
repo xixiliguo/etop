@@ -596,18 +596,6 @@ func main() {
 						},
 					},
 					{
-						Name:  "network",
-						Usage: "Dump network snmp and ext stat",
-						Flags: dumpFlag,
-						Action: func(c *cli.Context) error {
-							fs := model.DefaultNetStatFields["tcp"]
-							if f := c.StringSlice("fields"); len(f) != 0 {
-								fs = f
-							}
-							return dumpCommand(c, "network", fs)
-						},
-					},
-					{
 						Name:  "networkprotocol",
 						Usage: "Dump networkprotocol stat",
 						Flags: dumpFlag,

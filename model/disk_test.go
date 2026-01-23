@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/prometheus/procfs/blockdevice"
+	"github.com/xixiliguo/etop/procfs"
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -49,18 +49,13 @@ func TestDiskCollect(t *testing.T) {
 	prev := &store.Sample{
 		TimeStamp: 0,
 		SystemSample: store.SystemSample{
-			DiskStats: map[string]blockdevice.Diskstats{
+			DiskStats: procfs.DiskStat{
 				"vda": {
-					Info: blockdevice.Info{
-						MajorNumber: 0,
-						MinorNumber: 0,
-						DeviceName:  "vda",
-					},
-					IOStats: blockdevice.IOStats{
-						ReadIOs:  1,
-						WriteIOs: 1,
-					},
-					IoStatsCount: 0,
+					MajorNumber: 0,
+					MinorNumber: 0,
+					DeviceName:  "vda",
+					ReadIOs:     1,
+					WriteIOs:    1,
 				},
 			},
 		},
@@ -69,19 +64,14 @@ func TestDiskCollect(t *testing.T) {
 	curr := &store.Sample{
 		TimeStamp: 2,
 		SystemSample: store.SystemSample{
-			DiskStats: map[string]blockdevice.Diskstats{
+			DiskStats: procfs.DiskStat{
 				"vda": {
-					Info: blockdevice.Info{
-						MajorNumber: 0,
-						MinorNumber: 0,
-						DeviceName:  "vda",
-					},
-					IOStats: blockdevice.IOStats{
-						ReadIOs:    10,
-						WriteIOs:   10,
-						DiscardIOs: 1,
-					},
-					IoStatsCount: 0,
+					MajorNumber: 0,
+					MinorNumber: 0,
+					DeviceName:  "vda",
+					ReadIOs:     10,
+					WriteIOs:    10,
+					DiscardIOs:  1,
 				},
 			},
 		},

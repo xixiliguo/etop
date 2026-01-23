@@ -29,9 +29,8 @@ type Model struct {
 	CPUs  CPUSlice
 	MEM
 	Vm
-	Disks DiskMap
-	Nets  NetDevMap
-	NetStat
+	Disks        DiskMap
+	Nets         NetDevMap
 	NetProtocols NetProtocolMap
 	Softnets     SoftnetSlice
 	Processes    ProcessMap
@@ -137,11 +136,10 @@ func (s *Model) CollectField() {
 	s.Vm.Collect(&s.Prev, &s.Curr)
 	s.Disks.Collect(&s.Prev, &s.Curr)
 	s.Nets.Collect(&s.Prev, &s.Curr)
-	s.NetStat.Collect(&s.Prev, &s.Curr)
 	s.NetProtocols.Collect(&s.Prev, &s.Curr)
 	s.Softnets.Collect(&s.Prev, &s.Curr)
 	s.Sys.Processes, s.Sys.Threads = s.Processes.Collect(&s.Prev, &s.Curr)
-	s.Cgroup.Collect(s.Prev.CgroupSample, s.Curr.CgroupSample, s.Curr.TimeStamp-s.Prev.TimeStamp)
+	s.Cgroup.Collect(&s.Prev.CgroupSample, &s.Curr.CgroupSample, s.Curr.TimeStamp-s.Prev.TimeStamp)
 }
 
 type DumpOption struct {
@@ -270,8 +268,6 @@ func verifyFilterText(opt *DumpOption) (err error) {
 		s = &Disk{}
 	case "netdev":
 		s = &NetDev{}
-	case "network":
-		s = &NetStat{}
 	case "networkprotocol":
 		s = &NetProtocol{}
 	case "softnet":
@@ -308,8 +304,6 @@ func getNameAndWidthOfField(module string, f string) (string, int) {
 		s = &Disk{}
 	case "netdev":
 		s = &NetDev{}
-	case "network":
-		s = &NetStat{}
 	case "networkprotocol":
 		s = &NetProtocol{}
 	case "softnet":
@@ -367,8 +361,6 @@ func (s *Model) dumpText(opt DumpOption) error {
 				n := s.Nets[dev]
 				dumpText(s.Curr.TimeStamp, opt, &n)
 			}
-		case "network":
-			dumpText(s.Curr.TimeStamp, opt, &s.NetStat)
 		case "networkprotocol":
 			for _, n := range s.NetProtocols {
 				dumpText(s.Curr.TimeStamp, opt, &n)
@@ -473,10 +465,6 @@ func (s *Model) dumpJson(opt DumpOption) error {
 				}
 			}
 			opt.Output.WriteString("]")
-		case "network":
-			if isFilter(opt, &s.NetStat) {
-				dumpJson(s.Curr.TimeStamp, opt, &s.NetStat)
-			}
 		case "networkprotocol":
 			opt.Output.WriteString("[")
 			first := true

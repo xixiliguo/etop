@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime/debug"
 	"sync"
 
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/ebpf/rlimit"
-	"github.com/prometheus/procfs"
+	"github.com/xixiliguo/etop/procfs"
 	"golang.org/x/sys/unix"
 )
 
@@ -49,6 +50,7 @@ func (e *ExitProcess) Collect() {
 	}
 	defer objs.Close()
 	btf.FlushKernelSpec()
+	debug.FreeOSMemory()
 
 	kp, err := link.Kprobe("acct_process", objs.HandleExit, nil)
 	if err != nil {
@@ -93,29 +95,29 @@ func (e *ExitProcess) Collect() {
 			ProcStat: procfs.ProcStat{
 				PID:                 int(event.Pid),
 				Comm:                unix.ByteSliceToString(event.Comm[:]),
-				State:               "X",
+				State:               procfs.Dead,
 				PPID:                int(event.Ppid),
 				PGRP:                0,
 				Session:             0,
 				TTY:                 0,
 				TPGID:               0,
 				Flags:               0,
-				MinFlt:              uint(event.MinFlt),
+				MinFlt:              event.MinFlt,
 				CMinFlt:             0,
-				MajFlt:              uint(event.MajFlt),
+				MajFlt:              event.MajFlt,
 				CMajFlt:             0,
-				UTime:               uint(event.Utime),
-				STime:               uint(event.Stime),
+				UTime:               event.Utime,
+				STime:               event.Stime,
 				CUTime:              0,
 				CSTime:              0,
 				Priority:            int(event.Priority),
 				Nice:                int(event.Nice),
 				NumThreads:          int(event.NumThreads),
 				Starttime:           event.StartTime,
-				VSize:               uint(event.VssPages) * pageSize,
-				RSS:                 int(event.RssPages),
+				VSize:               event.VssPages * uint64(pageSize),
+				RSS:                 event.RssPages,
 				RSSLimit:            0,
-				Processor:           uint(event.OnCpu),
+				Processor:           int(event.OnCpu),
 				RTPriority:          0,
 				Policy:              0,
 				DelayAcctBlkIOTicks: event.DelayacctBlkioTicks,
@@ -127,10 +129,10 @@ func (e *ExitProcess) Collect() {
 				SyscW:               event.Syscw,
 				ReadBytes:           event.IoReadBytes,
 				WriteBytes:          event.IoWriteBytes,
-				CancelledWriteBytes: int64(event.CancelledWriteBytes),
+				CancelledWriteBytes: event.CancelledWriteBytes,
 			},
 			EndTime:  event.EndTime,
-			ExitCode: uint32(event.ExitCode),
+			ExitCode: uint64(event.ExitCode),
 		}
 		e.Unlock()
 	}

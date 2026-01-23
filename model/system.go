@@ -27,11 +27,11 @@ func (sys *System) DefaultConfig(field string) Field {
 	cfg := Field{}
 	switch field {
 	case "Load1":
-		cfg = Field{"Load1", Raw, 0, "", 10, false}
+		cfg = Field{"Load1", Raw, 2, "", 10, false}
 	case "Load5":
-		cfg = Field{"Load5", Raw, 0, "", 10, false}
+		cfg = Field{"Load5", Raw, 2, "", 10, false}
 	case "Load15":
-		cfg = Field{"Load15", Raw, 0, "", 10, false}
+		cfg = Field{"Load15", Raw, 2, "", 10, false}
 	case "NumCPU":
 		cfg = Field{"NumCPU", Raw, 0, "", 10, false}
 	case "Processes":

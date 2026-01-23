@@ -8,14 +8,14 @@ var DefaultSoftnetFields = []string{"CPU", "Processed", "Dropped",
 	"TimeSqueezed", "CPUCollision", "ReceivedRps", "FlowLimitCount", "SoftnetBacklogLen"}
 
 type Softnet struct {
-	CPU               uint32
-	Processed         uint32
-	Dropped           uint32
-	TimeSqueezed      uint32
-	CPUCollision      uint32
-	ReceivedRps       uint32
-	FlowLimitCount    uint32
-	SoftnetBacklogLen uint32
+	CPU               uint64
+	Processed         uint64
+	Dropped           uint64
+	TimeSqueezed      uint64
+	CPUCollision      uint64
+	ReceivedRps       uint64
+	FlowLimitCount    uint64
+	SoftnetBacklogLen uint64
 }
 
 func (softnet *Softnet) DefaultConfig(field string) Field {
@@ -76,7 +76,7 @@ func (softnets *SoftnetSlice) Collect(prev, curr *store.Sample) {
 
 	for i, new := range curr.SoftNetStats {
 		s := Softnet{
-			CPU:               uint32(i),
+			CPU:               uint64(i),
 			Processed:         new.Processed,
 			Dropped:           new.Dropped,
 			TimeSqueezed:      new.TimeSqueezed,
@@ -88,7 +88,7 @@ func (softnets *SoftnetSlice) Collect(prev, curr *store.Sample) {
 		if i < len(prev.SoftNetStats) {
 			old := prev.SoftNetStats[i]
 			s = Softnet{
-				CPU:               uint32(i),
+				CPU:               uint64(i),
 				Processed:         new.Processed - old.Processed,
 				Dropped:           new.Dropped - old.Dropped,
 				TimeSqueezed:      new.TimeSqueezed - old.TimeSqueezed,

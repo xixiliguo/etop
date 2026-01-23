@@ -13,8 +13,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/prometheus/procfs"
-	"github.com/prometheus/procfs/blockdevice"
+	"github.com/xixiliguo/etop/procfs"
 	"github.com/xixiliguo/etop/util"
 )
 
@@ -245,8 +244,8 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 					IRQ: []uint64{1, 2, 3},
 				},
 				Meminfo:     procfs.Meminfo{},
-				NetDevStats: make(map[string]procfs.NetDevLine),
-				DiskStats:   make(map[string]blockdevice.Diskstats),
+				NetDevStats: make(procfs.NetDev),
+				DiskStats:   make(procfs.DiskStat),
 			},
 			ProcSamples: make(map[int]ProcSample),
 		},
@@ -259,12 +258,12 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{},
 				Stat:          procfs.Stat{},
 				Meminfo: procfs.Meminfo{
-					MemTotal:     &m1,
-					MemFree:      &m2,
-					MemAvailable: &m3,
+					MemTotal:     m1,
+					MemFree:      m2,
+					MemAvailable: m3,
 				},
 				NetDevStats: nil,
-				DiskStats:   make(map[string]blockdevice.Diskstats),
+				DiskStats:   make(procfs.DiskStat),
 			},
 			ProcSamples: nil,
 		},
@@ -277,14 +276,14 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{Load1: 1, Load5: 5, Load15: 10},
 				Stat:          procfs.Stat{},
 				Meminfo:       procfs.Meminfo{},
-				NetDevStats:   make(map[string]procfs.NetDevLine),
-				DiskStats:     make(map[string]blockdevice.Diskstats),
+				NetDevStats:   make(procfs.NetDev),
+				DiskStats:     make(procfs.DiskStat),
 			},
 			ProcSamples: map[int]ProcSample{
 				0: {ProcStat: procfs.ProcStat{
 					PID:   0,
-					Comm:  "systemd",
-					State: "",
+					Comm:  "sys",
+					State: procfs.Running,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -292,7 +291,7 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				1: {ProcStat: procfs.ProcStat{
 					PID:   1,
 					Comm:  "test",
-					State: "Sleeping",
+					State: procfs.Sleeping,
 					PPID:  9999,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -308,14 +307,14 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{Load1: 9, Load5: 99, Load15: 999},
 				Stat:          procfs.Stat{BootTime: 99},
 				Meminfo:       procfs.Meminfo{},
-				NetDevStats:   make(map[string]procfs.NetDevLine),
-				DiskStats:     make(map[string]blockdevice.Diskstats),
+				NetDevStats:   make(procfs.NetDev),
+				DiskStats:     make(procfs.DiskStat),
 			},
 			ProcSamples: map[int]ProcSample{
 				0: {ProcStat: procfs.ProcStat{
 					PID:   0,
 					Comm:  "etop",
-					State: "X",
+					State: procfs.Dead,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -323,7 +322,7 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				1: {ProcStat: procfs.ProcStat{
 					PID:   1,
 					Comm:  "test",
-					State: "Sleeping",
+					State: procfs.Sleeping,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -339,14 +338,14 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{},
 				Stat:          procfs.Stat{},
 				Meminfo:       procfs.Meminfo{},
-				NetDevStats:   make(map[string]procfs.NetDevLine),
-				DiskStats:     make(map[string]blockdevice.Diskstats),
+				NetDevStats:   make(procfs.NetDev),
+				DiskStats:     make(procfs.DiskStat),
 			},
 			ProcSamples: map[int]ProcSample{
 				0: {ProcStat: procfs.ProcStat{
 					PID:   0,
-					Comm:  "",
-					State: "R",
+					Comm:  "tes",
+					State: procfs.Running,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -354,7 +353,7 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				1: {ProcStat: procfs.ProcStat{
 					PID:   1,
 					Comm:  "test",
-					State: "Sleeping",
+					State: procfs.Sleeping,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{RChar: 1},
@@ -370,14 +369,14 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{Load1: 1, Load5: 5, Load15: 10},
 				Stat:          procfs.Stat{BootTime: 1},
 				Meminfo:       procfs.Meminfo{},
-				NetDevStats:   make(map[string]procfs.NetDevLine),
-				DiskStats:     make(map[string]blockdevice.Diskstats),
+				NetDevStats:   make(procfs.NetDev),
+				DiskStats:     make(procfs.DiskStat),
 			},
 			ProcSamples: map[int]ProcSample{
 				0: {ProcStat: procfs.ProcStat{
 					PID:   0,
-					Comm:  "systemd",
-					State: "S",
+					Comm:  "sys",
+					State: procfs.Sleeping,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -385,7 +384,7 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				1: {ProcStat: procfs.ProcStat{
 					PID:   1,
 					Comm:  "test",
-					State: "Sleeping",
+					State: procfs.Sleeping,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -393,7 +392,7 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				999: {ProcStat: procfs.ProcStat{
 					PID:   999,
 					Comm:  "test",
-					State: "Sleeping",
+					State: procfs.Sleeping,
 					PPID:  1,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -409,14 +408,14 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{},
 				Stat:          procfs.Stat{},
 				Meminfo:       procfs.Meminfo{},
-				NetDevStats:   make(map[string]procfs.NetDevLine),
-				DiskStats:     make(map[string]blockdevice.Diskstats),
+				NetDevStats:   make(procfs.NetDev),
+				DiskStats:     make(procfs.DiskStat),
 			},
 			ProcSamples: map[int]ProcSample{
 				0: {ProcStat: procfs.ProcStat{
 					PID:   0,
 					Comm:  "",
-					State: "",
+					State: procfs.Running,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},
@@ -424,7 +423,7 @@ func TestGetSampleFromFileWithMultipleDataFormat(t *testing.T) {
 				1: {ProcStat: procfs.ProcStat{
 					PID:   1,
 					Comm:  "test",
-					State: "Sleeping",
+					State: procfs.Sleeping,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},

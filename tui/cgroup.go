@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
@@ -99,7 +98,7 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 			idx := row - 1
 			if 0 <= idx && idx < len(cgroup.visbleData) {
 				c := cgroup.visbleData[idx]
-				extra := filepath.Join(c.Path, c.Name)
+				extra := c.FullPath
 				cgroup.statuxText = extra
 				cgroup.status.SetText(extra)
 			}
@@ -286,7 +285,7 @@ func (cgroup *Cgroup) SelectedCgroupPath() string {
 		return ""
 	}
 	c := cgroup.visbleData[row-1]
-	return filepath.Join(c.Path, c.Name)
+	return c.FullPath
 }
 
 func (cgroup *Cgroup) SetFilterRule(input string) error {

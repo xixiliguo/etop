@@ -7,8 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/prometheus/procfs"
-	"github.com/prometheus/procfs/blockdevice"
+	"github.com/xixiliguo/etop/procfs"
 )
 
 func TestIndexMarshalAndUnmarshal(t *testing.T) {
@@ -54,8 +53,8 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 					IRQ: []uint64{1, 2, 3},
 				},
 				Meminfo:     procfs.Meminfo{},
-				NetDevStats: make(map[string]procfs.NetDevLine),
-				DiskStats:   make(map[string]blockdevice.Diskstats),
+				NetDevStats: make(procfs.NetDev),
+				DiskStats:   make(procfs.DiskStat),
 			},
 			ProcSamples: make(map[int]ProcSample),
 		},
@@ -68,12 +67,12 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{},
 				Stat:          procfs.Stat{},
 				Meminfo: procfs.Meminfo{
-					MemTotal:     &m1,
-					MemFree:      &m2,
-					MemAvailable: &m3,
+					MemTotal:     m1,
+					MemFree:      m2,
+					MemAvailable: m3,
 				},
 				NetDevStats: nil,
-				DiskStats:   make(map[string]blockdevice.Diskstats),
+				DiskStats:   make(procfs.DiskStat),
 			},
 			ProcSamples: nil,
 		},
@@ -86,22 +85,20 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 				LoadAvg:       procfs.LoadAvg{},
 				Stat:          procfs.Stat{},
 				Meminfo:       procfs.Meminfo{},
-				NetDevStats:   make(map[string]procfs.NetDevLine),
-				DiskStats:     make(map[string]blockdevice.Diskstats),
+				NetDevStats:   make(procfs.NetDev),
+				DiskStats:     make(procfs.DiskStat),
 			},
 			ProcSamples: map[int]ProcSample{
 				0: {ProcStat: procfs.ProcStat{
 					PID:   0,
-					Comm:  "",
-					State: "",
+					State: procfs.Running,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},
 				},
 				1: {ProcStat: procfs.ProcStat{
 					PID:   1,
-					Comm:  "test",
-					State: "Sleeping",
+					State: procfs.Sleeping,
 					PPID:  0,
 				},
 					ProcIO: procfs.ProcIO{},

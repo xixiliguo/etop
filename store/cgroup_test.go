@@ -2,9 +2,10 @@ package store
 
 import (
 	"fmt"
-	"log/slog"
 	"strings"
 	"testing"
+
+	"github.com/xixiliguo/etop/cgroupfs"
 )
 
 var prefix = "└─ "
@@ -14,23 +15,16 @@ func draw(c CgroupSample) {
 	text := indents + prefix + c.Name
 	fmt.Println(text)
 	for _, child := range c.Child {
-		draw(*child)
+		draw(child)
 	}
 }
 
 func TestWalkCgroup(t *testing.T) {
 	isCgroup2()
 	t.Logf("%+v", isCgroup2())
+	cgRoot := cgroupfs.NewCgroup("/", "/")
 
-	root := CgroupSample{
-		Path:       "/",
-		Name:       "/",
-		Child:      make(map[string]*CgroupSample),
-		IsNotExist: make(map[CgroupFile]struct{}),
-	}
-	root.collectStat()
-	t.Log(root)
-	err := walkCgroupNode(&root, slog.Default())
-	t.Log(root, err)
-	draw(root)
+	sample, err := walkCgroupNode(0, cgRoot)
+	t.Log(sample, err)
+	draw(sample)
 }

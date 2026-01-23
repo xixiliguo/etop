@@ -2,9 +2,12 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"unsafe"
+
+	"github.com/xixiliguo/etop/cgroupfs"
 )
 
 type Format int
@@ -38,22 +41,20 @@ func appendReadableSize(dst []byte, fsize float64) []byte {
 
 func (f Field) Render(value any) string {
 	buf := make([]byte, 0, 16)
+
+	addSuffix := true
 	switch v := value.(type) {
 	case uint64:
-		if f.Format == HumanReadableSize {
-			f := float64(v)
-			buf = appendReadableSize(buf, f)
-		} else {
-			buf = strconv.AppendUint(buf, uint64(v), 10)
+		if v == math.MaxUint64 {
+			buf = append(buf, '-')
+			addSuffix = false
+			break
 		}
-	case uint:
-		if f.Format == HumanReadableSize {
-			f := float64(v)
-			buf = appendReadableSize(buf, f)
-		} else {
-			buf = strconv.AppendUint(buf, uint64(v), 10)
+		if v == cgroupfs.MaxCgroupPropertyUintValue {
+			buf = append(buf, "max"...)
+			addSuffix = false
+			break
 		}
-	case uint32:
 		if f.Format == HumanReadableSize {
 			f := float64(v)
 			buf = appendReadableSize(buf, f)
@@ -67,20 +68,21 @@ func (f Field) Render(value any) string {
 		} else {
 			buf = strconv.AppendInt(buf, int64(v), 10)
 		}
-	case int64:
-		if f.Format == HumanReadableSize {
-			f := float64(v)
-			buf = appendReadableSize(buf, f)
-		} else {
-			buf = strconv.AppendInt(buf, int64(v), 10)
-		}
 	case float64:
+		if math.IsNaN(v) {
+			buf = append(buf, '-')
+			addSuffix = false
+			break
+		}
 		if f.Format == HumanReadableSize {
 			buf = appendReadableSize(buf, v)
 		} else {
 			buf = strconv.AppendFloat(buf, v, 'f', f.Precision, 64)
 		}
 	case string:
+		if v == cgroupfs.MaxCgroupPropertyStrValue {
+			v = "-"
+		}
 		if f.Suffix == "" && !f.FixWidth {
 			return v
 		}
@@ -94,7 +96,9 @@ func (f Field) Render(value any) string {
 		return fmt.Sprintf("%T is unknown type", v)
 	}
 
-	buf = append(buf, f.Suffix...)
+	if addSuffix {
+		buf = append(buf, f.Suffix...)
+	}
 
 	if f.FixWidth {
 		width := f.Width

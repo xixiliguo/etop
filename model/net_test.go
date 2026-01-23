@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/prometheus/procfs"
+	"github.com/xixiliguo/etop/procfs"
 	"github.com/xixiliguo/etop/store"
 )
 
@@ -51,7 +51,7 @@ func TestNetDevCollect(t *testing.T) {
 	prev := &store.Sample{
 		TimeStamp: 0,
 		SystemSample: store.SystemSample{
-			NetDevStats: map[string]procfs.NetDevLine{
+			NetDevStats: procfs.NetDev{
 				"eth0": {
 					Name:    "eth0",
 					RxBytes: 1,
@@ -70,7 +70,7 @@ func TestNetDevCollect(t *testing.T) {
 		TimeStamp: 2,
 		SystemSample: store.SystemSample{
 
-			NetDevStats: map[string]procfs.NetDevLine{
+			NetDevStats: procfs.NetDev{
 				"eth0": {
 					Name:    "eth0",
 					RxBytes: 10,
