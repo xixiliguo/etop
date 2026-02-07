@@ -373,7 +373,7 @@ func (s *Model) dumpText(opt DumpOption) error {
 			processList := s.Processes.Iterate(nil, opt.SortField, opt.DescendingOrder)
 			cnt := 0
 			for _, p := range processList {
-				dumpText(s.Curr.TimeStamp, opt, &p)
+				dumpText(s.Curr.TimeStamp, opt, p)
 				cnt++
 				if opt.Top > 0 && opt.Top == cnt {
 					break
@@ -499,13 +499,13 @@ func (s *Model) dumpJson(opt DumpOption) error {
 			opt.Output.WriteString("[")
 			first := true
 			for _, p := range processList {
-				if isFilter(opt, &p) {
+				if isFilter(opt, p) {
 					if first {
 						first = false
 					} else {
 						opt.Output.WriteString(",\n")
 					}
-					dumpJson(s.Curr.TimeStamp, opt, &p)
+					dumpJson(s.Curr.TimeStamp, opt, p)
 					cnt++
 					if opt.Top > 0 && opt.Top == cnt {
 						break

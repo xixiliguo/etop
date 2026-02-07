@@ -4,10 +4,12 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
+	"github.com/mattn/go-runewidth"
 	"github.com/xixiliguo/etop/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
@@ -46,6 +48,9 @@ type Process struct {
 	PCPU
 	PMEM
 	PIO
+	Level    int
+	IsExpand bool
+	Child    bool
 }
 
 func (p *Process) ShowExitInfo() string {
@@ -323,6 +328,26 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(p.Pid)
 	case "Comm":
 		s = cfg.Render(p.Comm)
+
+		indents := ""
+		if p.Level > 1 {
+			indents = strings.Repeat("   ", p.Level-1)
+		}
+
+		s = indents + "└─ " + p.Comm
+		if !p.IsExpand && p.Child {
+			s = indents + "└─+ " + p.Comm
+		}
+		if p.Level == 0 {
+			s = p.Comm
+		}
+		if cfg.FixWidth {
+			pad := cfg.Width - runewidth.StringWidth(s)
+			if pad > 0 {
+				s = s + strings.Repeat(" ", pad)
+			}
+		}
+
 	case "State":
 		s = cfg.Render(p.State)
 	case "Ppid":
@@ -350,13 +375,14 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 	return s
 }
 
-type ProcessMap map[int]Process
+type ProcessMap map[int]*Process
 
-func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string, descOrder bool) []Process {
+func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string, descOrder bool) []*Process {
 
-	res := make([]Process, 0, 1024)
+	res := make([]*Process, 0, 1024)
 	if searchprogram != nil {
 		for _, p := range processMap {
+			p.Level = 0
 			output, _ := expr.Run(searchprogram, p)
 			if output.(bool) {
 				res = append(res, p)
@@ -364,9 +390,15 @@ func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string
 		}
 	} else {
 		for _, p := range processMap {
+			p.Level = 0
 			res = append(res, p)
 		}
 	}
+	sortByField(res, sortField, descOrder)
+	return res
+}
+
+func sortByField(res []*Process, sortField string, descOrder bool) {
 
 	sort.SliceStable(res, func(i, j int) bool {
 		return res[i].Pid < res[j].Pid
@@ -462,8 +494,60 @@ func (processMap ProcessMap) Iterate(searchprogram *vm.Program, sortField string
 			res[i], res[len(res)-1-i] = res[len(res)-1-i], res[i]
 		}
 	}
-	return res
+	return
 }
+
+func (processMap ProcessMap) IterateTree(level int, pid int, searchprogram *vm.Program, sortField string, descOrder bool) []*Process {
+
+	current := processMap[pid]
+	current.Level = level
+
+	isMatch := true
+
+	if searchprogram != nil {
+		output, _ := expr.Run(searchprogram, current)
+		if !output.(bool) {
+			isMatch = false
+		}
+	}
+
+	childs := []*Process{}
+
+	for _, p := range processMap {
+		if p.Ppid == pid {
+			childs = append(childs, p)
+		}
+	}
+
+	sortByField(childs, sortField, descOrder)
+
+	if len(childs) > 0 {
+		current.Child = true
+	}
+
+	childResult := []*Process{}
+	for _, c := range childs {
+		var temp []*Process
+		if isMatch {
+			temp = processMap.IterateTree(level+1, c.Pid, nil, sortField, descOrder)
+		} else {
+			temp = processMap.IterateTree(level+1, c.Pid, searchprogram, sortField, descOrder)
+		}
+
+		childResult = append(childResult, temp...)
+	}
+
+	if !isMatch && len(childResult) == 0 {
+		return []*Process{}
+	}
+
+	pros := []*Process{current}
+	if !current.IsExpand {
+		return pros
+	}
+	return append(pros, childResult...)
+}
+
 func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threads uint64) {
 
 	for k := range processMap {
@@ -498,6 +582,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			OnCPU:      new.Processor,
 			CmdLine:    new.CmdLine,
 			Cgroup:     new.Cgroup,
+			IsExpand:   true,
 		}
 
 		if new.EndTime != 0 {
@@ -538,7 +623,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.ReadBytePerSec = float64(p.ReadBytes) / float64(interval)
 		p.WriteBytePerSec = float64(p.WriteBytes) / float64(interval)
 		p.CancelledWriteBytePerSec = float64(p.CancelledWriteBytes) / float64(interval)
-		processMap[pid] = p
+		processMap[pid] = &p
 
 		totalIO += p.ReadBytes + p.WriteBytes
 		processes += 1

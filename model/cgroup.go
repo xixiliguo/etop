@@ -1,7 +1,7 @@
 package model
 
 import (
-	"fmt"
+	"math"
 	"sort"
 	"strings"
 
@@ -105,7 +105,6 @@ type Cgroup struct {
 	Inode       uint64
 	IsExpand    bool
 	Child       map[string]*Cgroup
-	IsNotExist  map[store.CgroupFile]struct{}
 	Controllers string
 	cgroupfs.CgoupStat
 	UsagePercent      float64
@@ -371,15 +370,6 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 	cfg.ApplyOpt(opt)
 	s := ""
 
-	if file, ok := FiledToCgroupFile[field]; ok {
-		if _, ok := c.IsNotExist[file]; ok {
-			if cfg.FixWidth {
-				return fmt.Sprintf("%-[1]*s", cfg.Width, "-")
-			}
-			return "-"
-		}
-	}
-
 	switch field {
 	case "Cgroup", "Path":
 		s = cfg.Render(c.FullPath)
@@ -389,9 +379,9 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 			indents = strings.Repeat("   ", c.Level-1)
 		}
 
-		s = indents + "└── " + c.Name
+		s = indents + "└─ " + c.Name
 		if !c.IsExpand && len(c.Child) != 0 {
-			s = indents + "└─+ " + c.Name
+			s = indents + "└+ " + c.Name
 		}
 		if c.Level == 0 {
 			s = "/"
@@ -661,33 +651,42 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 		MemoryFullPressure:          curr.MemoryPressure.Full.Avg60,
 		IOSomePressure:              curr.IOPressure.Some.Avg60,
 		IOFullPressure:              curr.IOPressure.Full.Avg60,
+
+		RbytePerSec: math.NaN(),
+		WbytePerSec: math.NaN(),
+		RioPerSec:   math.NaN(),
+		WioPerSec:   math.NaN(),
+		DbytePerSec: math.NaN(),
+		DioPerSec:   math.NaN(),
 	}
 
-	var currRbyte, currWbyte, currRio, currWio, currDbyte, currDio uint64
-	for _, line := range curr.IOStats {
-		currRbyte += line.Rbytes
-		currWbyte += line.Wbytes
-		currRio += line.Rios
-		currWio += line.Wios
-		currDbyte += line.Dbytes
-		currDio += line.Dios
-	}
+	if len(curr.IOStats) > 0 {
+		var currRbyte, currWbyte, currRio, currWio, currDbyte, currDio uint64
+		for _, line := range curr.IOStats {
+			currRbyte += line.Rbytes
+			currWbyte += line.Wbytes
+			currRio += line.Rios
+			currWio += line.Wios
+			currDbyte += line.Dbytes
+			currDio += line.Dios
+		}
 
-	for _, line := range prev.IOStats {
-		currRbyte -= line.Rbytes
-		currWbyte -= line.Wbytes
-		currRio -= line.Rios
-		currWio -= line.Wios
-		currDbyte -= line.Dbytes
-		currDio -= line.Dios
-	}
+		for _, line := range prev.IOStats {
+			currRbyte -= line.Rbytes
+			currWbyte -= line.Wbytes
+			currRio -= line.Rios
+			currWio -= line.Wios
+			currDbyte -= line.Dbytes
+			currDio -= line.Dios
+		}
 
-	c.RbytePerSec = float64(currRbyte) / float64(interval)
-	c.WbytePerSec = float64(currWbyte) / float64(interval)
-	c.RioPerSec = float64(currRio) / float64(interval)
-	c.WioPerSec = float64(currWio) / float64(interval)
-	c.DbytePerSec = float64(currDbyte) / float64(interval)
-	c.DioPerSec = float64(currDio) / float64(interval)
+		c.RbytePerSec = float64(currRbyte) / float64(interval)
+		c.WbytePerSec = float64(currWbyte) / float64(interval)
+		c.RioPerSec = float64(currRio) / float64(interval)
+		c.WioPerSec = float64(currWio) / float64(interval)
+		c.DbytePerSec = float64(currDbyte) / float64(interval)
+		c.DioPerSec = float64(currDio) / float64(interval)
+	}
 
 	for _, currChild := range curr.Child {
 		prevChild := prev.Child[currChild.Name]

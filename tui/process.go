@@ -13,13 +13,13 @@ import (
 )
 
 var (
-	GENERALLAYOUT       = []string{"Pid", "Comm", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
+	GENERALLAYOUT       = []string{"Comm", "Pid", "State", "CPU", "Mem", "ReadBytePerSec", "WriteBytePerSec"}
 	GENERALDEFAULTORDER = "CPU"
-	CPULAYOUT           = []string{"Pid", "Comm", "CPU", "User", "System", "RunDelay", "BlkDelay", "Ppid", "NumThreads", "OnCPU", "Policy", "StartTime"}
+	CPULAYOUT           = []string{"Comm", "Pid", "CPU", "User", "System", "RunDelay", "BlkDelay", "Ppid", "NumThreads", "OnCPU", "Policy", "StartTime"}
 	CPUDEFAULTORDER     = "CPU"
-	MEMLAYOUT           = []string{"Pid", "Comm", "Mem", "MajFlt", "MinFlt", "VSize", "RSS"}
+	MEMLAYOUT           = []string{"Comm", "Pid", "Mem", "MajFlt", "MinFlt", "VSize", "RSS"}
 	MEMDEFAULTORDER     = "Mem"
-	IOLAYOUT            = []string{"Pid", "Comm", "Disk", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "ReadCharPerSec", "WriteCharPerSec", "SyscRPerSec", "SyscWPerSec"}
+	IOLAYOUT            = []string{"Comm", "Pid", "Disk", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "ReadCharPerSec", "WriteCharPerSec", "SyscRPerSec", "SyscWPerSec"}
 	IODEFAULTORDER      = "Disk"
 )
 
@@ -43,7 +43,9 @@ type Process struct {
 	visibleColumns     []string
 	visibleColumnsText []string
 	defaultOrder       string
-	visbleData         []model.Process
+	visbleTree         bool
+	noSelect           bool
+	visbleData         []*model.Process
 	source             *model.Model
 }
 
@@ -76,6 +78,18 @@ func NewProcess(status *tview.TextView) *Process {
 	process.processView.
 		SetFixed(1, 2).
 		SetSelectable(true, false).
+		SetSelectedFunc(func(row, column int) {
+			if process.visbleTree {
+				if row > len(process.visbleData) {
+					return
+				}
+				selected := process.visbleData[row-1]
+				selected.IsExpand = !selected.IsExpand
+				process.noSelect = true
+				process.update()
+			}
+
+		}).
 		SetSelectionChangedFunc(func(row int, column int) {
 			process.status.Clear()
 			idx := row - 1
@@ -253,6 +267,10 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 			} else if event.Rune() == 'd' {
 				process.setRegionAndSwitchView("d")
 				return
+			} else if event.Rune() == 'F' {
+				process.visbleTree = !process.visbleTree
+				process.update()
+				return
 			}
 			if handler := process.processView.InputHandler(); handler != nil {
 				handler(event, setFocus)
@@ -322,8 +340,12 @@ func (process *Process) update() {
 		title += " Filter: " + process.searchText
 	}
 	process.SetTitle(title)
-
-	process.visbleData = process.source.Processes.Iterate(process.searchprogram, process.sortField, process.descOrder)
+	if process.visbleTree == false {
+		process.visbleData = process.source.Processes.Iterate(process.searchprogram, process.sortField, process.descOrder)
+	} else {
+		process.visbleData = process.source.Processes.IterateTree(0, 1, process.searchprogram, process.sortField, process.descOrder)
+		process.visbleData = append(process.visbleData, process.source.Processes.IterateTree(0, 2, process.searchprogram, process.sortField, process.descOrder)...)
+	}
 
 	for i, col := range process.visibleColumns {
 		text := process.visibleColumnsText[i]
@@ -341,7 +363,12 @@ func (process *Process) update() {
 		for i, col := range process.visibleColumns {
 			width := 0
 			if col == "Comm" {
-				width = 16
+				if process.visbleTree == false {
+					width = 16
+				} else {
+					width = 32
+				}
+
 			}
 			process.processView.SetCell(r+1,
 				i,
@@ -351,6 +378,10 @@ func (process *Process) update() {
 					SetAlign(tview.AlignLeft).
 					SetMaxWidth(width))
 		}
+	}
+	if process.noSelect {
+		process.noSelect = false
+		return
 	}
 	process.processView.Select(1, 0)
 }

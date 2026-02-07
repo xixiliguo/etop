@@ -166,7 +166,8 @@ func (tui *TUI) initPages() {
 		if cur := tui.GetFocus(); cur == tui.process.searchView || cur == tui.cgroup.searchView {
 			return event
 		}
-		if event.Rune() == 't' {
+
+		if event.Key() == tcell.KeyRune && event.Rune() == 't' {
 			if tui.mode == REPORT {
 				if err := tui.sm.CollectNext(); err != nil {
 					msg := fmt.Sprintf("next sample: %s", err)
@@ -180,7 +181,7 @@ func (tui *TUI) initPages() {
 
 			}
 			return nil
-		} else if event.Rune() == 'T' {
+		} else if event.Key() == tcell.KeyRune && event.Rune() == 'T' {
 			if tui.mode == REPORT {
 				if err := tui.sm.CollectPrev(); err != nil {
 					msg := fmt.Sprintf("previous sample: %s", err)
@@ -193,15 +194,15 @@ func (tui *TUI) initPages() {
 				tui.SetSource(tui.sm)
 			}
 			return nil
-		} else if event.Rune() == 'b' {
+		} else if event.Key() == tcell.KeyRune && event.Rune() == 'b' {
 			if tui.mode == REPORT {
 				tui.pages.ShowPage("search")
 			}
 			return nil
-		} else if event.Rune() == 'h' {
+		} else if event.Key() == tcell.KeyRune && event.Rune() == 'h' {
 			tui.pages.ShowPage("help")
 			return nil
-		} else if event.Rune() == 'q' {
+		} else if event.Key() == tcell.KeyRune && event.Rune() == 'q' {
 			tui.Stop()
 			return nil
 		}
