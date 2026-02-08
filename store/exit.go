@@ -17,7 +17,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-//go:generate bpf2go -cc clang -cflags $BPF_CFLAGS -type event bpf exit.bpf.c -- -I./include
+//go:generate go tool bpf2go -cc clang -cflags $BPF_CFLAGS -type event process exit.bpf.c -- -I./include
 
 type ExitProcess struct {
 	sync.Mutex
@@ -42,8 +42,8 @@ func (e *ExitProcess) Collect() {
 		return
 	}
 
-	objs := bpfObjects{}
-	if err := loadBpfObjects(&objs, nil); err != nil {
+	objs := processObjects{}
+	if err := loadProcessObjects(&objs, nil); err != nil {
 		msg := fmt.Sprintf("loading objects: %s", err)
 		e.log.Error(msg)
 		return
@@ -68,7 +68,7 @@ func (e *ExitProcess) Collect() {
 	}
 	defer rd.Close()
 
-	var event bpfEvent
+	var event processEvent
 	var record perf.Record
 	for {
 		err := rd.ReadInto(&record)

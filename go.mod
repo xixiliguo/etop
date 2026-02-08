@@ -51,4 +51,7 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 )
 
-tool golang.org/x/tools/cmd/stringer
+tool (
+	github.com/cilium/ebpf/cmd/bpf2go
+	golang.org/x/tools/cmd/stringer
+)
