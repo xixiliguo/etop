@@ -10,6 +10,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/xixiliguo/etop/model"
+	"github.com/xixiliguo/etop/procfs"
 )
 
 var (
@@ -99,7 +100,7 @@ func NewProcess(status *tview.TextView) *Process {
 				if extra == "" {
 					extra = p.Comm
 				}
-				if p.State == "x" || p.State == "X" {
+				if p.State == procfs.Dead.String() || p.State == procfs.Deadx.String() {
 
 					extra += fmt.Sprintf(" %s at %s",
 						p.ShowExitInfo(),
