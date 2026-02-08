@@ -339,6 +339,7 @@ func main() {
 						store.WithPathAndLogger(path, log),
 						store.WithWriteOnly(mode, chunk),
 						store.WithExitProcess(log),
+						store.WithCgroupNetStat(log),
 					)
 					if err != nil {
 						return err

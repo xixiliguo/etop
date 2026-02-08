@@ -91,7 +91,7 @@ func (s *Sample) Unmarshal(b []byte) error {
 	return cbor.Unmarshal(b, s)
 }
 
-func CollectSampleFromSys(s *Sample, exit *ExitProcess, log *slog.Logger) error {
+func CollectSampleFromSys(s *Sample, exit *ExitProcess, c *CgroupNetStat, log *slog.Logger) error {
 
 	//collect one sample
 	var (
@@ -181,7 +181,7 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess, log *slog.Logger) error 
 	if isCgroup2() {
 
 		cgRoot := cgroupfs.NewCgroup("/", "/")
-		s.CgroupSample, err = walkCgroupNode(0, cgRoot)
+		s.CgroupSample, err = walkCgroupNode(0, cgRoot, c)
 		if err != nil {
 			return err
 		}

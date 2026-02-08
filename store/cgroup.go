@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"math"
 	"os"
 	"sync"
 
@@ -13,34 +14,6 @@ var (
 	CgroupV2MountPoint  = "/sys/fs/cgroup"
 	ErrInvalidFormat    = errors.New("cgroups: parsing file with invalid format failed")
 	ErrInvalidGroupPath = errors.New("cgroups: invalid group path")
-)
-
-type CgroupFile int
-
-const (
-	CpuStatFile CgroupFile = iota
-	MemoryStatFile
-	CpuSetCpusFile
-	CpuSetCpusEffectiveFile
-	CpuSetMemsFileFile
-	CpuSetMemsEffectiveFile
-	CpuWeightFile
-	CpuMaxFile
-	MemoryCurrentFile
-	MemoryLowFile
-	MemoryHighFile
-	MemoryMinFile
-	MemoryMaxFile
-	MemoryPeakFile
-	MemorySwapCurrentFile
-	MemorySwapMaxFile
-	MemoryZswapCurrentFile
-	MemoryZswapMaxFile
-	MemoryEventsFile
-	IoStatFile
-	CpuPressureFile
-	MemoryPressureFile
-	IoPressureFile
 )
 
 var isCgroup2 = sync.OnceValue[bool](func() bool {
@@ -70,9 +43,13 @@ type CgroupSample struct {
 	CpuPressure    cgroupfs.PSIStats
 	MemoryPressure cgroupfs.PSIStats
 	IOPressure     cgroupfs.PSIStats
+	RxPacket       uint64
+	RxByte         uint64
+	TxPacket       uint64
+	TxByte         uint64
 }
 
-func walkCgroupNode(level int, cg cgroupfs.Cgroup) (CgroupSample, error) {
+func walkCgroupNode(level int, cg cgroupfs.Cgroup, c *CgroupNetStat) (CgroupSample, error) {
 	root := CgroupSample{
 		FullPath: cg.FullPath,
 		Name:     cg.Name,
@@ -92,6 +69,21 @@ func walkCgroupNode(level int, cg cgroupfs.Cgroup) (CgroupSample, error) {
 	root.MemoryPressure, _ = cg.PSIStats("memory.pressure")
 	root.IOPressure, _ = cg.PSIStats("io.pressure")
 
+	root.RxPacket = math.MaxUint64
+	root.RxByte = math.MaxUint64
+	root.TxPacket = math.MaxUint64
+	root.TxByte = math.MaxUint64
+
+	if c != nil && c.Stats != nil {
+		if s, err := c.NetStat(root.Inode); err == nil {
+			root.RxPacket = s.RxPacket
+			root.RxByte = s.RxByte
+			root.TxPacket = s.TxPacket
+			root.TxByte = s.TxByte
+
+		}
+	}
+
 	es, err := os.ReadDir(CgroupV2MountPoint + cg.FullPath)
 	if err != nil {
 		return root, err
@@ -100,7 +92,7 @@ func walkCgroupNode(level int, cg cgroupfs.Cgroup) (CgroupSample, error) {
 	for _, e := range es {
 		if e.IsDir() {
 			child := cg.Child(e.Name())
-			childSample, err := walkCgroupNode(level+1, child)
+			childSample, err := walkCgroupNode(level+1, child, c)
 			if err != nil {
 				continue
 			}

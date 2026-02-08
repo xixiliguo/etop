@@ -107,7 +107,7 @@ func TestSampleMarshalAndUnmarshal(t *testing.T) {
 		},
 	}
 	realData := NewSample()
-	CollectSampleFromSys(&realData, nil, slog.Default())
+	CollectSampleFromSys(&realData, nil, nil, slog.Default())
 	testCases = append(testCases, realData)
 	for i, testCase := range testCases {
 		var b []byte

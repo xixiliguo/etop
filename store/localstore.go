@@ -136,6 +136,14 @@ func WithExitProcess(log *slog.Logger) Option {
 	}
 }
 
+func WithCgroupNetStat(log *slog.Logger) Option {
+	return func(local *LocalStore) error {
+		local.c = NewCgroupNetStat(log)
+		local.c.Collect()
+		return nil
+	}
+}
+
 // LocalStore represent local store, which consist of index and data files.
 // All files was stored into Path (default: /var/log/etop).
 // file format: index_{shard}, data_{shard}
@@ -165,6 +173,7 @@ type LocalStore struct {
 	shard    int64
 	curIdx   int
 	exit     *ExitProcess
+	c        *CgroupNetStat
 	buffer   *bytes.Buffer
 }
 
@@ -539,7 +548,7 @@ func (local *LocalStore) getDataBytes(idx Index, buff *[]byte) error {
 }
 
 func (local *LocalStore) CollectSample(s *Sample) error {
-	return CollectSampleFromSys(s, local.exit, local.Log)
+	return CollectSampleFromSys(s, local.exit, local.c, local.Log)
 }
 
 func (local *LocalStore) WriteSample(s *Sample) (bool, error) {

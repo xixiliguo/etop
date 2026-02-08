@@ -24,7 +24,7 @@ func TestWalkCgroup(t *testing.T) {
 	t.Logf("%+v", isCgroup2())
 	cgRoot := cgroupfs.NewCgroup("/", "/")
 
-	sample, err := walkCgroupNode(0, cgRoot)
+	sample, err := walkCgroupNode(0, cgRoot, nil)
 	t.Log(sample, err)
 	draw(sample)
 }

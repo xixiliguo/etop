@@ -27,77 +27,6 @@ var AllCgroupFields = []string{"Path", "Name", "Level", "Inode", "Controllers",
 	"RbytePerSec", "WbytePerSec", "RioPerSec", "WioPerSec", "DbytePerSec", "DioPerSec",
 	"CPUSomePressure", "CPUFullPressure", "MemorySomePressure", "MemoryFullPressure", "IOSomePressure", "IOFullPressure"}
 
-var FiledToCgroupFile = map[string]store.CgroupFile{
-	"Anon":                        store.MemoryStatFile,
-	"File":                        store.MemoryStatFile,
-	"KernelStack":                 store.MemoryStatFile,
-	"Slab":                        store.MemoryStatFile,
-	"Sock":                        store.MemoryStatFile,
-	"Shmem":                       store.MemoryStatFile,
-	"Zswap":                       store.MemoryStatFile,
-	"Zswapped":                    store.MemoryStatFile,
-	"FileMapped":                  store.MemoryStatFile,
-	"FileDirty":                   store.MemoryStatFile,
-	"FileWriteback":               store.MemoryStatFile,
-	"AnonThp":                     store.MemoryStatFile,
-	"InactiveAnon":                store.MemoryStatFile,
-	"ActiveAnon":                  store.MemoryStatFile,
-	"InactiveFile":                store.MemoryStatFile,
-	"ActiveFile":                  store.MemoryStatFile,
-	"Unevictable":                 store.MemoryStatFile,
-	"SlabReclaimable":             store.MemoryStatFile,
-	"SlabUnreclaimable":           store.MemoryStatFile,
-	"PgfaultPerSec":               store.MemoryStatFile,
-	"PgmajfaultPerSec":            store.MemoryStatFile,
-	"WorkingsetRefaultPerSec":     store.MemoryStatFile,
-	"WorkingsetActivatePerSec":    store.MemoryStatFile,
-	"WorkingsetNodereclaimPerSec": store.MemoryStatFile,
-	"PgrefillPerSec":              store.MemoryStatFile,
-	"PgscanPerSec":                store.MemoryStatFile,
-	"PgstealPerSec":               store.MemoryStatFile,
-	"PgactivatePerSec":            store.MemoryStatFile,
-	"PgdeactivatePerSec":          store.MemoryStatFile,
-	"PglazyfreePerSec":            store.MemoryStatFile,
-	"PglazyfreedPerSec":           store.MemoryStatFile,
-	"ZswpInPerSec":                store.MemoryStatFile,
-	"ZswpOutPerSec":               store.MemoryStatFile,
-	"ThpFaultAllocPerSec":         store.MemoryStatFile,
-	"ThpCollapseAllocPerSec":      store.MemoryStatFile,
-	"CpuSetCpus":                  store.CpuSetCpusFile,
-	"CpuSetCpusEffective":         store.CpuSetCpusEffectiveFile,
-	"CpuSetMems":                  store.CpuSetMemsFileFile,
-	"CpuSetMemsEffective":         store.CpuSetMemsEffectiveFile,
-	"CpuWeight":                   store.CpuWeightFile,
-	"CpuMax":                      store.CpuMaxFile,
-	"MemoryCurrent":               store.MemoryCurrentFile,
-	"MemoryLow":                   store.MemoryLowFile,
-	"MemoryHigh":                  store.MemoryHighFile,
-	"MemoryMin":                   store.MemoryMinFile,
-	"MemoryMax":                   store.MemoryMaxFile,
-	"MemoryPeak":                  store.MemoryPeakFile,
-	"SwapCurrent":                 store.MemorySwapCurrentFile,
-	"SwapMax":                     store.MemorySwapMaxFile,
-	"ZswapCurrent":                store.MemoryZswapCurrentFile,
-	"ZswapMax":                    store.MemoryZswapMaxFile,
-	"EventLow":                    store.MemoryEventsFile,
-	"EventHigh":                   store.MemoryEventsFile,
-	"EventMax":                    store.MemoryEventsFile,
-	"EventOom":                    store.MemoryEventsFile,
-	"EventOomKill":                store.MemoryEventsFile,
-	"RbytePerSec":                 store.IoStatFile,
-	"WbytePerSec":                 store.IoStatFile,
-	"RioPerSec":                   store.IoStatFile,
-	"WioPerSec":                   store.IoStatFile,
-	"DbytePerSec":                 store.IoStatFile,
-	"DioPerSec":                   store.IoStatFile,
-	"CPUSomePressure":             store.CpuPressureFile,
-	"CPUFullPressure":             store.CpuPressureFile,
-	"MemorySomePressure":          store.MemoryPressureFile,
-	"MemoryFullPressure":          store.MemoryPressureFile,
-	"IOSomePressure":              store.IoPressureFile,
-	"IOFullPressure":              store.IoPressureFile,
-}
-
 type Cgroup struct {
 	FullPath    string
 	Name        string
@@ -187,6 +116,11 @@ type Cgroup struct {
 	MemoryFullPressure float64
 	IOSomePressure     float64
 	IOFullPressure     float64
+
+	RxPacketPerSec float64
+	RxBytePerSec   float64
+	TxPacketPerSec float64
+	TxBytePerSec   float64
 }
 
 func (c *Cgroup) DefaultConfig(field string) Field {
@@ -360,6 +294,14 @@ func (c *Cgroup) DefaultConfig(field string) Field {
 		cfg = Field{"IOSomePressure", Raw, 0, "%", 10, false}
 	case "IOFullPressure":
 		cfg = Field{"IOFullPressure", Raw, 0, "%", 10, false}
+	case "RxPacketPerSec":
+		cfg = Field{"Rpkt/s", Raw, 1, "/s", 10, false}
+	case "RxBytePerSec":
+		cfg = Field{"Rbyte/s", HumanReadableSize, 1, "/s", 10, false}
+	case "TxPacketPerSec":
+		cfg = Field{"Tpkt/s", Raw, 1, "/s", 10, false}
+	case "TxBytePerSec":
+		cfg = Field{"Tbyte/s", HumanReadableSize, 1, "/s", 10, false}
 	}
 	return cfg
 }
@@ -554,6 +496,14 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(c.IOSomePressure)
 	case "IOFullPressure":
 		s = cfg.Render(c.IOFullPressure)
+	case "RxPacketPerSec":
+		s = cfg.Render(c.RxPacketPerSec)
+	case "RxBytePerSec":
+		s = cfg.Render(c.RxBytePerSec)
+	case "TxPacketPerSec":
+		s = cfg.Render(c.TxPacketPerSec)
+	case "TxBytePerSec":
+		s = cfg.Render(c.TxBytePerSec)
 	default:
 		s = "no " + field + " for cgroup stat"
 	}
@@ -658,6 +608,11 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 		WioPerSec:   math.NaN(),
 		DbytePerSec: math.NaN(),
 		DioPerSec:   math.NaN(),
+
+		RxPacketPerSec: math.NaN(),
+		RxBytePerSec:   math.NaN(),
+		TxPacketPerSec: math.NaN(),
+		TxBytePerSec:   math.NaN(),
 	}
 
 	if len(curr.IOStats) > 0 {
@@ -686,6 +641,13 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 		c.WioPerSec = float64(currWio) / float64(interval)
 		c.DbytePerSec = float64(currDbyte) / float64(interval)
 		c.DioPerSec = float64(currDio) / float64(interval)
+	}
+
+	if curr.RxByte != math.MaxUint64 {
+		c.RxPacketPerSec = float64(curr.RxPacket) / float64(interval)
+		c.RxBytePerSec = float64(curr.RxByte) / float64(interval)
+		c.TxPacketPerSec = float64(curr.TxPacket) / float64(interval)
+		c.TxBytePerSec = float64(curr.TxByte) / float64(interval)
 	}
 
 	for _, currChild := range curr.Child {
@@ -921,6 +883,14 @@ func (c *Cgroup) sortChild(sortField string, descOrder bool) []*Cgroup {
 			return childs[i].IOSomePressure > childs[j].IOSomePressure
 		case "IOFullPressure":
 			return childs[i].IOFullPressure > childs[j].IOFullPressure
+		case "RxPacketPerSec":
+			return childs[i].RxPacketPerSec > childs[j].RxPacketPerSec
+		case "RxBytePerSec":
+			return childs[i].RxBytePerSec > childs[j].RxBytePerSec
+		case "TxPacketPerSec":
+			return childs[i].TxPacketPerSec > childs[j].TxPacketPerSec
+		case "TxBytePerSec":
+			return childs[i].TxBytePerSec > childs[j].TxBytePerSec
 		}
 		return false
 	})

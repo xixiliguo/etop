@@ -70,7 +70,8 @@ func (c *Cgroup) path(file string) string {
 }
 
 func (c *Cgroup) Inode() (uint64, error) {
-	info, err := os.Stat(c.FullPath)
+
+	info, err := os.Stat(c.path(""))
 	if err != nil {
 		return 0, err
 	}

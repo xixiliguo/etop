@@ -25,6 +25,8 @@ var (
 	CGROUPMEMDEFAULTORDER      = "Name"
 	CGROUPIOLAYOUT             = []string{"Name", "RbytePerSec", "WbytePerSec", "RioPerSec", "WioPerSec", "DbytePerSec", "DioPerSec"}
 	CGROUPIODEFAULTORDER       = "Name"
+	CGROUPNETLAYOUT            = []string{"Name", "RxPacketPerSec", "RxBytePerSec", "TxPacketPerSec", "TxBytePerSec"}
+	CGROUPNETDEFAULTORDER      = "Name"
 	CGROUPPRESSURELAYOUT       = []string{"Name", "CPUSomePressure", "CPUFullPressure", "MemorySomePressure", "MemoryFullPressure", "IOSomePressure", "IOFullPressure"}
 	CGROUPPRESSUREDEFAULTORDER = "Name"
 )
@@ -72,12 +74,13 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 		defaultOrder:   CGROUPGENERALDEFAULTORDER,
 	}
 
-	cgroup.regions = []string{"g", "c", "m", "d", "p"}
-	fmt.Fprintf(cgroup.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""] ["%s"]%s[""]`,
+	cgroup.regions = []string{"g", "c", "m", "d", "n", "p"}
+	fmt.Fprintf(cgroup.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""] ["%s"]%s[""]`,
 		"g", "General",
 		"c", "CPU",
 		"m", "Mem",
 		"d", "I/O",
+		"n", "Network",
 		"p", "Pressure")
 	cgroup.header.SetRegions(true).Highlight("g")
 
@@ -188,6 +191,8 @@ func (cgroup *Cgroup) setRegionAndSwitchView(region string) {
 		cgroup.setVisibleColumns(CGROUPMEMLAYOUT, CGROUPMEMDEFAULTORDER)
 	case "d":
 		cgroup.setVisibleColumns(CGROUPIOLAYOUT, CGROUPIODEFAULTORDER)
+	case "n":
+		cgroup.setVisibleColumns(CGROUPNETLAYOUT, CGROUPNETDEFAULTORDER)
 	case "p":
 		cgroup.setVisibleColumns(CGROUPPRESSURELAYOUT, CGROUPPRESSUREDEFAULTORDER)
 	}
@@ -265,6 +270,9 @@ func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p
 				return
 			} else if event.Rune() == 'd' {
 				cgroup.setRegionAndSwitchView("d")
+				return
+			} else if event.Rune() == 'n' {
+				cgroup.setRegionAndSwitchView("n")
 				return
 			} else if event.Rune() == 'p' {
 				cgroup.setRegionAndSwitchView("p")

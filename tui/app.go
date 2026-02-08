@@ -263,6 +263,9 @@ func (tui *TUI) RunWithLive(interval time.Duration) error {
 	exit := store.NewExitProcess(tui.log)
 	go exit.Collect()
 
+	c := store.NewCgroupNetStat(tui.log)
+	c.Collect()
+
 	tui.mode = LIVE
 	sm, err := model.NewSysModel(nil, tui.log)
 	if err != nil {
@@ -275,10 +278,9 @@ func (tui *TUI) RunWithLive(interval time.Duration) error {
 		for {
 
 			start := time.Now()
-			if err := sm.CollectLiveSample(exit); err != nil {
+			if err := sm.CollectLiveSample(exit, c); err != nil {
 				return
 			}
-
 			tui.QueueUpdateDraw(func() {
 				tui.header.Update(sm)
 				tui.basic.Update(sm)
