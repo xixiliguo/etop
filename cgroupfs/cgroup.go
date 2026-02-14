@@ -83,7 +83,7 @@ func (c *Cgroup) Controllers() (string, error) {
 
 	fullPath := c.path("cgroup.controllers")
 	b, err := os.ReadFile(fullPath)
-	return stringutil.ToString(bytes.TrimSpace(b)), err
+	return string(bytes.TrimSpace(b)), err
 }
 
 type CgoupStat struct {
@@ -93,17 +93,16 @@ type CgoupStat struct {
 
 func (c *Cgroup) CgoupStat() (CgoupStat, error) {
 	fullPath := c.path("cgroup.stat")
-
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return CgoupStat{}, err
-	}
-	defer f.Close()
-
 	stat := CgoupStat{
 		NrDescendants:      math.MaxUint64,
 		NrDyingDescendants: math.MaxUint64,
 	}
+	f, err := os.Open(fullPath)
+	if err != nil {
+		return stat, nil
+	}
+	defer f.Close()
+
 	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
 
 		var fields [2]string
@@ -137,14 +136,8 @@ type CPUStat struct {
 }
 
 func (c *Cgroup) CPUStat() (CPUStat, error) {
+
 	fullPath := c.path("cpu.stat")
-
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return CPUStat{}, err
-	}
-	defer f.Close()
-
 	cpuStat := CPUStat{
 		UsageUsec:     math.MaxUint64,
 		UserUsec:      math.MaxUint64,
@@ -155,6 +148,13 @@ func (c *Cgroup) CPUStat() (CPUStat, error) {
 		NrBursts:      math.MaxUint64,
 		BurstUsec:     math.MaxUint64,
 	}
+
+	f, err := os.Open(fullPath)
+	if err != nil {
+		return cpuStat, nil
+	}
+	defer f.Close()
+
 	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
 
 		var fields [2]string
@@ -193,14 +193,18 @@ type MemoryStat struct {
 	File                   uint64
 	Kernel                 uint64
 	KernelStack            uint64
-	Slab                   uint64
+	PageTables             uint64
+	SecPageTables          uint64
+	PerCPU                 uint64
 	Sock                   uint64
+	Vmalloc                uint64
 	Shmem                  uint64
 	Zswap                  uint64
 	Zswapped               uint64
 	FileMapped             uint64
 	FileDirty              uint64
 	FileWriteback          uint64
+	SwapCached             uint64
 	AnonThp                uint64
 	FileThp                uint64
 	ShmemThp               uint64
@@ -211,8 +215,7 @@ type MemoryStat struct {
 	Unevictable            uint64
 	SlabReclaimable        uint64
 	SlabUnreclaimable      uint64
-	Pgfault                uint64
-	Pgmajfault             uint64
+	Slab                   uint64
 	WorkingsetRefaultAnon  uint64
 	WorkingsetRefaultFile  uint64
 	WorkingsetActivateAnon uint64
@@ -220,15 +223,24 @@ type MemoryStat struct {
 	WorkingsetRestoreAnon  uint64
 	WorkingsetRestoreFile  uint64
 	WorkingsetNodereclaim  uint64
-	Pgrefill               uint64
 	Pgscan                 uint64
 	Pgsteal                uint64
+	PgscanKswapd           uint64
+	PgscanDirect           uint64
+	PgscanKhugepaged       uint64
+	PgstealKswapd          uint64
+	PgstealDirect          uint64
+	PgstealKhugepaged      uint64
+	Pgfault                uint64
+	Pgmajfault             uint64
+	Pgrefill               uint64
 	Pgactivate             uint64
 	Pgdeactivate           uint64
 	Pglazyfree             uint64
 	Pglazyfreed            uint64
 	ZswpIn                 uint64
 	ZswpOut                uint64
+	ZswpWb                 uint64
 	ThpFaultAlloc          uint64
 	ThpCollapseAlloc       uint64
 }
@@ -237,16 +249,23 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 	memStat := MemoryStat{
 		Anon:                   math.MaxUint64,
 		File:                   math.MaxUint64,
+		Kernel:                 math.MaxUint64,
 		KernelStack:            math.MaxUint64,
-		Slab:                   math.MaxUint64,
+		PageTables:             math.MaxUint64,
+		SecPageTables:          math.MaxUint64,
+		PerCPU:                 math.MaxUint64,
 		Sock:                   math.MaxUint64,
+		Vmalloc:                math.MaxUint64,
 		Shmem:                  math.MaxUint64,
 		Zswap:                  math.MaxUint64,
 		Zswapped:               math.MaxUint64,
 		FileMapped:             math.MaxUint64,
 		FileDirty:              math.MaxUint64,
 		FileWriteback:          math.MaxUint64,
+		SwapCached:             math.MaxUint64,
 		AnonThp:                math.MaxUint64,
+		FileThp:                math.MaxUint64,
+		ShmemThp:               math.MaxUint64,
 		InactiveAnon:           math.MaxUint64,
 		ActiveAnon:             math.MaxUint64,
 		InactiveFile:           math.MaxUint64,
@@ -254,8 +273,7 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 		Unevictable:            math.MaxUint64,
 		SlabReclaimable:        math.MaxUint64,
 		SlabUnreclaimable:      math.MaxUint64,
-		Pgfault:                math.MaxUint64,
-		Pgmajfault:             math.MaxUint64,
+		Slab:                   math.MaxUint64,
 		WorkingsetRefaultAnon:  math.MaxUint64,
 		WorkingsetRefaultFile:  math.MaxUint64,
 		WorkingsetActivateAnon: math.MaxUint64,
@@ -263,15 +281,24 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 		WorkingsetRestoreAnon:  math.MaxUint64,
 		WorkingsetRestoreFile:  math.MaxUint64,
 		WorkingsetNodereclaim:  math.MaxUint64,
-		Pgrefill:               math.MaxUint64,
 		Pgscan:                 math.MaxUint64,
 		Pgsteal:                math.MaxUint64,
+		PgscanKswapd:           math.MaxUint64,
+		PgscanDirect:           math.MaxUint64,
+		PgscanKhugepaged:       math.MaxUint64,
+		PgstealKswapd:          math.MaxUint64,
+		PgstealDirect:          math.MaxUint64,
+		PgstealKhugepaged:      math.MaxUint64,
+		Pgfault:                math.MaxUint64,
+		Pgmajfault:             math.MaxUint64,
+		Pgrefill:               math.MaxUint64,
 		Pgactivate:             math.MaxUint64,
 		Pgdeactivate:           math.MaxUint64,
 		Pglazyfree:             math.MaxUint64,
 		Pglazyfreed:            math.MaxUint64,
 		ZswpIn:                 math.MaxUint64,
 		ZswpOut:                math.MaxUint64,
+		ZswpWb:                 math.MaxUint64,
 		ThpFaultAlloc:          math.MaxUint64,
 		ThpCollapseAlloc:       math.MaxUint64,
 	}
@@ -280,7 +307,7 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 
 	f, err := os.Open(fullPath)
 	if err != nil {
-		return MemoryStat{}, err
+		return memStat, nil
 	}
 	defer f.Close()
 
@@ -299,10 +326,16 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 			memStat.Kernel, err = strconv.ParseUint(fields[1], 10, 64)
 		case "kernel_stack":
 			memStat.KernelStack, err = strconv.ParseUint(fields[1], 10, 64)
-		case "slab":
-			memStat.Slab, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pagetables":
+			memStat.PageTables, err = strconv.ParseUint(fields[1], 10, 64)
+		case "sec_pagetables":
+			memStat.SecPageTables, err = strconv.ParseUint(fields[1], 10, 64)
+		case "percpu":
+			memStat.PerCPU, err = strconv.ParseUint(fields[1], 10, 64)
 		case "sock":
 			memStat.Sock, err = strconv.ParseUint(fields[1], 10, 64)
+		case "vmalloc":
+			memStat.Vmalloc, err = strconv.ParseUint(fields[1], 10, 64)
 		case "shmem":
 			memStat.Shmem, err = strconv.ParseUint(fields[1], 10, 64)
 		case "zswap":
@@ -315,6 +348,8 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 			memStat.FileDirty, err = strconv.ParseUint(fields[1], 10, 64)
 		case "file_writeback":
 			memStat.FileWriteback, err = strconv.ParseUint(fields[1], 10, 64)
+		case "swapcached":
+			memStat.SwapCached, err = strconv.ParseUint(fields[1], 10, 64)
 		case "anon_thp":
 			memStat.AnonThp, err = strconv.ParseUint(fields[1], 10, 64)
 		case "file_thp":
@@ -335,10 +370,8 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 			memStat.SlabReclaimable, err = strconv.ParseUint(fields[1], 10, 64)
 		case "slab_unreclaimable":
 			memStat.SlabUnreclaimable, err = strconv.ParseUint(fields[1], 10, 64)
-		case "pgfault":
-			memStat.Pgfault, err = strconv.ParseUint(fields[1], 10, 64)
-		case "pgmajfault":
-			memStat.Pgmajfault, err = strconv.ParseUint(fields[1], 10, 64)
+		case "slab":
+			memStat.Slab, err = strconv.ParseUint(fields[1], 10, 64)
 		case "workingset_refault_anon":
 			memStat.WorkingsetRefaultAnon, err = strconv.ParseUint(fields[1], 10, 64)
 		case "workingset_refault_file":
@@ -353,12 +386,28 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 			memStat.WorkingsetRestoreFile, err = strconv.ParseUint(fields[1], 10, 64)
 		case "workingset_nodereclaim":
 			memStat.WorkingsetNodereclaim, err = strconv.ParseUint(fields[1], 10, 64)
-		case "pgrefill":
-			memStat.Pgrefill, err = strconv.ParseUint(fields[1], 10, 64)
 		case "pgscan":
 			memStat.Pgscan, err = strconv.ParseUint(fields[1], 10, 64)
 		case "pgsteal":
 			memStat.Pgsteal, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgscan_kswapd":
+			memStat.PgscanKswapd, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgscan_direct":
+			memStat.PgscanDirect, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgscan_khugepaged":
+			memStat.PgscanKhugepaged, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgsteal_kswapd":
+			memStat.PgstealKswapd, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgsteal_direct":
+			memStat.PgstealDirect, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgsteal_khugepaged":
+			memStat.PgstealKhugepaged, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgfault":
+			memStat.Pgfault, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgmajfault":
+			memStat.Pgmajfault, err = strconv.ParseUint(fields[1], 10, 64)
+		case "pgrefill":
+			memStat.Pgrefill, err = strconv.ParseUint(fields[1], 10, 64)
 		case "pgactivate":
 			memStat.Pgactivate, err = strconv.ParseUint(fields[1], 10, 64)
 		case "pgdeactivate":
@@ -371,6 +420,8 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 			memStat.ZswpIn, err = strconv.ParseUint(fields[1], 10, 64)
 		case "zswpout":
 			memStat.ZswpOut, err = strconv.ParseUint(fields[1], 10, 64)
+		case "zswpwb":
+			memStat.ZswpWb, err = strconv.ParseUint(fields[1], 10, 64)
 		case "thp_fault_alloc":
 			memStat.ThpFaultAlloc, err = strconv.ParseUint(fields[1], 10, 64)
 		case "thp_collapse_alloc":
@@ -385,28 +436,31 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 }
 
 type MemoryEvents struct {
-	Low          uint64
-	High         uint64
-	Max          uint64
-	Oom          uint64
-	OomKill      uint64
-	oomGroupKill uint64
+	Low           uint64
+	High          uint64
+	Max           uint64
+	Oom           uint64
+	OomKill       uint64
+	OomGroupKill  uint64
+	SockThrottled uint64
 }
 
 func (c *Cgroup) MemoryEvents() (MemoryEvents, error) {
 	fullPath := c.path("memory.events")
 
 	event := MemoryEvents{
-		Low:     math.MaxUint64,
-		High:    math.MaxUint64,
-		Max:     math.MaxUint64,
-		Oom:     math.MaxUint64,
-		OomKill: math.MaxUint64,
+		Low:           math.MaxUint64,
+		High:          math.MaxUint64,
+		Max:           math.MaxUint64,
+		Oom:           math.MaxUint64,
+		OomKill:       math.MaxUint64,
+		OomGroupKill:  math.MaxUint64,
+		SockThrottled: math.MaxUint64,
 	}
 
 	f, err := os.Open(fullPath)
 	if err != nil {
-		return event, err
+		return event, nil
 	}
 	defer f.Close()
 
@@ -429,8 +483,9 @@ func (c *Cgroup) MemoryEvents() (MemoryEvents, error) {
 		case "oom_kill":
 			event.OomKill, err = strconv.ParseUint(fields[1], 10, 64)
 		case "oom_group_kill":
-			event.oomGroupKill, err = strconv.ParseUint(fields[1], 10, 64)
-
+			event.OomGroupKill, err = strconv.ParseUint(fields[1], 10, 64)
+		case "sock_throttled":
+			event.SockThrottled, err = strconv.ParseUint(fields[1], 10, 64)
 		}
 		if err != nil {
 			return err
@@ -458,7 +513,7 @@ func (c *Cgroup) IOStats() ([]IOStat, error) {
 
 	f, err := os.Open(fullPath)
 	if err != nil {
-		return ioStats, err
+		return ioStats, nil
 	}
 	defer f.Close()
 
@@ -469,7 +524,14 @@ func (c *Cgroup) IOStats() ([]IOStat, error) {
 		if nFields < 7 {
 			return fmt.Errorf("%s: unexpected line in io.stat: '%s'", fullPath, line)
 		}
-		stat := IOStat{}
+		stat := IOStat{
+			Rbytes: math.MaxUint64,
+			Wbytes: math.MaxUint64,
+			Rios:   math.MaxUint64,
+			Wios:   math.MaxUint64,
+			Dbytes: math.MaxUint64,
+			Dios:   math.MaxUint64,
+		}
 
 		idx := strings.Index(fields[0], ":")
 		stat.Major, err = strconv.ParseUint(fields[0][:idx], 10, 64)
@@ -539,7 +601,7 @@ func (c *Cgroup) PSIStats(file string) (PSIStats, error) {
 
 	f, err := os.Open(fullPath)
 	if err != nil {
-		return psi, err
+		return psi, nil
 	}
 	defer f.Close()
 
@@ -583,75 +645,130 @@ func (c *Cgroup) PSIStats(file string) (PSIStats, error) {
 }
 
 type Property struct {
-	MemoryLow           uint64
-	MemoryHigh          uint64
-	MemoryMin           uint64
-	MemoryMax           uint64
-	MemorySwapMax       uint64
-	MemoryZSwapMax      uint64
-	CPUWeight           uint64
-	CPUMax              string
-	CpuSetCpus          string
-	CpuSetCpusEffective string
-	PidsCurrent         uint64
-	PidsMax             uint64
+	MemoryCurrent                uint64
+	MemoryLow                    uint64
+	MemoryHigh                   uint64
+	MemoryMin                    uint64
+	MemoryMax                    uint64
+	MemoryOOMGroup               uint64
+	MemorySwapCurrent            uint64
+	MemorySwapMax                uint64
+	MemoryZSwapCurrent           uint64
+	MemoryZSwapMax               uint64
+	CpuWeight                    uint64
+	CpuMax                       string
+	CpuSetCpus                   string
+	CpuSetCpusEffective          string
+	CpuSetCpusExclusive          string
+	CpuSetCpusExclusiveEffective string
+	TidsCurrent                  uint64
+	TidsMax                      uint64
 }
 
 const MaxCgroupPropertyUintValue = math.MaxUint64 - 1
-const MaxCgroupPropertyStrValue = "no-exist"
+const NoExistCgroupPropertyStrValue = "no-exist"
 
-func getUintFromPropertyFile(file string) uint64 {
+func getUintFromPropertyFile(file string) (uint64, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		return math.MaxUint64
+		return math.MaxUint64, nil
 	}
 	defer f.Close()
 	var buf [32]byte
 	n, err := f.Read(buf[:])
 	if err != nil {
-		return math.MaxUint64
+		return 0, err
 	}
-	line := stringutil.ToString(buf[:n])
+
+	line := stringutil.ToString(bytes.TrimSpace(buf[:n]))
 	if line == "max" {
-		return MaxCgroupPropertyUintValue
+		return MaxCgroupPropertyUintValue, nil
 	}
-	count, _ := strconv.ParseUint(line, 10, 64)
-	return count
+	return strconv.ParseUint(line, 10, 64)
 }
 
-func getStrFromPropertyFile(file string) string {
+func getStrFromPropertyFile(file string) (string, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		return MaxCgroupPropertyStrValue
+		return NoExistCgroupPropertyStrValue, nil
 	}
 	defer f.Close()
 	var buf [32]byte
 	n, err := f.Read(buf[:])
 	if err != nil {
-		return MaxCgroupPropertyStrValue
+		return "", err
 	}
-	return string(buf[:n])
+	line := stringutil.ToString(bytes.TrimSpace(buf[:n]))
+	return strings.Clone(line), nil
 }
 
 func (c *Cgroup) Properties() (Property, error) {
 
 	p := Property{}
-	p.MemoryLow = getUintFromPropertyFile("memory.low")
-	p.MemoryHigh = getUintFromPropertyFile("memory.high")
-	p.MemoryMin = getUintFromPropertyFile("memory.min")
-	p.MemoryMax = getUintFromPropertyFile("memory.max")
+	var err error
+	if p.MemoryCurrent, err = getUintFromPropertyFile(c.path("memory.current")); err != nil {
+		return p, err
+	}
+	if p.MemoryLow, err = getUintFromPropertyFile(c.path("memory.low")); err != nil {
+		return p, err
+	}
+	if p.MemoryHigh, err = getUintFromPropertyFile(c.path("memory.high")); err != nil {
+		return p, err
+	}
+	if p.MemoryMin, err = getUintFromPropertyFile(c.path("memory.min")); err != nil {
+		return p, err
+	}
+	if p.MemoryMax, err = getUintFromPropertyFile(c.path("memory.max")); err != nil {
+		return p, err
+	}
 
-	p.MemorySwapMax = getUintFromPropertyFile("memory.swap.max")
-	p.MemoryZSwapMax = getUintFromPropertyFile("memory.zswap.max")
+	if p.MemoryOOMGroup, err = getUintFromPropertyFile(c.path("memory.oom.group")); err != nil {
+		return p, err
+	}
 
-	p.CPUMax = getStrFromPropertyFile("cpu.max")
-	p.CPUWeight = getUintFromPropertyFile("cpu.weight")
+	if p.MemorySwapCurrent, err = getUintFromPropertyFile(c.path("memory.swap.current")); err != nil {
+		return p, err
+	}
 
-	p.CpuSetCpus = getStrFromPropertyFile("cpuset.cpus")
-	p.CpuSetCpusEffective = getStrFromPropertyFile("cpuset.cpus.effective")
+	if p.MemorySwapMax, err = getUintFromPropertyFile(c.path("memory.swap.max")); err != nil {
+		return p, err
+	}
 
-	p.PidsCurrent = getUintFromPropertyFile("pids.current")
-	p.PidsMax = getUintFromPropertyFile("pids.max")
+	if p.MemoryZSwapCurrent, err = getUintFromPropertyFile(c.path("memory.zswap.current")); err != nil {
+		return p, err
+	}
+
+	if p.MemoryZSwapMax, err = getUintFromPropertyFile(c.path("memory.zswap.max")); err != nil {
+		return p, err
+	}
+
+	if p.CpuMax, err = getStrFromPropertyFile(c.path("cpu.max")); err != nil {
+		return p, err
+	}
+	if p.CpuWeight, err = getUintFromPropertyFile(c.path("cpu.weight")); err != nil {
+		return p, err
+	}
+
+	if p.CpuSetCpus, err = getStrFromPropertyFile(c.path("cpuset.cpus")); err != nil {
+		return p, err
+	}
+	if p.CpuSetCpusEffective, err = getStrFromPropertyFile(c.path("cpuset.cpus.effective")); err != nil {
+		return p, err
+	}
+
+	if p.CpuSetCpusExclusive, err = getStrFromPropertyFile(c.path("cpuset.cpus.exclusive")); err != nil {
+		return p, err
+	}
+	if p.CpuSetCpusExclusiveEffective, err = getStrFromPropertyFile(c.path("cpuset.cpus.exclusive.effective")); err != nil {
+		return p, err
+	}
+
+	if p.TidsCurrent, err = getUintFromPropertyFile(c.path("pids.current")); err != nil {
+		return p, err
+	}
+	if p.TidsMax, err = getUintFromPropertyFile(c.path("pids.max")); err != nil {
+		return p, err
+	}
 
 	return p, nil
 }

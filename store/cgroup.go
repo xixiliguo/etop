@@ -57,17 +57,41 @@ func walkCgroupNode(level int, cg cgroupfs.Cgroup, c *CgroupNetStat) (CgroupSamp
 		Child:    map[string]CgroupSample{},
 	}
 
-	root.Inode, _ = cg.Inode()
-	root.Controllers, _ = cg.Controllers()
-	root.CgoupStat, _ = cg.CgoupStat()
-	root.CPUStat, _ = cg.CPUStat()
-	root.MemoryStat, _ = cg.MemoryStat()
-	root.Property, _ = cg.Properties()
-	root.MemoryEvents, _ = cg.MemoryEvents()
-	root.IOStats, _ = cg.IOStats()
-	root.CpuPressure, _ = cg.PSIStats("cpu.pressure")
-	root.MemoryPressure, _ = cg.PSIStats("memory.pressure")
-	root.IOPressure, _ = cg.PSIStats("io.pressure")
+	var err error
+
+	if root.Inode, err = cg.Inode(); err != nil {
+		return root, err
+	}
+	if root.Controllers, err = cg.Controllers(); err != nil {
+		return root, err
+	}
+	if root.CgoupStat, err = cg.CgoupStat(); err != nil {
+		return root, err
+	}
+	if root.CPUStat, err = cg.CPUStat(); err != nil {
+		return root, err
+	}
+	if root.MemoryStat, err = cg.MemoryStat(); err != nil {
+		return root, err
+	}
+	if root.Property, err = cg.Properties(); err != nil {
+		return root, err
+	}
+	if root.MemoryEvents, err = cg.MemoryEvents(); err != nil {
+		return root, err
+	}
+	if root.IOStats, err = cg.IOStats(); err != nil {
+		return root, err
+	}
+	if root.CpuPressure, err = cg.PSIStats("cpu.pressure"); err != nil {
+		return root, err
+	}
+	if root.MemoryPressure, err = cg.PSIStats("memory.pressure"); err != nil {
+		return root, err
+	}
+	if root.IOPressure, err = cg.PSIStats("io.pressure"); err != nil {
+		return root, err
+	}
 
 	root.RxPacket = math.MaxUint64
 	root.RxByte = math.MaxUint64
@@ -94,10 +118,9 @@ func walkCgroupNode(level int, cg cgroupfs.Cgroup, c *CgroupNetStat) (CgroupSamp
 			child := cg.Child(e.Name())
 			childSample, err := walkCgroupNode(level+1, child, c)
 			if err != nil {
-				continue
+				return root, err
 			}
 			root.Child[child.Name] = childSample
-
 		}
 	}
 	return root, nil

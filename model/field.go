@@ -80,7 +80,7 @@ func (f Field) Render(value any) string {
 			buf = strconv.AppendFloat(buf, v, 'f', f.Precision, 64)
 		}
 	case string:
-		if v == cgroupfs.MaxCgroupPropertyStrValue {
+		if v == cgroupfs.NoExistCgroupPropertyStrValue {
 			v = "-"
 		}
 		if f.Suffix == "" && !f.FixWidth {

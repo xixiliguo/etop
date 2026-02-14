@@ -1,6 +1,7 @@
 package model
 
 import (
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -594,8 +595,8 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		}
 
 		// get cpu info
-		p.User = SubWithInterval(float64(new.UTime), float64(old.UTime), float64(interval))
-		p.System = SubWithInterval(float64(new.STime), float64(old.STime), float64(interval))
+		p.User = SubWithInterval(new.UTime, old.UTime, interval)
+		p.System = SubWithInterval(new.STime, old.STime, interval)
 		p.Priority = new.Priority
 		p.Nice = new.Nice
 		p.Policy = new.Policy
@@ -611,12 +612,12 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 
 		p.RChar = Sub(new.RChar, old.RChar)
 		p.WChar = Sub(new.WChar, old.WChar)
-		p.ReadCharPerSec = SubWithInterval(float64(new.RChar), float64(old.RChar), float64(interval))
-		p.WriteCharPerSec = SubWithInterval(float64(new.WChar), float64(old.WChar), float64(interval))
+		p.ReadCharPerSec = SubWithInterval(new.RChar, old.RChar, interval)
+		p.WriteCharPerSec = SubWithInterval(new.WChar, old.WChar, interval)
 		p.SyscR = Sub(new.SyscR, old.SyscR)
 		p.SyscW = Sub(new.SyscW, old.SyscW)
-		p.SyscRPerSec = SubWithInterval(float64(new.SyscR), float64(old.SyscR), float64(interval))
-		p.SyscWPerSec = SubWithInterval(float64(new.SyscW), float64(old.SyscW), float64(interval))
+		p.SyscRPerSec = SubWithInterval(new.SyscR, old.SyscR, interval)
+		p.SyscWPerSec = SubWithInterval(new.SyscW, old.SyscW, interval)
 		p.ReadBytes = Sub(new.ReadBytes, old.ReadBytes)
 		p.WriteBytes = Sub(new.WriteBytes, old.WriteBytes)
 		p.CancelledWriteBytes = int64(Sub(new.CancelledWriteBytes, old.CancelledWriteBytes))
@@ -735,27 +736,20 @@ func (processMap ProcessMap) GetOtelMetric(timeStamp int64, sm *metricdata.Scope
 	sm.Metrics = append(sm.Metrics, cpuUsage, cpuDelay, memUsage, diskByte)
 }
 
-func PercentWithInterval[T uint64 | int | int64 | float64](curr, prev T, interval int64) float64 {
-	if interval == 0 {
-		return 0
+func SubWithInterval(curr, prev uint64, interval int64) float64 {
+	if curr == math.MaxUint64 {
+		return math.NaN()
 	}
 	if curr < prev {
-		return 0
-	}
-	return float64(curr-prev) * 100 / float64(interval)
-}
-
-func SubWithInterval[T uint64 | int | int64 | float64](curr, prev, interval T) float64 {
-	if interval == 0 {
-		return 0
-	}
-	if curr < prev {
-		return 0
+		return math.NaN()
 	}
 	return float64(curr-prev) / float64(interval)
 }
 
-func Sub[T uint64 | int | int64 | float64 | uint](curr, prev T) T {
+func Sub(curr, prev uint64) uint64 {
+	if curr == math.MaxUint64 {
+		return math.MaxUint64
+	}
 	if curr < prev {
 		return 0
 	}

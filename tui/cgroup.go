@@ -16,12 +16,17 @@ var (
 	CGROUPGENERALDEFAULTORDER = "Name"
 	CGROUPCPULAYOUT           = []string{"Name", "UsagePercent", "UserPercent", "SystemPercent", "NrPeriodsPerSec", "NrThrottledPerSec", "ThrottledPercent", "NrBurstsPerSec", "BurstPercent"}
 	CGROUPCPUDEFAULTORDER     = "Name"
-	CGROUPMEMLAYOUT           = []string{"Name", "MemoryCurrent", "SwapCurrent", "Anon", "File", "KernelStack", "Slab", "Sock", "Shmem", "Zswap", "Zswapped", "FileMapped",
-		"FileDirty", "FileWriteback", "AnonThp", "InactiveAnon", "ActiveAnon", "InactiveFile", "ActiveFile", "Unevictable",
-		"SlabReclaimable", "SlabUnreclaimable", "PgfaultPerSec", "PgmajfaultPerSec", "WorkingsetRefaultPerSec", "WorkingsetActivatePerSec",
-		"WorkingsetNodereclaimPerSec", "PgrefillPerSec", "PgscanPerSec", "PgstealPerSec", "PgactivatePerSec", "PgdeactivatePerSec", "PglazyfreePerSec", "PglazyfreedPerSec",
-		"ZswpInPerSec", "ZswpOutPerSec", "ThpFaultAllocPerSec", "ThpCollapseAllocPerSec",
-		"EventLow", "EventHigh", "EventMax", "EventOom", "EventOomKill"}
+	CGROUPMEMLAYOUT           = []string{"Name", "MemoryCurrent", "MemorySwapCurrent", "Anon", "File", "Kernel", "KernelStack",
+		"PageTables", "SecPageTables", "PerCPU", "Sock", "Vmalloc", "Shmem", "Zswap", "Zswapped", "FileMapped",
+		"FileDirty", "FileWriteback", "SwapCached", "AnonThp", "FileThp", "ShmemThp",
+		"InactiveAnon", "ActiveAnon", "InactiveFile", "ActiveFile", "Unevictable",
+		"SlabReclaimable", "SlabUnreclaimable", "Slab",
+		"WorkingsetRefaultPerSec", "WorkingsetActivatePerSec", "WorkingsetRestorePerSec", "WorkingsetNodereclaimPerSec",
+		"PgscanPerSec", "PgstealPerSec", "PgscanKswapdPerSec", "PgscanDirectPerSec", "PgscanKhugepagedPerSec", "PgstealKswapdPerSec",
+		"PgstealDirectPerSec", "PgstealKhugepagedPerSec", "PgfaultPerSec", "PgmajfaultPerSec", "PgrefillPerSec", "PgactivatePerSec",
+		"PgdeactivatePerSec", "PglazyfreePerSec", "PglazyfreedPerSec", "ZswpInPerSec", "ZswpOutPerSec", "ZswpWbPerSec",
+		"ThpFaultAllocPerSec", "ThpCollapseAllocPerSec", "EventLowPerSec", "EventHighPerSec", "EventMaxPerSec",
+		"EventOomPerSec", "EventOomKillPerSec", "EventOomGroupKillPerSec", "EventSockThrottledPerSec"}
 	CGROUPMEMDEFAULTORDER      = "Name"
 	CGROUPIOLAYOUT             = []string{"Name", "RbytePerSec", "WbytePerSec", "RioPerSec", "WioPerSec", "DbytePerSec", "DioPerSec"}
 	CGROUPIODEFAULTORDER       = "Name"
@@ -29,6 +34,11 @@ var (
 	CGROUPNETDEFAULTORDER      = "Name"
 	CGROUPPRESSURELAYOUT       = []string{"Name", "CPUSomePressure", "CPUFullPressure", "MemorySomePressure", "MemoryFullPressure", "IOSomePressure", "IOFullPressure"}
 	CGROUPPRESSUREDEFAULTORDER = "Name"
+	CGROUPPROPERTYLAYOUT       = []string{"Name", "MemoryCurrent", "MemoryLow", "MemoryHigh", "MemoryMin", "MemoryMax", "MemoryOOMGroup",
+		"MemorySwapCurrent", "MemorySwapMax", "MemoryZSwapCurrent", "MemoryZSwapMax",
+		"CpuWeight", "CpuMax", "CpuSetCpus", "CpuSetCpusEffective", "CpuSetCpusExclusive", "CpuSetCpusExclusiveEffective",
+		"TidsCurrent", "TidsMax"}
+	CGROUPPROPERTYDEFAULTORDER = "Name"
 )
 
 type Cgroup struct {
@@ -74,14 +84,15 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 		defaultOrder:   CGROUPGENERALDEFAULTORDER,
 	}
 
-	cgroup.regions = []string{"g", "c", "m", "d", "n", "p"}
-	fmt.Fprintf(cgroup.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""] ["%s"]%s[""]`,
+	cgroup.regions = []string{"g", "c", "m", "d", "n", "p", "v"}
+	fmt.Fprintf(cgroup.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""] ["%s"]%s[""] ["%s"]%s[""]`,
 		"g", "General",
 		"c", "CPU",
 		"m", "Mem",
 		"d", "I/O",
 		"n", "Network",
-		"p", "Pressure")
+		"p", "Pressure",
+		"v", "Property")
 	cgroup.header.SetRegions(true).Highlight("g")
 
 	cgroup.cgroupView.
@@ -195,6 +206,8 @@ func (cgroup *Cgroup) setRegionAndSwitchView(region string) {
 		cgroup.setVisibleColumns(CGROUPNETLAYOUT, CGROUPNETDEFAULTORDER)
 	case "p":
 		cgroup.setVisibleColumns(CGROUPPRESSURELAYOUT, CGROUPPRESSUREDEFAULTORDER)
+	case "v":
+		cgroup.setVisibleColumns(CGROUPPROPERTYLAYOUT, CGROUPPROPERTYDEFAULTORDER)
 	}
 	cgroup.update()
 }
@@ -276,6 +289,9 @@ func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p
 				return
 			} else if event.Rune() == 'p' {
 				cgroup.setRegionAndSwitchView("p")
+				return
+			} else if event.Rune() == 'v' {
+				cgroup.setRegionAndSwitchView("v")
 				return
 			}
 			if handler := cgroup.cgroupView.InputHandler(); handler != nil {

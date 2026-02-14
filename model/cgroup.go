@@ -16,16 +16,19 @@ var DefaultCgroupFields = []string{"Name", "NrDescendants", "NrDyingDescendants"
 var AllCgroupFields = []string{"Path", "Name", "Level", "Inode", "Controllers",
 	"NrDescendants", "NrDyingDescendants",
 	"UsagePercent", "UserPercent", "SystemPercent", "NrPeriodsPerSec", "NrThrottledPerSec", "ThrottledPercent", "NrBurstsPerSec", "BurstPercent",
-	"Anon", "File", "KernelStack", "Slab", "Sock", "Shmem", "Zswap", "Zswapped", "FileMapped",
-	"FileDirty", "FileWriteback", "AnonThp", "InactiveAnon", "ActiveAnon", "InactiveFile", "ActiveFile", "Unevictable",
-	"SlabReclaimable", "SlabUnreclaimable", "Pgfault", "Pgmajfault", "WorkingsetRefault", "WorkingsetActivate",
-	"WorkingsetNodereclaim", "Pgrefill", "Pgscan", "Pgsteal", "Pgactivate", "Pgdeactivate", "Pglazyfree", "Pglazyfreed",
-	"ZswpIn", "ZswpOut", "ThpFaultAlloc", "ThpCollapseAlloc",
-	"CpuSetCpus", "CpuSetCpusEffective", "CpuSetMems", "CpuSetMemsEffective", "CpuWeight", "CpuMax",
-	"MemoryCurrent", "MemoryLow", "MemoryHigh", "MemoryMin", "MemoryMax", "MemoryPeak", "SwapCurrent", "SwapMax",
-	"ZswapCurrent", "ZswapMax", "EventLow", "EventHigh", "EventMax", "EventOom", "EventOomKill",
+	"Anon", "File", "Kernel", "KernelStack", "PageTables", "SecPageTables", "PerCPU", "Sock", "Vmalloc", "Shmem", "Zswap", "Zswapped", "FileMapped",
+	"FileDirty", "FileWriteback", "SwapCached", "AnonThp", "FileThp", "ShmemThp", "InactiveAnon", "ActiveAnon", "InactiveFile", "ActiveFile", "Unevictable",
+	"SlabReclaimable", "SlabUnreclaimable", "Slab", "WorkingsetRefaultPerSec", "WorkingsetActivatePerSec", "WorkingsetRestorePerSec", "WorkingsetNodereclaimPerSec",
+	"PgscanPerSec", "PgstealPerSec", "PgscanKswapdPerSec", "PgscanDirectPerSec", "PgscanKhugepagedPerSec", "PgstealKswapdPerSec", "PgstealDirectPerSec", "PgstealKhugepagedPerSec",
+	"PgfaultPerSec", "PgmajfaultPerSec", "PgrefillPerSec", "PgactivatePerSec", "PgdeactivatePerSec", "PglazyfreePerSec", "PglazyfreedPerSec",
+	"ZswpInPerSec", "ZswpOutPerSec", "ZswpWbPerSec", "ThpFaultAllocPerSec", "ThpCollapseAllocPerSec",
+	"EventLowPerSec", "EventHighPerSec", "EventMaxPerSec", "EventOomPerSec", "EventOomKillPerSec", "EventOomGroupKillPerSec", "EventSockThrottledPerSec",
 	"RbytePerSec", "WbytePerSec", "RioPerSec", "WioPerSec", "DbytePerSec", "DioPerSec",
-	"CPUSomePressure", "CPUFullPressure", "MemorySomePressure", "MemoryFullPressure", "IOSomePressure", "IOFullPressure"}
+	"CPUSomePressure", "CPUFullPressure", "MemorySomePressure", "MemoryFullPressure", "IOSomePressure", "IOFullPressure",
+	"MemoryCurrent", "MemoryLow", "MemoryHigh", "MemoryMin", "MemoryMax", "MemoryOOMGroup", "MemorySwapCurrent", "MemorySwapMax", "MemoryZSwapCurrent", "MemoryZSwapMax",
+	"CpuWeight", "CpuMax", "CpuSetCpus", "CpuSetCpusEffective", "CpuSetMems", "CpuSetMemsEffective",
+	"TidsCurrent", "TidsMax",
+	"RxPacketPerSec", "RxBytePerSec", "TxPacketPerSec", "TxBytePerSec"}
 
 type Cgroup struct {
 	FullPath    string
@@ -36,91 +39,106 @@ type Cgroup struct {
 	Child       map[string]*Cgroup
 	Controllers string
 	cgroupfs.CgoupStat
-	UsagePercent      float64
-	UserPercent       float64
-	SystemPercent     float64
-	NrPeriodsPerSec   float64
-	NrThrottledPerSec float64
-	ThrottledPercent  float64
-	NrBurstsPerSec    float64
-	BurstPercent      float64
-	// from memory.stat
-	Anon                        uint64
-	File                        uint64
-	KernelStack                 uint64
-	Slab                        uint64
-	Sock                        uint64
-	Shmem                       uint64
-	Zswap                       uint64
-	Zswapped                    uint64
-	FileMapped                  uint64
-	FileDirty                   uint64
-	FileWriteback               uint64
-	AnonThp                     uint64
-	InactiveAnon                uint64
-	ActiveAnon                  uint64
-	InactiveFile                uint64
-	ActiveFile                  uint64
-	Unevictable                 uint64
-	SlabReclaimable             uint64
-	SlabUnreclaimable           uint64
-	PgfaultPerSec               float64
-	PgmajfaultPerSec            float64
-	WorkingsetRefaultPerSec     float64
-	WorkingsetActivatePerSec    float64
-	WorkingsetNodereclaimPerSec float64
-	PgrefillPerSec              float64
-	PgscanPerSec                float64
-	PgstealPerSec               float64
-	PgactivatePerSec            float64
-	PgdeactivatePerSec          float64
-	PglazyfreePerSec            float64
-	PglazyfreedPerSec           float64
-	ZswpInPerSec                float64
-	ZswpOutPerSec               float64
-	ThpFaultAllocPerSec         float64
-	ThpCollapseAllocPerSec      float64
-	CpuSetCpus                  string
-	CpuSetCpusEffective         string
-	CpuSetMems                  string
-	CpuSetMemsEffective         string
-	CpuWeight                   uint64
-	CpuMax                      string
-	MemoryCurrent               uint64
-	MemoryLow                   uint64
-	MemoryHigh                  uint64
-	MemoryMin                   uint64
-	MemoryMax                   uint64
-	MemoryPeak                  uint64
-	SwapCurrent                 uint64
-	SwapMax                     uint64
-	ZswapCurrent                uint64
-	ZswapMax                    uint64
-	// memory event
-	EventLow     uint64
-	EventHigh    uint64
-	EventMax     uint64
-	EventOom     uint64
-	EventOomKill uint64
-	// io.stat
-	RbytePerSec float64
-	WbytePerSec float64
-	RioPerSec   float64
-	WioPerSec   float64
-	DbytePerSec float64
-	DioPerSec   float64
-	// pressure file
-	CPUSomePressure    float64
-	CPUFullPressure    float64
-	MemorySomePressure float64
-	MemoryFullPressure float64
-	IOSomePressure     float64
-	IOFullPressure     float64
-
-	RxPacketPerSec float64
-	RxBytePerSec   float64
-	TxPacketPerSec float64
-	TxBytePerSec   float64
+	UsagePercent                 float64 // from cpu.stat
+	UserPercent                  float64
+	SystemPercent                float64
+	NrPeriodsPerSec              float64
+	NrThrottledPerSec            float64
+	ThrottledPercent             float64
+	NrBurstsPerSec               float64
+	BurstPercent                 float64
+	Anon                         uint64 // from memory.stat
+	File                         uint64
+	Kernel                       uint64
+	KernelStack                  uint64
+	PageTables                   uint64
+	SecPageTables                uint64
+	PerCPU                       uint64
+	Sock                         uint64
+	Vmalloc                      uint64
+	Shmem                        uint64
+	Zswap                        uint64
+	Zswapped                     uint64
+	FileMapped                   uint64
+	FileDirty                    uint64
+	FileWriteback                uint64
+	SwapCached                   uint64
+	AnonThp                      uint64
+	FileThp                      uint64
+	ShmemThp                     uint64
+	InactiveAnon                 uint64
+	ActiveAnon                   uint64
+	InactiveFile                 uint64
+	ActiveFile                   uint64
+	Unevictable                  uint64
+	SlabReclaimable              uint64
+	SlabUnreclaimable            uint64
+	Slab                         uint64
+	WorkingsetRefaultPerSec      float64
+	WorkingsetActivatePerSec     float64
+	WorkingsetRestorePerSec      float64
+	WorkingsetNodereclaimPerSec  float64
+	PgscanPerSec                 float64
+	PgstealPerSec                float64
+	PgscanKswapdPerSec           float64
+	PgscanDirectPerSec           float64
+	PgscanKhugepagedPerSec       float64
+	PgstealKswapdPerSec          float64
+	PgstealDirectPerSec          float64
+	PgstealKhugepagedPerSec      float64
+	PgfaultPerSec                float64
+	PgmajfaultPerSec             float64
+	PgrefillPerSec               float64
+	PgactivatePerSec             float64
+	PgdeactivatePerSec           float64
+	PglazyfreePerSec             float64
+	PglazyfreedPerSec            float64
+	ZswpInPerSec                 float64
+	ZswpOutPerSec                float64
+	ZswpWbPerSec                 float64
+	ThpFaultAllocPerSec          float64
+	ThpCollapseAllocPerSec       float64
+	EventLowPerSec               float64 // memory event
+	EventHighPerSec              float64
+	EventMaxPerSec               float64
+	EventOomPerSec               float64
+	EventOomKillPerSec           float64
+	EventOomGroupKillPerSec      float64
+	EventSockThrottledPerSec     float64
+	RbytePerSec                  float64 // io.stat
+	WbytePerSec                  float64
+	RioPerSec                    float64
+	WioPerSec                    float64
+	DbytePerSec                  float64
+	DioPerSec                    float64
+	CPUSomePressure              float64 // pressure file
+	CPUFullPressure              float64
+	MemorySomePressure           float64
+	MemoryFullPressure           float64
+	IOSomePressure               float64
+	IOFullPressure               float64
+	MemoryCurrent                uint64 //Property
+	MemoryLow                    uint64
+	MemoryHigh                   uint64
+	MemoryMin                    uint64
+	MemoryMax                    uint64
+	MemoryOOMGroup               uint64
+	MemorySwapCurrent            uint64
+	MemorySwapMax                uint64
+	MemoryZSwapCurrent           uint64
+	MemoryZSwapMax               uint64
+	CpuWeight                    uint64
+	CpuMax                       string
+	CpuSetCpus                   string
+	CpuSetCpusEffective          string
+	CpuSetCpusExclusive          string
+	CpuSetCpusExclusiveEffective string
+	TidsCurrent                  uint64
+	TidsMax                      uint64
+	RxPacketPerSec               float64
+	RxBytePerSec                 float64
+	TxPacketPerSec               float64
+	TxBytePerSec                 float64
 }
 
 func (c *Cgroup) DefaultConfig(field string) Field {
@@ -162,12 +180,20 @@ func (c *Cgroup) DefaultConfig(field string) Field {
 		cfg = Field{"Anon", HumanReadableSize, 1, "", 10, false}
 	case "File":
 		cfg = Field{"File", HumanReadableSize, 1, "", 10, false}
+	case "Kernel":
+		cfg = Field{"Kernel", HumanReadableSize, 1, "", 10, false}
 	case "KernelStack":
 		cfg = Field{"KernelStack", HumanReadableSize, 1, "", 10, false}
-	case "Slab":
-		cfg = Field{"Slab", HumanReadableSize, 1, "", 10, false}
+	case "PageTables":
+		cfg = Field{"PageTables", HumanReadableSize, 1, "", 10, false}
+	case "SecPageTables":
+		cfg = Field{"SecPageTables", HumanReadableSize, 1, "", 10, false}
+	case "PerCPU":
+		cfg = Field{"PerCPU", HumanReadableSize, 1, "", 10, false}
 	case "Sock":
 		cfg = Field{"Sock", HumanReadableSize, 1, "", 10, false}
+	case "Vmalloc":
+		cfg = Field{"Vmalloc", HumanReadableSize, 1, "", 10, false}
 	case "Shmem":
 		cfg = Field{"Shmem", HumanReadableSize, 1, "", 10, false}
 	case "Zswap":
@@ -182,6 +208,10 @@ func (c *Cgroup) DefaultConfig(field string) Field {
 		cfg = Field{"FileWriteback", HumanReadableSize, 1, "", 10, false}
 	case "AnonThp":
 		cfg = Field{"AnonThp", HumanReadableSize, 1, "", 10, false}
+	case "FileThp":
+		cfg = Field{"FileThp", HumanReadableSize, 1, "", 10, false}
+	case "ShmemThp":
+		cfg = Field{"ShmemThp", HumanReadableSize, 1, "", 10, false}
 	case "InactiveAnon":
 		cfg = Field{"InactiveAnon", HumanReadableSize, 1, "", 10, false}
 	case "ActiveAnon":
@@ -196,22 +226,38 @@ func (c *Cgroup) DefaultConfig(field string) Field {
 		cfg = Field{"SlabReclaimable", HumanReadableSize, 1, "", 10, false}
 	case "SlabUnreclaimable":
 		cfg = Field{"SlabUnreclaimable", HumanReadableSize, 1, "", 10, false}
-	case "PgfaultPerSec":
-		cfg = Field{"Pgfault/s", Raw, 0, "/s", 10, false}
-	case "PgmajfaultPerSec":
-		cfg = Field{"Pgmajfault/s", Raw, 0, "/s", 10, false}
+	case "Slab":
+		cfg = Field{"Slab", HumanReadableSize, 1, "", 10, false}
 	case "WorkingsetRefaultPerSec":
 		cfg = Field{"WorkingsetRefault/s", Raw, 0, "/s", 10, false}
 	case "WorkingsetActivatePerSec":
 		cfg = Field{"WorkingsetActivate/s", Raw, 0, "/s", 10, false}
+	case "WorkingsetRestorePerSec":
+		cfg = Field{"WorkingsetRestore/s", Raw, 0, "/s", 10, false}
 	case "WorkingsetNodereclaimPerSec":
 		cfg = Field{"WorkingsetNodereclaim/s", Raw, 0, "/s", 10, false}
-	case "PgrefillPerSec":
-		cfg = Field{"Pgrefill/s", Raw, 0, "/s", 10, false}
 	case "PgscanPerSec":
 		cfg = Field{"Pgscan/s", Raw, 0, "/s", 10, false}
 	case "PgstealPerSec":
 		cfg = Field{"Pgsteal/s", Raw, 0, "/s", 10, false}
+	case "PgscanKswapdPerSec":
+		cfg = Field{"PgscanKswapd/s", Raw, 0, "/s", 10, false}
+	case "PgscanDirectPerSec":
+		cfg = Field{"PgscanDirect/s", Raw, 0, "/s", 10, false}
+	case "PgscanKhugepagedPerSec":
+		cfg = Field{"PgscanKhugepaged/s", Raw, 0, "/s", 10, false}
+	case "PgstealKswapdPerSec":
+		cfg = Field{"PgstealKswapd/s", Raw, 0, "/s", 10, false}
+	case "PgstealDirectPerSec":
+		cfg = Field{"PgstealDirect/s", Raw, 0, "/s", 10, false}
+	case "PgstealKhugepagedPerSec":
+		cfg = Field{"PgstealKhugepaged/s", Raw, 0, "/s", 10, false}
+	case "PgfaultPerSec":
+		cfg = Field{"Pgfault/s", Raw, 0, "/s", 10, false}
+	case "PgmajfaultPerSec":
+		cfg = Field{"Pgmajfault/s", Raw, 0, "/s", 10, false}
+	case "PgrefillPerSec":
+		cfg = Field{"Pgrefill/s", Raw, 0, "/s", 10, false}
 	case "PgactivatePerSec":
 		cfg = Field{"Pgactivate/s", Raw, 0, "/s", 10, false}
 	case "PgdeactivatePerSec":
@@ -224,52 +270,26 @@ func (c *Cgroup) DefaultConfig(field string) Field {
 		cfg = Field{"ZswpIn/s", Raw, 0, "/s", 10, false}
 	case "ZswpOutPerSec":
 		cfg = Field{"ZswpOut/s", Raw, 0, "/s", 10, false}
+	case "ZswpWbPerSec":
+		cfg = Field{"ZswpWb/s", Raw, 0, "/s", 10, false}
 	case "ThpFaultAllocPerSec":
 		cfg = Field{"ThpFaultAlloc/s", Raw, 0, "/s", 10, false}
 	case "ThpCollapseAllocPerSec":
 		cfg = Field{"ThpCollapseAlloc/s", Raw, 0, "/s", 10, false}
-	case "CpuSetCpus":
-		cfg = Field{"CpuSetCpus", Raw, 0, "", 10, false}
-	case "CpuSetCpusEffective":
-		cfg = Field{"CpuSetCpusEffective", Raw, 0, "", 10, false}
-	case "CpuSetMems":
-		cfg = Field{"CpuSetMems", Raw, 0, "", 10, false}
-	case "CpuSetMemsEffective":
-		cfg = Field{"CpuSetMemsEffective", Raw, 0, "", 10, false}
-	case "CpuWeight":
-		cfg = Field{"CpuWeight", Raw, 0, "", 10, false}
-	case "CpuMax":
-		cfg = Field{"CpuMax", Raw, 0, "", 10, false}
-	case "MemoryCurrent":
-		cfg = Field{"Memory", HumanReadableSize, 1, "", 10, false}
-	case "MemoryLow":
-		cfg = Field{"MemoryLow", HumanReadableSize, 1, "", 10, false}
-	case "MemoryHigh":
-		cfg = Field{"MemoryHigh", HumanReadableSize, 1, "", 10, false}
-	case "MemoryMin":
-		cfg = Field{"MemoryMin", HumanReadableSize, 1, "", 10, false}
-	case "MemoryMax":
-		cfg = Field{"MemoryMax", HumanReadableSize, 1, "", 10, false}
-	case "MemoryPeak":
-		cfg = Field{"MemoryPeak", HumanReadableSize, 1, "", 10, false}
-	case "SwapCurrent":
-		cfg = Field{"Swap", HumanReadableSize, 1, "", 10, false}
-	case "SwapMax":
-		cfg = Field{"SwapMax", HumanReadableSize, 1, "", 10, false}
-	case "ZswapCurrent":
-		cfg = Field{"Zswap", HumanReadableSize, 1, "", 10, false}
-	case "ZswapMax":
-		cfg = Field{"ZswapMax", HumanReadableSize, 1, "", 10, false}
-	case "EventLow":
-		cfg = Field{"EventLow", Raw, 0, "", 10, false}
-	case "EventHigh":
-		cfg = Field{"EventHigh", Raw, 0, "", 10, false}
-	case "EventMax":
-		cfg = Field{"EventMax", Raw, 0, "", 10, false}
-	case "EventOom":
-		cfg = Field{"EventOom", Raw, 0, "", 10, false}
-	case "EventOomKill":
-		cfg = Field{"EventOomKill", Raw, 0, "", 10, false}
+	case "EventLowPerSec":
+		cfg = Field{"EventLow/s", Raw, 0, "/s", 10, false}
+	case "EventHighPerSec":
+		cfg = Field{"EventHigh/s", Raw, 0, "/s", 10, false}
+	case "EventMaxPerSec":
+		cfg = Field{"EventMax/s", Raw, 0, "/s", 10, false}
+	case "EventOomPerSec":
+		cfg = Field{"EventOom/s", Raw, 0, "/s", 10, false}
+	case "EventOomKillPerSec":
+		cfg = Field{"EventOomKill/s", Raw, 0, "/s", 10, false}
+	case "EventOomGroupKillPerSec":
+		cfg = Field{"EventOomGroupKill/s", Raw, 0, "/s", 10, false}
+	case "EventSockThrottledPerSec":
+		cfg = Field{"EventSockThrottled/s", Raw, 0, "/s", 10, false}
 	case "RbytePerSec":
 		cfg = Field{"Rbyte/s", HumanReadableSize, 1, "/s", 10, false}
 	case "WbytePerSec":
@@ -294,6 +314,42 @@ func (c *Cgroup) DefaultConfig(field string) Field {
 		cfg = Field{"IOSomePressure", Raw, 0, "%", 10, false}
 	case "IOFullPressure":
 		cfg = Field{"IOFullPressure", Raw, 0, "%", 10, false}
+	case "MemoryCurrent":
+		cfg = Field{"Memory", HumanReadableSize, 1, "", 10, false}
+	case "MemoryLow":
+		cfg = Field{"MemoryLow", HumanReadableSize, 1, "", 10, false}
+	case "MemoryHigh":
+		cfg = Field{"MemoryHigh", HumanReadableSize, 1, "", 10, false}
+	case "MemoryMin":
+		cfg = Field{"MemoryMin", HumanReadableSize, 1, "", 10, false}
+	case "MemoryMax":
+		cfg = Field{"MemoryMax", HumanReadableSize, 1, "", 10, false}
+	case "MemoryOOMGroup":
+		cfg = Field{"MemoryOOMGroup", Raw, 1, "", 10, false}
+	case "MemorySwapCurrent":
+		cfg = Field{"Swap", HumanReadableSize, 1, "", 10, false}
+	case "MemorySwapMax":
+		cfg = Field{"SwapMax", HumanReadableSize, 1, "", 10, false}
+	case "MemoryZSwapCurrent":
+		cfg = Field{"Zswap", HumanReadableSize, 1, "", 10, false}
+	case "MemoryZSwapMax":
+		cfg = Field{"ZswapMax", HumanReadableSize, 1, "", 10, false}
+	case "CpuWeight":
+		cfg = Field{"CpuWeight", Raw, 0, "", 10, false}
+	case "CpuMax":
+		cfg = Field{"CpuMax", Raw, 0, "", 10, false}
+	case "CpuSetCpus":
+		cfg = Field{"CpuSetCpus", Raw, 0, "", 10, false}
+	case "CpuSetCpusEffective":
+		cfg = Field{"CpuSetCpusEffective", Raw, 0, "", 10, false}
+	case "CpuSetCpusExclusive":
+		cfg = Field{"CpuSetCpusExclusive", Raw, 0, "", 10, false}
+	case "CpuSetCpusExclusiveEffective":
+		cfg = Field{"CpuSetCpusExclusiveEffective", Raw, 0, "", 10, false}
+	case "TidsCurrent":
+		cfg = Field{"Tids", Raw, 0, "", 10, false}
+	case "TidsMax":
+		cfg = Field{"TidsMax", Raw, 0, "", 10, false}
 	case "RxPacketPerSec":
 		cfg = Field{"Rpkt/s", Raw, 1, "/s", 10, false}
 	case "RxBytePerSec":
@@ -364,12 +420,20 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(c.Anon)
 	case "File":
 		s = cfg.Render(c.File)
+	case "Kernel":
+		s = cfg.Render(c.Kernel)
 	case "KernelStack":
 		s = cfg.Render(c.KernelStack)
-	case "Slab":
-		s = cfg.Render(c.Slab)
+	case "PageTables":
+		s = cfg.Render(c.PageTables)
+	case "SecPageTables":
+		s = cfg.Render(c.SecPageTables)
+	case "PerCPU":
+		s = cfg.Render(c.PerCPU)
 	case "Sock":
 		s = cfg.Render(c.Sock)
+	case "Vmalloc":
+		s = cfg.Render(c.Vmalloc)
 	case "Shmem":
 		s = cfg.Render(c.Shmem)
 	case "Zswap":
@@ -382,8 +446,14 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(c.FileDirty)
 	case "FileWriteback":
 		s = cfg.Render(c.FileWriteback)
+	case "SwapCached":
+		s = cfg.Render(c.SwapCached)
 	case "AnonThp":
 		s = cfg.Render(c.AnonThp)
+	case "FileThp":
+		s = cfg.Render(c.FileThp)
+	case "ShmemThp":
+		s = cfg.Render(c.ShmemThp)
 	case "InactiveAnon":
 		s = cfg.Render(c.InactiveAnon)
 	case "ActiveAnon":
@@ -398,22 +468,38 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(c.SlabReclaimable)
 	case "SlabUnreclaimable":
 		s = cfg.Render(c.SlabUnreclaimable)
-	case "PgfaultPerSec":
-		s = cfg.Render(c.PgfaultPerSec)
-	case "PgmajfaultPerSec":
-		s = cfg.Render(c.PgmajfaultPerSec)
+	case "Slab":
+		s = cfg.Render(c.Slab)
 	case "WorkingsetRefaultPerSec":
 		s = cfg.Render(c.WorkingsetRefaultPerSec)
 	case "WorkingsetActivatePerSec":
 		s = cfg.Render(c.WorkingsetActivatePerSec)
+	case "WorkingsetRestorePerSec":
+		s = cfg.Render(c.WorkingsetRestorePerSec)
 	case "WorkingsetNodereclaimPerSec":
 		s = cfg.Render(c.WorkingsetNodereclaimPerSec)
-	case "PgrefillPerSec":
-		s = cfg.Render(c.PgrefillPerSec)
 	case "PgscanPerSec":
 		s = cfg.Render(c.PgscanPerSec)
 	case "PgstealPerSec":
 		s = cfg.Render(c.PgstealPerSec)
+	case "PgscanKswapdPerSec":
+		s = cfg.Render(c.PgscanKswapdPerSec)
+	case "PgscanDirectPerSec":
+		s = cfg.Render(c.PgscanDirectPerSec)
+	case "PgscanKhugepagedPerSec":
+		s = cfg.Render(c.PgscanKhugepagedPerSec)
+	case "PgstealKswapdPerSec":
+		s = cfg.Render(c.PgstealKswapdPerSec)
+	case "PgstealDirectPerSec":
+		s = cfg.Render(c.PgstealDirectPerSec)
+	case "PgstealKhugepagedPerSec":
+		s = cfg.Render(c.PgstealKhugepagedPerSec)
+	case "PgfaultPerSec":
+		s = cfg.Render(c.PgfaultPerSec)
+	case "PgmajfaultPerSec":
+		s = cfg.Render(c.PgmajfaultPerSec)
+	case "PgrefillPerSec":
+		s = cfg.Render(c.PgrefillPerSec)
 	case "PgactivatePerSec":
 		s = cfg.Render(c.PgactivatePerSec)
 	case "PgdeactivatePerSec":
@@ -426,52 +512,26 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(c.ZswpInPerSec)
 	case "ZswpOutPerSec":
 		s = cfg.Render(c.ZswpOutPerSec)
+	case "ZswpWbPerSec":
+		s = cfg.Render(c.ZswpWbPerSec)
 	case "ThpFaultAllocPerSec":
 		s = cfg.Render(c.ThpFaultAllocPerSec)
 	case "ThpCollapseAllocPerSec":
 		s = cfg.Render(c.ThpCollapseAllocPerSec)
-	case "CpuSetCpus":
-		s = cfg.Render(c.CpuSetCpus)
-	case "CpuSetCpusEffective":
-		s = cfg.Render(c.CpuSetCpusEffective)
-	case "CpuSetMems":
-		s = cfg.Render(c.CpuSetMems)
-	case "CpuSetMemsEffective":
-		s = cfg.Render(c.CpuSetMemsEffective)
-	case "CpuWeight":
-		s = cfg.Render(c.CpuWeight)
-	case "CpuMax":
-		s = cfg.Render(c.CpuMax)
-	case "MemoryCurrent":
-		s = cfg.Render(c.MemoryCurrent)
-	case "MemoryLow":
-		s = cfg.Render(c.MemoryLow)
-	case "MemoryHigh":
-		s = cfg.Render(c.MemoryHigh)
-	case "MemoryMin":
-		s = cfg.Render(c.MemoryMin)
-	case "MemoryMax":
-		s = cfg.Render(c.MemoryMax)
-	case "MemoryPeak":
-		s = cfg.Render(c.MemoryPeak)
-	case "SwapCurrent":
-		s = cfg.Render(c.SwapCurrent)
-	case "SwapMax":
-		s = cfg.Render(c.SwapMax)
-	case "ZswapCurrent":
-		s = cfg.Render(c.ZswapCurrent)
-	case "ZswapMax":
-		s = cfg.Render(c.ZswapMax)
-	case "EventLow":
-		s = cfg.Render(c.EventLow)
-	case "EventHigh":
-		s = cfg.Render(c.EventHigh)
-	case "EventMax":
-		s = cfg.Render(c.EventMax)
-	case "EventOom":
-		s = cfg.Render(c.EventOom)
-	case "EventOomKill":
-		s = cfg.Render(c.EventOomKill)
+	case "EventLowPerSec":
+		s = cfg.Render(c.EventLowPerSec)
+	case "EventHighPerSec":
+		s = cfg.Render(c.EventHighPerSec)
+	case "EventMaxPerSec":
+		s = cfg.Render(c.EventMaxPerSec)
+	case "EventOomPerSec":
+		s = cfg.Render(c.EventOomPerSec)
+	case "EventOomKillPerSec":
+		s = cfg.Render(c.EventOomKillPerSec)
+	case "EventOomGroupKillPerSec":
+		s = cfg.Render(c.EventOomGroupKillPerSec)
+	case "EventSockThrottledPerSec":
+		s = cfg.Render(c.EventSockThrottledPerSec)
 	case "RbytePerSec":
 		s = cfg.Render(c.RbytePerSec)
 	case "WbytePerSec":
@@ -496,6 +556,42 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(c.IOSomePressure)
 	case "IOFullPressure":
 		s = cfg.Render(c.IOFullPressure)
+	case "MemoryCurrent":
+		s = cfg.Render(c.MemoryCurrent)
+	case "MemoryLow":
+		s = cfg.Render(c.MemoryLow)
+	case "MemoryHigh":
+		s = cfg.Render(c.MemoryHigh)
+	case "MemoryMin":
+		s = cfg.Render(c.MemoryMin)
+	case "MemoryMax":
+		s = cfg.Render(c.MemoryMax)
+	case "MemoryOOMGroup":
+		s = cfg.Render(c.MemoryOOMGroup)
+	case "MemorySwapCurrent":
+		s = cfg.Render(c.MemorySwapCurrent)
+	case "MemorySwapMax":
+		s = cfg.Render(c.MemorySwapMax)
+	case "MemoryZSwapCurrent":
+		s = cfg.Render(c.MemoryZSwapCurrent)
+	case "MemoryZSwapMax":
+		s = cfg.Render(c.MemoryZSwapMax)
+	case "CpuWeight":
+		s = cfg.Render(c.CpuWeight)
+	case "CpuMax":
+		s = cfg.Render(c.CpuMax)
+	case "CpuSetCpus":
+		s = cfg.Render(c.CpuSetCpus)
+	case "CpuSetCpusEffective":
+		s = cfg.Render(c.CpuSetCpusEffective)
+	case "CpuSetCpusExclusive":
+		s = cfg.Render(c.CpuSetCpusExclusive)
+	case "CpuSetCpusExclusiveEffective":
+		s = cfg.Render(c.CpuSetCpusExclusiveEffective)
+	case "TidsCurrent":
+		s = cfg.Render(c.TidsCurrent)
+	case "TidsMax":
+		s = cfg.Render(c.TidsMax)
 	case "RxPacketPerSec":
 		s = cfg.Render(c.RxPacketPerSec)
 	case "RxBytePerSec":
@@ -523,96 +619,114 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 	}
 
 	*c = Cgroup{
-		FullPath:                    curr.FullPath,
-		Name:                        curr.Name,
-		Level:                       curr.Level,
-		Inode:                       curr.Inode,
-		IsExpand:                    true,
-		Child:                       make(map[string]*Cgroup),
-		Controllers:                 curr.Controllers,
-		CgoupStat:                   curr.CgoupStat,
-		UsagePercent:                PercentWithInterval(curr.UsageUsec, prev.UsageUsec, interval*1000000),
-		UserPercent:                 PercentWithInterval(curr.UserUsec, prev.UserUsec, interval*1000000),
-		SystemPercent:               PercentWithInterval(curr.SystemUsec, prev.SystemUsec, interval*1000000),
-		NrPeriodsPerSec:             SubWithInterval(curr.NrPeriods, prev.NrPeriods, uint64(interval)),
-		NrThrottledPerSec:           SubWithInterval(curr.NrThrottled, prev.NrThrottled, uint64(interval)),
-		ThrottledPercent:            PercentWithInterval(curr.ThrottledUsec, prev.ThrottledUsec, interval*1000000),
-		NrBurstsPerSec:              SubWithInterval(curr.NrBursts, prev.NrBursts, uint64(interval)),
-		BurstPercent:                PercentWithInterval(curr.BurstUsec, prev.BurstUsec, interval*1000000),
-		Anon:                        curr.Anon,
-		File:                        curr.File,
-		KernelStack:                 curr.KernelStack,
-		Slab:                        curr.Slab,
-		Sock:                        curr.Sock,
-		Shmem:                       curr.Shmem,
-		Zswap:                       curr.Zswap,
-		Zswapped:                    curr.Zswapped,
-		FileMapped:                  curr.FileMapped,
-		FileDirty:                   curr.FileDirty,
-		FileWriteback:               curr.FileWriteback,
-		AnonThp:                     curr.AnonThp,
-		InactiveAnon:                curr.InactiveAnon,
-		ActiveAnon:                  curr.ActiveAnon,
-		InactiveFile:                curr.InactiveFile,
-		ActiveFile:                  curr.ActiveFile,
-		Unevictable:                 curr.Unevictable,
-		SlabReclaimable:             curr.SlabReclaimable,
-		SlabUnreclaimable:           curr.SlabUnreclaimable,
-		PgfaultPerSec:               SubWithInterval(curr.Pgfault, prev.Pgfault, uint64(interval)),
-		PgmajfaultPerSec:            SubWithInterval(curr.Pgmajfault, prev.Pgmajfault, uint64(interval)),
-		WorkingsetRefaultPerSec:     SubWithInterval(curr.WorkingsetRefaultAnon, prev.WorkingsetRefaultAnon, uint64(interval)),
-		WorkingsetActivatePerSec:    SubWithInterval(curr.WorkingsetActivateAnon, prev.WorkingsetActivateAnon, uint64(interval)),
-		WorkingsetNodereclaimPerSec: SubWithInterval(curr.WorkingsetNodereclaim, prev.WorkingsetNodereclaim, uint64(interval)),
-		PgrefillPerSec:              SubWithInterval(curr.Pgrefill, prev.Pgrefill, uint64(interval)),
-		PgscanPerSec:                SubWithInterval(curr.Pgscan, prev.Pgscan, uint64(interval)),
-		PgstealPerSec:               SubWithInterval(curr.Pgsteal, prev.Pgsteal, uint64(interval)),
-		PgactivatePerSec:            SubWithInterval(curr.Pgactivate, prev.Pgactivate, uint64(interval)),
-		PgdeactivatePerSec:          SubWithInterval(curr.Pgdeactivate, prev.Pgdeactivate, uint64(interval)),
-		PglazyfreePerSec:            SubWithInterval(curr.Pglazyfree, prev.Pglazyfree, uint64(interval)),
-		PglazyfreedPerSec:           SubWithInterval(curr.Pglazyfreed, prev.Pglazyfreed, uint64(interval)),
-		ZswpInPerSec:                SubWithInterval(curr.ZswpIn, prev.ZswpIn, uint64(interval)),
-		ZswpOutPerSec:               SubWithInterval(curr.ZswpOut, prev.ZswpOut, uint64(interval)),
-		ThpFaultAllocPerSec:         SubWithInterval(curr.ThpFaultAlloc, prev.ThpFaultAlloc, uint64(interval)),
-		ThpCollapseAllocPerSec:      SubWithInterval(curr.ThpCollapseAlloc, prev.ThpCollapseAlloc, uint64(interval)),
-		CpuSetCpus:                  curr.CpuSetCpus,
-		CpuSetCpusEffective:         curr.CpuSetCpusEffective,
-		CpuSetMems:                  "curr.CpuSetMems",
-		CpuSetMemsEffective:         "curr.CpuSetMemsEffective",
-		CpuWeight:                   0,
-		CpuMax:                      "curr.CpuMax",
-		MemoryCurrent:               0,
-		MemoryLow:                   curr.MemoryLow,
-		MemoryHigh:                  curr.MemoryHigh,
-		MemoryMin:                   curr.MemoryMin,
-		MemoryMax:                   curr.MemoryMax,
-		MemoryPeak:                  0,
-		SwapCurrent:                 0,
-		SwapMax:                     0,
-		ZswapCurrent:                0,
-		ZswapMax:                    0,
-		EventLow:                    curr.MemoryEvents.Low - prev.MemoryEvents.Low,
-		EventHigh:                   curr.MemoryEvents.High - prev.MemoryEvents.High,
-		EventMax:                    curr.MemoryEvents.Max - prev.MemoryEvents.Max,
-		EventOom:                    curr.MemoryEvents.Oom - prev.MemoryEvents.Oom,
-		EventOomKill:                curr.MemoryEvents.OomKill - prev.MemoryEvents.OomKill,
-		CPUSomePressure:             curr.CpuPressure.Some.Avg60,
-		CPUFullPressure:             curr.CpuPressure.Full.Avg60,
-		MemorySomePressure:          curr.MemoryPressure.Some.Avg60,
-		MemoryFullPressure:          curr.MemoryPressure.Full.Avg60,
-		IOSomePressure:              curr.IOPressure.Some.Avg60,
-		IOFullPressure:              curr.IOPressure.Full.Avg60,
-
-		RbytePerSec: math.NaN(),
-		WbytePerSec: math.NaN(),
-		RioPerSec:   math.NaN(),
-		WioPerSec:   math.NaN(),
-		DbytePerSec: math.NaN(),
-		DioPerSec:   math.NaN(),
-
-		RxPacketPerSec: math.NaN(),
-		RxBytePerSec:   math.NaN(),
-		TxPacketPerSec: math.NaN(),
-		TxBytePerSec:   math.NaN(),
+		FullPath:                     curr.FullPath,
+		Name:                         curr.Name,
+		Level:                        curr.Level,
+		Inode:                        curr.Inode,
+		IsExpand:                     true,
+		Child:                        make(map[string]*Cgroup),
+		Controllers:                  curr.Controllers,
+		CgoupStat:                    curr.CgoupStat,
+		UsagePercent:                 SubWithInterval(curr.UsageUsec, prev.UsageUsec, interval*1000000) * 100,
+		UserPercent:                  SubWithInterval(curr.UserUsec, prev.UserUsec, interval*1000000) * 100,
+		SystemPercent:                SubWithInterval(curr.SystemUsec, prev.SystemUsec, interval*1000000) * 100,
+		NrPeriodsPerSec:              SubWithInterval(curr.NrPeriods, prev.NrPeriods, interval),
+		NrThrottledPerSec:            SubWithInterval(curr.NrThrottled, prev.NrThrottled, interval),
+		ThrottledPercent:             SubWithInterval(curr.ThrottledUsec, prev.ThrottledUsec, interval*1000000) * 100,
+		NrBurstsPerSec:               SubWithInterval(curr.NrBursts, prev.NrBursts, interval),
+		BurstPercent:                 SubWithInterval(curr.BurstUsec, prev.BurstUsec, interval*1000000) * 100,
+		Anon:                         curr.Anon,
+		File:                         curr.File,
+		Kernel:                       curr.Kernel,
+		KernelStack:                  curr.KernelStack,
+		PageTables:                   curr.PageTables,
+		SecPageTables:                curr.SecPageTables,
+		PerCPU:                       curr.PerCPU,
+		Sock:                         curr.Sock,
+		Vmalloc:                      curr.Vmalloc,
+		Shmem:                        curr.Shmem,
+		Zswap:                        curr.Zswap,
+		Zswapped:                     curr.Zswapped,
+		FileMapped:                   curr.FileMapped,
+		FileDirty:                    curr.FileDirty,
+		FileWriteback:                curr.FileWriteback,
+		SwapCached:                   curr.SwapCached,
+		AnonThp:                      curr.AnonThp,
+		FileThp:                      curr.FileThp,
+		ShmemThp:                     curr.ShmemThp,
+		InactiveAnon:                 curr.InactiveAnon,
+		ActiveAnon:                   curr.ActiveAnon,
+		InactiveFile:                 curr.InactiveFile,
+		ActiveFile:                   curr.ActiveFile,
+		Unevictable:                  curr.Unevictable,
+		SlabReclaimable:              curr.SlabReclaimable,
+		SlabUnreclaimable:            curr.SlabUnreclaimable,
+		Slab:                         curr.Slab,
+		WorkingsetRefaultPerSec:      SubWithInterval(curr.WorkingsetRefaultAnon, prev.WorkingsetRefaultAnon, interval),
+		WorkingsetActivatePerSec:     SubWithInterval(curr.WorkingsetActivateAnon, prev.WorkingsetActivateAnon, interval),
+		WorkingsetRestorePerSec:      SubWithInterval(curr.WorkingsetRestoreAnon, prev.WorkingsetRestoreAnon, interval),
+		WorkingsetNodereclaimPerSec:  SubWithInterval(curr.WorkingsetNodereclaim, prev.WorkingsetNodereclaim, interval),
+		PgscanPerSec:                 SubWithInterval(curr.Pgscan, prev.Pgscan, interval),
+		PgstealPerSec:                SubWithInterval(curr.Pgsteal, prev.Pgsteal, interval),
+		PgscanKswapdPerSec:           SubWithInterval(curr.PgscanKswapd, prev.PgscanKswapd, interval),
+		PgscanDirectPerSec:           SubWithInterval(curr.PgscanDirect, prev.PgscanDirect, interval),
+		PgscanKhugepagedPerSec:       SubWithInterval(curr.PgscanKhugepaged, prev.PgscanKhugepaged, interval),
+		PgstealKswapdPerSec:          SubWithInterval(curr.PgstealKswapd, prev.PgstealKswapd, interval),
+		PgstealDirectPerSec:          SubWithInterval(curr.PgstealDirect, prev.PgstealDirect, interval),
+		PgstealKhugepagedPerSec:      SubWithInterval(curr.PgstealKhugepaged, prev.PgstealKhugepaged, interval),
+		PgfaultPerSec:                SubWithInterval(curr.Pgfault, prev.Pgfault, interval),
+		PgmajfaultPerSec:             SubWithInterval(curr.Pgmajfault, prev.Pgmajfault, interval),
+		PgrefillPerSec:               SubWithInterval(curr.Pgrefill, prev.Pgrefill, interval),
+		PgactivatePerSec:             SubWithInterval(curr.Pgactivate, prev.Pgactivate, interval),
+		PgdeactivatePerSec:           SubWithInterval(curr.Pgdeactivate, prev.Pgdeactivate, interval),
+		PglazyfreePerSec:             SubWithInterval(curr.Pglazyfree, prev.Pglazyfree, interval),
+		PglazyfreedPerSec:            SubWithInterval(curr.Pglazyfreed, prev.Pglazyfreed, interval),
+		ZswpInPerSec:                 SubWithInterval(curr.ZswpIn, prev.ZswpIn, interval),
+		ZswpWbPerSec:                 SubWithInterval(curr.ZswpOut, prev.ZswpOut, interval),
+		ZswpOutPerSec:                SubWithInterval(curr.ZswpWb, prev.ZswpWb, interval),
+		ThpFaultAllocPerSec:          SubWithInterval(curr.ThpFaultAlloc, prev.ThpFaultAlloc, interval),
+		ThpCollapseAllocPerSec:       SubWithInterval(curr.ThpCollapseAlloc, prev.ThpCollapseAlloc, interval),
+		EventLowPerSec:               SubWithInterval(curr.MemoryEvents.Low, prev.MemoryEvents.Low, interval),
+		EventHighPerSec:              SubWithInterval(curr.MemoryEvents.High, prev.MemoryEvents.High, interval),
+		EventMaxPerSec:               SubWithInterval(curr.MemoryEvents.Max, prev.MemoryEvents.Max, interval),
+		EventOomPerSec:               SubWithInterval(curr.MemoryEvents.Oom, prev.MemoryEvents.Oom, interval),
+		EventOomKillPerSec:           SubWithInterval(curr.MemoryEvents.OomKill, prev.MemoryEvents.OomKill, interval),
+		EventOomGroupKillPerSec:      SubWithInterval(curr.MemoryEvents.OomKill, prev.MemoryEvents.OomKill, interval),
+		EventSockThrottledPerSec:     SubWithInterval(curr.MemoryEvents.OomKill, prev.MemoryEvents.OomKill, interval),
+		RbytePerSec:                  math.NaN(),
+		WbytePerSec:                  math.NaN(),
+		RioPerSec:                    math.NaN(),
+		WioPerSec:                    math.NaN(),
+		DbytePerSec:                  math.NaN(),
+		DioPerSec:                    math.NaN(),
+		CPUSomePressure:              curr.CpuPressure.Some.Avg60,
+		CPUFullPressure:              curr.CpuPressure.Full.Avg60,
+		MemorySomePressure:           curr.MemoryPressure.Some.Avg60,
+		MemoryFullPressure:           curr.MemoryPressure.Full.Avg60,
+		IOSomePressure:               curr.IOPressure.Some.Avg60,
+		IOFullPressure:               curr.IOPressure.Full.Avg60,
+		MemoryCurrent:                curr.MemoryCurrent,
+		MemoryLow:                    curr.MemoryLow,
+		MemoryHigh:                   curr.MemoryHigh,
+		MemoryMin:                    curr.MemoryMin,
+		MemoryMax:                    curr.MemoryMax,
+		MemoryOOMGroup:               curr.MemoryOOMGroup,
+		MemorySwapCurrent:            curr.MemorySwapCurrent,
+		MemorySwapMax:                curr.MemorySwapMax,
+		MemoryZSwapCurrent:           curr.MemoryZSwapCurrent,
+		MemoryZSwapMax:               curr.MemoryZSwapMax,
+		CpuWeight:                    curr.CpuWeight,
+		CpuMax:                       curr.CpuMax,
+		CpuSetCpus:                   curr.CpuSetCpus,
+		CpuSetCpusEffective:          curr.CpuSetCpusEffective,
+		CpuSetCpusExclusive:          curr.CpuSetCpusExclusive,
+		CpuSetCpusExclusiveEffective: curr.CpuSetCpusExclusiveEffective,
+		TidsCurrent:                  curr.TidsCurrent,
+		TidsMax:                      curr.TidsMax,
+		RxPacketPerSec:               math.NaN(),
+		RxBytePerSec:                 math.NaN(),
+		TxPacketPerSec:               math.NaN(),
+		TxBytePerSec:                 math.NaN(),
 	}
 
 	if len(curr.IOStats) > 0 {
@@ -644,10 +758,10 @@ func (c *Cgroup) Collect(prev, curr *store.CgroupSample, interval int64) {
 	}
 
 	if curr.RxByte != math.MaxUint64 {
-		c.RxPacketPerSec = float64(curr.RxPacket) / float64(interval)
-		c.RxBytePerSec = float64(curr.RxByte) / float64(interval)
-		c.TxPacketPerSec = float64(curr.TxPacket) / float64(interval)
-		c.TxBytePerSec = float64(curr.TxByte) / float64(interval)
+		c.RxPacketPerSec = float64(curr.RxPacket-prev.RxPacket) / float64(interval)
+		c.RxBytePerSec = float64(curr.RxByte-prev.RxByte) / float64(interval)
+		c.TxPacketPerSec = float64(curr.TxPacket-prev.TxPacket) / float64(interval)
+		c.TxBytePerSec = float64(curr.TxByte-prev.TxByte) / float64(interval)
 	}
 
 	for _, currChild := range curr.Child {
@@ -751,12 +865,20 @@ func (c *Cgroup) sortChild(sortField string, descOrder bool) []*Cgroup {
 			return childs[i].Anon > childs[j].Anon
 		case "File":
 			return childs[i].File > childs[j].File
+		case "Kernel":
+			return childs[i].Kernel > childs[j].Kernel
 		case "KernelStack":
 			return childs[i].KernelStack > childs[j].KernelStack
-		case "Slab":
-			return childs[i].Slab > childs[j].Slab
+		case "PageTables":
+			return childs[i].PageTables > childs[j].PageTables
+		case "SecPageTables":
+			return childs[i].SecPageTables > childs[j].SecPageTables
+		case "PerCPU":
+			return childs[i].PerCPU > childs[j].PerCPU
 		case "Sock":
 			return childs[i].Sock > childs[j].Sock
+		case "Vmalloc":
+			return childs[i].Vmalloc > childs[j].Vmalloc
 		case "Shmem":
 			return childs[i].Shmem > childs[j].Shmem
 		case "Zswap":
@@ -769,6 +891,8 @@ func (c *Cgroup) sortChild(sortField string, descOrder bool) []*Cgroup {
 			return childs[i].FileDirty > childs[j].FileDirty
 		case "FileWriteback":
 			return childs[i].FileWriteback > childs[j].FileWriteback
+		case "SwapCached":
+			return childs[i].SwapCached > childs[j].SwapCached
 		case "AnonThp":
 			return childs[i].AnonThp > childs[j].AnonThp
 		case "InactiveAnon":
@@ -785,22 +909,38 @@ func (c *Cgroup) sortChild(sortField string, descOrder bool) []*Cgroup {
 			return childs[i].SlabReclaimable > childs[j].SlabReclaimable
 		case "SlabUnreclaimable":
 			return childs[i].SlabUnreclaimable > childs[j].SlabUnreclaimable
-		case "PgfaultPerSec":
-			return childs[i].PgfaultPerSec > childs[j].PgfaultPerSec
-		case "PgmajfaultPerSec":
-			return childs[i].PgmajfaultPerSec > childs[j].PgmajfaultPerSec
+		case "Slab":
+			return childs[i].Slab > childs[j].Slab
 		case "WorkingsetRefaultPerSec":
 			return childs[i].WorkingsetRefaultPerSec > childs[j].WorkingsetRefaultPerSec
 		case "WorkingsetActivatePerSec":
 			return childs[i].WorkingsetActivatePerSec > childs[j].WorkingsetActivatePerSec
+		case "WorkingsetRestorePerSec":
+			return childs[i].WorkingsetRestorePerSec > childs[j].WorkingsetRestorePerSec
 		case "WorkingsetNodereclaimPerSec":
 			return childs[i].WorkingsetNodereclaimPerSec > childs[j].WorkingsetNodereclaimPerSec
-		case "PgrefillPerSec":
-			return childs[i].PgrefillPerSec > childs[j].PgrefillPerSec
 		case "PgscanPerSec":
 			return childs[i].PgscanPerSec > childs[j].PgscanPerSec
 		case "PgstealPerSec":
 			return childs[i].PgstealPerSec > childs[j].PgstealPerSec
+		case "PgscanKswapdPerSec":
+			return childs[i].PgscanKswapdPerSec > childs[j].PgscanKswapdPerSec
+		case "PgscanDirectPerSec":
+			return childs[i].PgscanDirectPerSec > childs[j].PgscanDirectPerSec
+		case "PgscanKhugepagedPerSec":
+			return childs[i].PgscanKhugepagedPerSec > childs[j].PgscanKhugepagedPerSec
+		case "PgstealKswapdPerSec":
+			return childs[i].PgstealKswapdPerSec > childs[j].PgstealKswapdPerSec
+		case "PgstealDirectPerSec":
+			return childs[i].PgstealDirectPerSec > childs[j].PgstealDirectPerSec
+		case "PgstealKhugepagedPerSec":
+			return childs[i].PgstealKhugepagedPerSec > childs[j].PgstealKhugepagedPerSec
+		case "PgfaultPerSec":
+			return childs[i].PgfaultPerSec > childs[j].PgfaultPerSec
+		case "PgmajfaultPerSec":
+			return childs[i].PgmajfaultPerSec > childs[j].PgmajfaultPerSec
+		case "PgrefillPerSec":
+			return childs[i].PgrefillPerSec > childs[j].PgrefillPerSec
 		case "PgactivatePerSec":
 			return childs[i].PgactivatePerSec > childs[j].PgactivatePerSec
 		case "PgdeactivatePerSec":
@@ -813,52 +953,26 @@ func (c *Cgroup) sortChild(sortField string, descOrder bool) []*Cgroup {
 			return childs[i].ZswpInPerSec > childs[j].ZswpInPerSec
 		case "ZswpOutPerSec":
 			return childs[i].ZswpOutPerSec > childs[j].ZswpOutPerSec
+		case "ZswpWbPerSec":
+			return childs[i].ZswpWbPerSec > childs[j].ZswpWbPerSec
 		case "ThpFaultAllocPerSec":
 			return childs[i].ThpFaultAllocPerSec > childs[j].ThpFaultAllocPerSec
 		case "ThpCollapseAllocPerSec":
 			return childs[i].ThpCollapseAllocPerSec > childs[j].ThpCollapseAllocPerSec
-		case "CpuSetCpus":
-			return childs[i].CpuSetCpus > childs[j].CpuSetCpus
-		case "CpuSetCpusEffective":
-			return childs[i].CpuSetCpusEffective > childs[j].CpuSetCpusEffective
-		case "CpuSetMems":
-			return childs[i].CpuSetMems > childs[j].CpuSetMems
-		case "CpuSetMemsEffective":
-			return childs[i].CpuSetMemsEffective > childs[j].CpuSetMemsEffective
-		case "CpuWeight":
-			return childs[i].CpuWeight > childs[j].CpuWeight
-		case "CpuMax":
-			return childs[i].CpuMax > childs[j].CpuMax
-		case "MemoryCurrent":
-			return childs[i].MemoryCurrent > childs[j].MemoryCurrent
-		case "MemoryLow":
-			return childs[i].MemoryLow > childs[j].MemoryLow
-		case "MemoryHigh":
-			return childs[i].MemoryHigh > childs[j].MemoryHigh
-		case "MemoryMin":
-			return childs[i].MemoryMin > childs[j].MemoryMin
-		case "MemoryMax":
-			return childs[i].MemoryMax > childs[j].MemoryMax
-		case "MemoryPeak":
-			return childs[i].MemoryPeak > childs[j].MemoryPeak
-		case "SwapCurrent":
-			return childs[i].SwapCurrent > childs[j].SwapCurrent
-		case "SwapMax":
-			return childs[i].SwapMax > childs[j].SwapMax
-		case "ZswapCurrent":
-			return childs[i].ZswapCurrent > childs[j].ZswapCurrent
-		case "ZswapMax":
-			return childs[i].ZswapMax > childs[j].ZswapMax
-		case "EventLow":
-			return childs[i].EventLow > childs[j].EventLow
-		case "EventHigh":
-			return childs[i].EventHigh > childs[j].EventHigh
-		case "EventMax":
-			return childs[i].EventMax > childs[j].EventMax
-		case "EventOom":
-			return childs[i].EventOom > childs[j].EventOom
-		case "EventOomKill":
-			return childs[i].EventOomKill > childs[j].EventOomKill
+		case "EventLowPerSec":
+			return childs[i].EventLowPerSec > childs[j].EventLowPerSec
+		case "EventHighPerSec":
+			return childs[i].EventHighPerSec > childs[j].EventHighPerSec
+		case "EventMaxPerSec":
+			return childs[i].EventMaxPerSec > childs[j].EventMaxPerSec
+		case "EventOomPerSec":
+			return childs[i].EventOomPerSec > childs[j].EventOomPerSec
+		case "EventOomKillPerSec":
+			return childs[i].EventOomKillPerSec > childs[j].EventOomKillPerSec
+		case "EventOomGroupKillPerSec":
+			return childs[i].EventOomGroupKillPerSec > childs[j].EventOomGroupKillPerSec
+		case "EventSockThrottledPerSec":
+			return childs[i].EventSockThrottledPerSec > childs[j].EventSockThrottledPerSec
 		case "RbytePerSec":
 			return childs[i].RbytePerSec > childs[j].RbytePerSec
 		case "WbytePerSec":
@@ -883,6 +997,42 @@ func (c *Cgroup) sortChild(sortField string, descOrder bool) []*Cgroup {
 			return childs[i].IOSomePressure > childs[j].IOSomePressure
 		case "IOFullPressure":
 			return childs[i].IOFullPressure > childs[j].IOFullPressure
+		case "MemoryCurrent":
+			return childs[i].MemoryCurrent > childs[j].MemoryCurrent
+		case "MemoryLow":
+			return childs[i].MemoryLow > childs[j].MemoryLow
+		case "MemoryHigh":
+			return childs[i].MemoryHigh > childs[j].MemoryHigh
+		case "MemoryMin":
+			return childs[i].MemoryMin > childs[j].MemoryMin
+		case "MemoryMax":
+			return childs[i].MemoryMax > childs[j].MemoryMax
+		case "MemoryOOMGroup":
+			return childs[i].MemoryOOMGroup > childs[j].MemoryOOMGroup
+		case "MemorySwapCurrent":
+			return childs[i].MemorySwapCurrent > childs[j].MemorySwapCurrent
+		case "MemorySwapMax":
+			return childs[i].MemorySwapMax > childs[j].MemorySwapMax
+		case "MemoryZSwapCurrent":
+			return childs[i].MemoryZSwapCurrent > childs[j].MemoryZSwapCurrent
+		case "MemoryZSwapMax":
+			return childs[i].MemoryZSwapMax > childs[j].MemoryZSwapMax
+		case "CpuWeight":
+			return childs[i].CpuWeight > childs[j].CpuWeight
+		case "CpuMax":
+			return childs[i].CpuMax > childs[j].CpuMax
+		case "CpuSetCpus":
+			return childs[i].CpuSetCpus > childs[j].CpuSetCpus
+		case "CpuSetCpusEffective":
+			return childs[i].CpuSetCpusEffective > childs[j].CpuSetCpusEffective
+		case "CpuSetCpusExclusive":
+			return childs[i].CpuSetCpusExclusive > childs[j].CpuSetCpusExclusive
+		case "CpuSetCpusExclusiveEffective":
+			return childs[i].CpuSetCpusExclusiveEffective > childs[j].CpuSetCpusExclusiveEffective
+		case "TidsCurrent":
+			return childs[i].TidsCurrent > childs[j].TidsCurrent
+		case "TidsMax":
+			return childs[i].TidsMax > childs[j].TidsMax
 		case "RxPacketPerSec":
 			return childs[i].RxPacketPerSec > childs[j].RxPacketPerSec
 		case "RxBytePerSec":
