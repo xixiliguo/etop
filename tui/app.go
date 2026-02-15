@@ -36,6 +36,14 @@ type TUI struct {
 }
 
 func NewTUI() *TUI {
+
+	tview.Borders.HorizontalFocus = tview.BoxDrawingsLightHorizontal
+	tview.Borders.VerticalFocus = tview.BoxDrawingsLightVertical
+	tview.Borders.TopLeftFocus = tview.BoxDrawingsLightDownAndRight
+	tview.Borders.TopRightFocus = tview.BoxDrawingsLightDownAndLeft
+	tview.Borders.BottomLeftFocus = tview.BoxDrawingsLightUpAndRight
+	tview.Borders.BottomRightFocus = tview.BoxDrawingsLightUpAndLeft
+
 	tui := &TUI{
 		Application: tview.NewApplication(),
 		pages:       tview.NewPages(),
@@ -98,15 +106,20 @@ func (tui *TUI) initDetails() {
 	tui.detail.AddPage("Cgroup", tui.cgroup, true, false)
 
 	tui.detail.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyF1 || event.Name() == "Alt+Rune[1]" {
+
+		if tui.process.searchView.HasFocus() || tui.cgroup.searchView.HasFocus() {
+			return event
+		}
+
+		if event.Key() == tcell.KeyRune && event.Rune() == 'p' {
 			tui.detail.SwitchToPage("Process")
 			tui.status.Clear().SetText(tui.process.statusText)
 			return nil
-		} else if event.Key() == tcell.KeyF2 || event.Name() == "Alt+Rune[2]" {
+		} else if event.Key() == tcell.KeyRune && event.Rune() == 's' {
 			tui.detail.SwitchToPage("System")
 			tui.status.Clear()
 			return nil
-		} else if event.Key() == tcell.KeyF3 || event.Name() == "Alt+Rune[3]" {
+		} else if event.Key() == tcell.KeyRune && event.Rune() == 'c' {
 			if len(tui.cgroup.visbleData) > 1 {
 				tui.detail.SwitchToPage("Cgroup")
 				tui.status.Clear().SetText(tui.cgroup.statuxText)
@@ -163,7 +176,7 @@ func (tui *TUI) initPages() {
 			}
 			return event
 		}
-		if cur := tui.GetFocus(); cur == tui.process.searchView || cur == tui.cgroup.searchView {
+		if tui.process.searchView.HasFocus() || tui.cgroup.searchView.HasFocus() {
 			return event
 		}
 

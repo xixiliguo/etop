@@ -272,27 +272,6 @@ func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p
 				region := cgroup.regions[nextId]
 				cgroup.setRegionAndSwitchView(region)
 				return
-			} else if event.Rune() == 'g' {
-				cgroup.setRegionAndSwitchView("g")
-				return
-			} else if event.Rune() == 'c' {
-				cgroup.setRegionAndSwitchView("c")
-				return
-			} else if event.Rune() == 'm' {
-				cgroup.setRegionAndSwitchView("m")
-				return
-			} else if event.Rune() == 'd' {
-				cgroup.setRegionAndSwitchView("d")
-				return
-			} else if event.Rune() == 'n' {
-				cgroup.setRegionAndSwitchView("n")
-				return
-			} else if event.Rune() == 'p' {
-				cgroup.setRegionAndSwitchView("p")
-				return
-			} else if event.Rune() == 'v' {
-				cgroup.setRegionAndSwitchView("v")
-				return
 			}
 			if handler := cgroup.cgroupView.InputHandler(); handler != nil {
 				handler(event, setFocus)

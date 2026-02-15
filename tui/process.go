@@ -35,6 +35,7 @@ type Process struct {
 	sortView           *tview.List
 	sortField          string
 	descOrder          bool
+	setFocus           func(p tview.Primitive)
 	sortDisplay        bool
 	searchView         *tview.InputField
 	searchDisplay      bool
@@ -124,6 +125,10 @@ func NewProcess(status *tview.TextView) *Process {
 				process.descOrder = true
 			}
 			process.update()
+			process.sortDisplay = false
+			upper := process.GetItem(0).(*tview.Flex)
+			upper.ResizeItem(process.sortView, 0, 0)
+			process.Focus(process.setFocus)
 		}).
 		SetTitle("Sort by").
 		SetTitleAlign(tview.AlignLeft).
@@ -144,6 +149,9 @@ func NewProcess(status *tview.TextView) *Process {
 					fmt.Fprintf(process.status, "%s", err)
 				} else {
 					process.update()
+					process.searchDisplay = false
+					process.ResizeItem(process.searchView, 0, 0)
+					process.Focus(process.setFocus)
 				}
 			}
 		}).
@@ -198,6 +206,7 @@ func (process *Process) setRegionAndSwitchView(region string) {
 
 func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
 	return process.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+		process.setFocus = setFocus
 		if process.searchDisplay {
 			if event.Key() == tcell.KeyEsc {
 				process.searchDisplay = false
@@ -210,7 +219,7 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 				return
 			}
 		}
-		if event.Rune() == 's' {
+		if event.Rune() == 'S' {
 			upper := process.GetItem(0).(*tview.Flex)
 			sortWidth := 0
 			if process.sortDisplay {
@@ -255,18 +264,6 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 				nextId := (process.currRegionIdx - 1 + len(process.regions)) % len(process.regions)
 				region := process.regions[nextId]
 				process.setRegionAndSwitchView(region)
-				return
-			} else if event.Rune() == 'g' {
-				process.setRegionAndSwitchView("g")
-				return
-			} else if event.Rune() == 'c' {
-				process.setRegionAndSwitchView("c")
-				return
-			} else if event.Rune() == 'm' {
-				process.setRegionAndSwitchView("m")
-				return
-			} else if event.Rune() == 'd' {
-				process.setRegionAndSwitchView("d")
 				return
 			} else if event.Rune() == 'F' {
 				process.visbleTree = !process.visbleTree
