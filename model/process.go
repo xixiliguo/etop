@@ -83,7 +83,7 @@ type PCPU struct {
 	System   float64
 	Priority int
 	Nice     int
-	Policy   uint64
+	Policy   string
 	CPU      float64
 	RunDelay uint64
 	BlkDelay uint64
@@ -126,15 +126,7 @@ func (c *PCPU) GetRenderValue(field string, opt FieldOpt) string {
 	case "Nice":
 		s = cfg.Render(c.Nice)
 	case "Policy":
-		ptodesc := map[uint64]string{
-			0: "normal",
-			1: "fifo",
-			2: "rr",
-			3: "batch",
-			5: "idle",
-			6: "deadline",
-		}
-		s = cfg.Render(ptodesc[c.Policy])
+		s = cfg.Render(c.Policy)
 	case "CPU":
 		s = cfg.Render(c.CPU)
 	case "RunDelay":
@@ -432,15 +424,7 @@ func sortByField(res []*Process, sortField string, descOrder bool) {
 		case "Nice":
 			return res[i].Nice > res[j].Nice
 		case "Policy":
-			ptodesc := map[uint64]string{
-				0: "normal",
-				1: "fifo",
-				2: "rr",
-				3: "batch",
-				5: "idle",
-				6: "deadline",
-			}
-			return ptodesc[res[i].Policy] > ptodesc[res[j].Policy]
+			return res[i].Policy > res[j].Policy
 		case "CPU":
 			return res[i].CPU > res[j].CPU
 		case "RunDelay":
@@ -599,7 +583,7 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.System = SubWithInterval(new.STime, old.STime, interval)
 		p.Priority = new.Priority
 		p.Nice = new.Nice
-		p.Policy = new.Policy
+		p.Policy = new.Policy.String()
 		p.CPU = p.User + p.System
 		p.RunDelay = Sub(new.WaitingNanoseconds, old.WaitingNanoseconds) / 1000000
 		p.BlkDelay = Sub(new.DelayAcctBlkIOTicks, old.DelayAcctBlkIOTicks) * 10

@@ -10,7 +10,7 @@ import (
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
-//go:generate go tool stringer -linecomment -output=proc_state_string.go -type=ProcState
+//go:generate go tool stringer -linecomment -output=proc_string.go -type=ProcState,ProcPolicy
 
 // Proc provides information about a running process.
 type Proc struct {
@@ -45,6 +45,18 @@ const (
 	Wakekill        ProcState = 'K'
 	Waking          ProcState = 'W'
 	Parked          ProcState = 'P'
+)
+
+type ProcPolicy uint64
+
+const (
+	NORMAL ProcPolicy = iota
+	FIFO
+	RR
+	BATCH
+	_
+	IDLE
+	DEADLINE
 )
 
 // ProcStat provides status information about the process,
@@ -116,7 +128,7 @@ type ProcStat struct {
 	// scheduled under a real-time policy, or 0, for non-real-time processes.
 	RTPriority uint64
 	// Scheduling policy.
-	Policy uint64
+	Policy ProcPolicy
 	// Aggregated block I/O delays, measured in clock ticks (centiseconds).
 	DelayAcctBlkIOTicks uint64
 	// Guest time of the process (time spent running a virtual CPU for a guest
@@ -212,7 +224,9 @@ func (p Proc) Stat() (ProcStat, error) {
 			case 39: // RTPriority
 				s.RTPriority, err = strconv.ParseUint(field, 10, 64)
 			case 40: // Policy
-				s.Policy, err = strconv.ParseUint(field, 10, 64)
+				var val uint64
+				val, err = strconv.ParseUint(field, 10, 64)
+				s.Policy = ProcPolicy(val)
 			case 41: // DelayAcctBlkIOTicks
 				s.DelayAcctBlkIOTicks, err = strconv.ParseUint(field, 10, 64)
 			case 42: // GuestTime
