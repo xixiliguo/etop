@@ -101,39 +101,3 @@ func TestDiskCollect(t *testing.T) {
 		t.Errorf("%s", cmp.Diff(testCase, re, opts...))
 	}
 }
-
-func TestDiskMapGetKeys(t *testing.T) {
-	tests := []struct {
-		diskMap DiskMap
-		want    []string
-	}{
-		{
-			diskMap: DiskMap{
-				"vda": {},
-				"vdb": {},
-			},
-			want: []string{"vda", "vdb"},
-		},
-		{
-			diskMap: DiskMap{
-				"sdb": {},
-				"sda": {},
-			},
-			want: []string{"sda", "sdb"},
-		},
-		{
-			diskMap: DiskMap{
-				"vda": {},
-				"sda": {},
-				"sdb": {},
-			},
-			want: []string{"sda", "sdb", "vda"},
-		},
-	}
-	for _, tt := range tests {
-		got := tt.diskMap.GetKeys()
-		if cmp.Equal(tt.want, got) == false {
-			t.Errorf("%s", cmp.Diff(tt.want, got))
-		}
-	}
-}

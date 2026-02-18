@@ -16,6 +16,7 @@ var (
 
 type System struct {
 	*tview.Flex
+	status           *tview.TextView
 	header           *tview.TextView
 	regions          []string
 	currentRegionIdx int
@@ -24,23 +25,35 @@ type System struct {
 	cpu              *tview.Table
 	mem              *tview.Table
 	vm               *tview.Table
+	diskVisbleData   []*model.Disk
 	disk             *tview.Table
 	net              *tview.Table
 	source           *model.Model
 }
 
-func NewSystem() *System {
+func NewSystem(status *tview.TextView) *System {
 
 	system := &System{
 		Flex:    tview.NewFlex(),
+		status:  status,
 		header:  tview.NewTextView(),
 		content: tview.NewPages(),
-		cpu:     tview.NewTable().SetFixed(1, 1),
-		mem:     tview.NewTable().SetFixed(1, 1),
-		vm:      tview.NewTable().SetFixed(1, 1),
-		disk:    tview.NewTable().SetFixed(1, 1),
-		net:     tview.NewTable().SetFixed(1, 1),
+		cpu:     tview.NewTable().SetFixed(1, 1).SetSelectable(true, false),
+		mem:     tview.NewTable().SetFixed(1, 1).SetSelectable(true, false),
+		vm:      tview.NewTable().SetFixed(1, 1).SetSelectable(true, false),
+		disk:    tview.NewTable().SetFixed(1, 1).SetSelectable(true, false),
+		net:     tview.NewTable().SetFixed(1, 1).SetSelectable(true, false),
 	}
+
+	system.disk.SetSelectionChangedFunc(func(row int, column int) {
+		system.status.Clear()
+		idx := row - 1
+		if 0 <= idx && idx < len(system.diskVisbleData) {
+			for _, f := range []string{"Scheduler", "NrRequests", "ReadAheadKb", "QueueNum"} {
+				fmt.Fprintf(system.status, "%s: %s  ", f, system.diskVisbleData[idx].GetRenderValue(f, model.FieldOpt{}))
+			}
+		}
+	})
 
 	system.SetTitle("System").SetBorder(true).SetTitleAlign(tview.AlignLeft)
 
@@ -178,6 +191,7 @@ func (system *System) UpdateVMInfo() {
 func (system *System) UpdateDiskInfo() {
 	system.disk.Clear()
 	system.disk.SetOffset(0, 0)
+	system.diskVisbleData = system.diskVisbleData[:0]
 
 	visbleCols := model.DefaultDiskFields
 	d := model.Disk{}
@@ -186,9 +200,10 @@ func (system *System) UpdateDiskInfo() {
 		system.disk.SetCell(0, i, tview.NewTableCell(text).SetTextColor(tcell.ColorTeal))
 	}
 
+	system.diskVisbleData = system.source.Disks.Iterate()
+
 	r := 0
-	for _, n := range system.source.Disks.GetKeys() {
-		disk := system.source.Disks[n]
+	for _, disk := range system.diskVisbleData {
 		for i, col := range visbleCols {
 			color := tcell.ColorWhite
 			if disk.Util >= DiskBusy {

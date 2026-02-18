@@ -52,6 +52,10 @@ type Disk struct {
 	AvgQueueLength         float64
 	AvgIOTime              float64
 	Util                   float64
+	Scheduler              string
+	NrRequests             uint64
+	ReadAheadKb            uint64
+	QueueNum               uint64
 }
 
 type DiskMap map[string]Disk
@@ -85,6 +89,14 @@ func (d *Disk) DefaultConfig(field string) Field {
 		cfg = Field{"AvgIOWait", Raw, 1, " ms", 10, false}
 	case "AvgIOTime":
 		cfg = Field{"AvgIOTime", Raw, 1, " ms", 10, false}
+	case "Scheduler":
+		cfg = Field{"Scheduler", Raw, 1, "", 10, false}
+	case "NrRequests":
+		cfg = Field{"NrRequests", Raw, 1, "", 10, false}
+	case "ReadAheadKb":
+		cfg = Field{"ReadAheadKb", Raw, 1, "", 10, false}
+	case "QueueNum":
+		cfg = Field{"QueueNum", Raw, 1, "", 10, false}
 	}
 	return cfg
 }
@@ -121,6 +133,14 @@ func (d *Disk) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(d.AvgIOWait)
 	case "AvgIOTime":
 		s = cfg.Render(d.AvgIOTime)
+	case "Scheduler":
+		s = cfg.Render(d.Scheduler)
+	case "NrRequests":
+		s = cfg.Render(d.NrRequests)
+	case "ReadAheadKb":
+		s = cfg.Render(d.ReadAheadKb)
+	case "QueueNum":
+		s = cfg.Render(d.QueueNum)
 	default:
 		s = "no " + field + " for disk stat"
 	}
@@ -155,6 +175,10 @@ func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
 			DiscardTicks:           new.DiscardTicks - old.DiscardTicks,
 			FlushRequestsCompleted: new.FlushRequestsCompleted - old.FlushRequestsCompleted,
 			TimeSpentFlushing:      new.TimeSpentFlushing - old.TimeSpentFlushing,
+			Scheduler:              new.Scheduler,
+			NrRequests:             new.NrRequests,
+			ReadAheadKb:            new.ReadAheadKb,
+			QueueNum:               new.QueueNum,
 		}
 
 		d.ReadPerSec = float64(d.ReadIOs) / float64(interval)
@@ -190,16 +214,16 @@ func (diskMap DiskMap) Collect(prev, curr *store.Sample) {
 
 }
 
-func (diskMap DiskMap) GetKeys() []string {
+func (diskMap DiskMap) Iterate() []*Disk {
 
-	keys := []string{}
-	for k := range diskMap {
-		keys = append(keys, k)
+	disks := []*Disk{}
+	for _, v := range diskMap {
+		disks = append(disks, &v)
 	}
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i] < keys[j]
+	sort.Slice(disks, func(i, j int) bool {
+		return disks[i].DeviceName < disks[j].DeviceName
 	})
-	return keys
+	return disks
 }
 
 func (diskMap DiskMap) GetOtelMetric(timeStamp int64, sm *metricdata.ScopeMetrics) {
@@ -238,9 +262,8 @@ func (diskMap DiskMap) GetOtelMetric(timeStamp int64, sm *metricdata.ScopeMetric
 		Name: "disk.iotime",
 	}
 	diskIOTimeData := metricdata.Gauge[float64]{}
-	for _, n := range diskMap.GetKeys() {
-		disk := diskMap[n]
-		name := attribute.String("disk", n)
+	for _, disk := range diskMap.Iterate() {
+		name := attribute.String("disk", disk.DeviceName)
 
 		diskIOData.DataPoints = append(diskIOData.DataPoints, []metricdata.DataPoint[float64]{
 			{

@@ -101,16 +101,15 @@ func (basic *Basic) Update(sm *model.Model) {
 
 	basic.disk.Clear()
 	fmt.Fprintf(basic.disk, "%-7s", "Disk")
-	for _, disk := range sm.Disks.GetKeys() {
-		d := sm.Disks[disk]
+	for _, disk := range sm.Disks.Iterate() {
 		fmtStr = diskFmtStr
-		if d.Util >= DiskBusy {
+		if disk.Util >= DiskBusy {
 			fmtStr = diskBusyFmtStr
 		}
 		fmt.Fprintf(basic.disk, fmtStr,
-			d.GetRenderValue("Disk", model.FieldOpt{}),
-			d.GetRenderValue("ReadBytePerSec", model.FieldOpt{}),
-			d.GetRenderValue("WriteBytePerSec", model.FieldOpt{}))
+			disk.GetRenderValue("Disk", model.FieldOpt{}),
+			disk.GetRenderValue("ReadBytePerSec", model.FieldOpt{}),
+			disk.GetRenderValue("WriteBytePerSec", model.FieldOpt{}))
 	}
 
 	basic.net.Clear()

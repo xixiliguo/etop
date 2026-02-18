@@ -50,7 +50,6 @@ func NewTUI() *TUI {
 		base:        tview.NewFlex(),
 		header:      NewHeader(),
 		basic:       NewBasic(),
-		system:      NewSystem(),
 		detail:      tview.NewPages(),
 		status:      tview.NewTextView(),
 		search:      NewInputDialog(),
@@ -60,6 +59,7 @@ func NewTUI() *TUI {
 	tui.log = util.CreateLogger(tui.status, true)
 
 	tui.process = NewProcess(tui.status)
+	tui.system = NewSystem(tui.status)
 	tui.cgroup = NewCgroup(tui.status)
 
 	tui.status.SetBorder(true)

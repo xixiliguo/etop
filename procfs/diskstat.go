@@ -54,6 +54,10 @@ type DiskStatLine struct {
 	FlushRequestsCompleted uint64
 	// TimeSpentFlushing is the total number of milliseconds spent flushing.
 	TimeSpentFlushing uint64
+	Scheduler         string
+	NrRequests        uint64
+	ReadAheadKb       uint64
+	QueueNum          uint64
 }
 
 func (fs FS) DiskStat() (DiskStat, error) {
@@ -66,11 +70,20 @@ func (fs FS) DiskStat() (DiskStat, error) {
 	}
 	defer f.Close()
 
-	sysBlocks := map[string]struct{}{}
+	sysBlock := NewSysBlocFS("")
+	sysDisks := map[string]BlockDevStat{}
 
-	dirs, err := os.ReadDir("/sys/block")
-	for _, d := range dirs {
-		sysBlocks[d.Name()] = struct{}{}
+	err = sysBlock.EachBlockDev(func(b BlockDev) error {
+		stat, err := b.BlockDevStat()
+		if err != nil {
+			return err
+		}
+		sysDisks[b.Name] = stat
+		return nil
+	})
+
+	if err != nil {
+		return diskStat, err
 	}
 
 	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
@@ -95,8 +108,13 @@ func (fs FS) DiskStat() (DiskStat, error) {
 		disk.MinorNumber, _ = strconv.ParseUint(fields[1], 10, 64)
 		disk.DeviceName = strings.Clone(fields[2])
 
-		if _, ok := sysBlocks[disk.DeviceName]; !ok {
+		if s, ok := sysDisks[disk.DeviceName]; !ok {
 			return nil
+		} else {
+			disk.Scheduler = s.Scheduler
+			disk.NrRequests = s.NrRequests
+			disk.ReadAheadKb = s.ReadAheadKb
+			disk.QueueNum = s.QueueNum
 		}
 
 		disk.ReadIOs, _ = strconv.ParseUint(fields[3], 10, 64)

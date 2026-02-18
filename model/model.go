@@ -352,9 +352,8 @@ func (s *Model) dumpText(opt DumpOption) error {
 		case "vm":
 			dumpText(s.Curr.TimeStamp, opt, &s.Vm)
 		case "disk":
-			for _, disk := range s.Disks.GetKeys() {
-				d := s.Disks[disk]
-				dumpText(s.Curr.TimeStamp, opt, &d)
+			for _, disk := range s.Disks.Iterate() {
+				dumpText(s.Curr.TimeStamp, opt, disk)
 			}
 		case "netdev":
 			for _, dev := range s.Nets.GetKeys() {
@@ -438,15 +437,14 @@ func (s *Model) dumpJson(opt DumpOption) error {
 		case "disk":
 			opt.Output.WriteString("[")
 			first := true
-			for _, disk := range s.Disks.GetKeys() {
-				d := s.Disks[disk]
-				if isFilter(opt, &d) {
+			for _, disk := range s.Disks.Iterate() {
+				if isFilter(opt, disk) {
 					if first {
 						first = false
 					} else {
 						opt.Output.WriteString(",\n")
 					}
-					dumpJson(s.Curr.TimeStamp, opt, &d)
+					dumpJson(s.Curr.TimeStamp, opt, disk)
 				}
 			}
 			opt.Output.WriteString("]")
