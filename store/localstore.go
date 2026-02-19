@@ -658,6 +658,7 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 			return err
 		}
 
+		writeStart := time.Now()
 		statInfo := syscall.Statfs_t{}
 		if err := syscall.Statfs(local.Path, &statInfo); err != nil {
 			return err
@@ -688,12 +689,19 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 			}
 			isSkip++
 		}
-
-		collectDuration := time.Now().Sub(start)
+		writeEnd := time.Now()
+		collectDuration := writeEnd.Sub(start)
 		if collectDuration > 500*time.Millisecond {
 			msg := fmt.Sprintf("write sample take %s (larger than 500 ms)", collectDuration.String())
 			local.Log.Warn(msg)
 		}
+
+		msg := fmt.Sprintf("write smaple: ScrapeDuration: %s  writeDuration: %s totalDuration: %s",
+			writeStart.Sub(start),
+			writeEnd.Sub(writeStart),
+			collectDuration)
+		local.Log.Debug(msg)
+
 		sleepDuration := time.Duration(1 * time.Second)
 		if interval-collectDuration > 1*time.Second {
 			sleepDuration = interval - collectDuration

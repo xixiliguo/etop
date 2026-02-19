@@ -6,9 +6,11 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -138,7 +140,26 @@ func ArchiveToTarFile(path string, tarFileName string) error {
 }
 
 func CreateLogger(w io.Writer, onlyMsg bool) *slog.Logger {
+
+	levelVal := &slog.LevelVar{}
+	levelVal.Set(slog.LevelInfo)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGHUP)
+
+	go func() {
+		for {
+			<-sigChan
+			if levelVal.Level() == slog.LevelInfo {
+				levelVal.Set(slog.LevelDebug)
+			} else {
+				levelVal.Set(slog.LevelInfo)
+			}
+		}
+	}()
+
 	hOpt := &slog.HandlerOptions{
+		Level:     levelVal,
 		AddSource: true,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.SourceKey {
@@ -150,6 +171,7 @@ func CreateLogger(w io.Writer, onlyMsg bool) *slog.Logger {
 	}
 	if onlyMsg {
 		hOpt = &slog.HandlerOptions{
+			Level: levelVal,
 			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 				if a.Key == slog.TimeKey {
 					return slog.Attr{}
