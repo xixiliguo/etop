@@ -69,7 +69,7 @@ func (f Field) Render(value any) string {
 			buf = strconv.AppendInt(buf, int64(v), 10)
 		}
 	case float64:
-		if math.IsNaN(v) {
+		if v == math.MaxFloat64 {
 			buf = append(buf, '-')
 			addSuffix = false
 			break

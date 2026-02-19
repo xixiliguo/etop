@@ -722,10 +722,10 @@ func (processMap ProcessMap) GetOtelMetric(timeStamp int64, sm *metricdata.Scope
 
 func SubWithInterval(curr, prev uint64, interval int64) float64 {
 	if curr == math.MaxUint64 {
-		return math.NaN()
+		return math.MaxFloat64
 	}
 	if curr < prev {
-		return math.NaN()
+		return math.MaxFloat64
 	}
 	return float64(curr-prev) / float64(interval)
 }

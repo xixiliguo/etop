@@ -586,15 +586,15 @@ func (c *Cgroup) PSIStats(file string) (PSIStats, error) {
 
 	psi := PSIStats{
 		Some: PSIData{
-			Avg10:  math.NaN(),
-			Avg60:  math.NaN(),
-			Avg300: math.NaN(),
+			Avg10:  math.MaxFloat64,
+			Avg60:  math.MaxFloat64,
+			Avg300: math.MaxFloat64,
 			Total:  math.MaxUint64,
 		},
 		Full: PSIData{
-			Avg10:  math.NaN(),
-			Avg60:  math.NaN(),
-			Avg300: math.NaN(),
+			Avg10:  math.MaxFloat64,
+			Avg60:  math.MaxFloat64,
+			Avg300: math.MaxFloat64,
 			Total:  math.MaxUint64,
 		},
 	}
