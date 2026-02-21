@@ -8,7 +8,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/gdamore/tcell/v2 v2.13.8
 	github.com/google/go-cmp v0.7.0
-	github.com/klauspost/compress v1.18.3
+	github.com/klauspost/compress v1.18.4
 	github.com/mattn/go-runewidth v0.0.19
 	github.com/rivo/tview v0.42.0
 	github.com/urfave/cli/v2 v2.27.7

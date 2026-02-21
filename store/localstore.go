@@ -192,16 +192,30 @@ func NewLocalStore(opts ...Option) (*LocalStore, error) {
 	// so that nextSample(1, &s) after NewLocalStore can get first sample
 	local.curIdx = -1
 
-	if local.mode != NoCompress {
+	if local.writeOnly {
 		local.enc, _ = zstd.NewWriter(
 			nil,
 			zstd.WithLowerEncoderMem(true),
 			zstd.WithEncoderConcurrency(1),
 		)
+		local.encDict, _ = zstd.NewWriter(
+			nil,
+			zstd.WithLowerEncoderMem(true),
+			zstd.WithEncoderConcurrency(1),
+			zstd.WithEncoderDictRaw(0, []byte{}),
+		)
+
+	} else {
 		local.dec, _ = zstd.NewReader(
 			nil,
 			zstd.WithDecoderLowmem(true),
 			zstd.WithDecoderConcurrency(1),
+		)
+		local.decDict, _ = zstd.NewReader(
+			nil,
+			zstd.WithDecoderLowmem(true),
+			zstd.WithDecoderConcurrency(1),
+			zstd.WithDecoderDictRaw(0, []byte{}),
 		)
 	}
 
@@ -509,12 +523,7 @@ func (local *LocalStore) getSample(target int, sample *Sample) error {
 			if dictBuff, err = local.dec.DecodeAll(dictBuff, make([]byte, 0, len(dictBuff))); err != nil {
 				return err
 			}
-			opts := []zstd.DOption{
-				zstd.WithDecoderDictRaw(0, dictBuff),
-				zstd.WithDecoderLowmem(true),
-				zstd.WithDecoderConcurrency(1),
-			}
-			if local.decDict, err = zstd.NewReader(nil, opts...); err != nil {
+			if err := local.decDict.ResetWithOptions(nil, zstd.WithDecoderDictRaw(0, dictBuff)); err != nil {
 				return err
 			}
 			local.curDict = dictIdx.TimeStamp
@@ -585,7 +594,7 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 		offset = local.next % local.chunk
 		if offset == 0 {
 			opts := []zstd.EOption{
-				zstd.WithEncoderDictRaw(0, dataBytes),
+				zstd.WithEncoderDictRaw(0, bytes.Clone(dataBytes)),
 				zstd.WithLowerEncoderMem(true),
 				zstd.WithEncoderConcurrency(1),
 			}
