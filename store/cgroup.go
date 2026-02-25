@@ -118,7 +118,7 @@ func walkCgroupNode(level int, cg cgroupfs.Cgroup, c *CgroupNetStat) (CgroupSamp
 			child := cg.Child(e.Name())
 			childSample, err := walkCgroupNode(level+1, child, c)
 			if err != nil {
-				return root, err
+				continue
 			}
 			root.Child[child.Name] = childSample
 		}
