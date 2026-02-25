@@ -150,13 +150,14 @@ func WithCgroupNetStat(log *slog.Logger) Option {
 // shard is unix time of 00:00 utc every day
 // It should work either readonly mode or writeonly mode.
 type LocalStore struct {
-	Path       string   // path which index and data file is stored
-	Index      *os.File // current active index file
-	Data       *os.File // current active data file
-	Log        *slog.Logger
-	DataOffset int64 // file offset which next sample was written to
-	writeOnly  bool
-	mode       uint32 // compress mode
+	Path            string   // path which index and data file is stored
+	Index           *os.File // current active index file
+	Data            *os.File // current active data file
+	Log             *slog.Logger
+	DataOffset      int64 // file offset which next sample was written to
+	lastSampleBytes int
+	writeOnly       bool
+	mode            uint32 // compress mode
 	// increment after writing one sample
 	// reset to 0 when opening new file or initializing instance of LocalStore
 	next    uint32
@@ -635,6 +636,7 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 	}
 
 	local.next++
+	local.lastSampleBytes = len(dataBytes)
 	local.DataOffset += int64(len(dataBytes))
 	return newSuffix, nil
 }
@@ -705,11 +707,9 @@ func (local *LocalStore) WriteLoop(opt WriteOption) error {
 			local.Log.Warn(msg)
 		}
 
-		msg := fmt.Sprintf("write smaple: ScrapeDuration: %s  writeDuration: %s totalDuration: %s",
-			writeStart.Sub(start),
-			writeEnd.Sub(writeStart),
-			collectDuration)
-		local.Log.Debug(msg)
+		local.Log.Debug("write sample", "size", local.lastSampleBytes, "ScrapeDuration", writeStart.Sub(start),
+			"writeDuration", writeEnd.Sub(writeStart),
+			"totalDuration", collectDuration)
 
 		sleepDuration := time.Duration(1 * time.Second)
 		if interval-collectDuration > 1*time.Second {
