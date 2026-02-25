@@ -584,7 +584,10 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		p.Priority = new.Priority
 		p.Nice = new.Nice
 		p.Policy = new.Policy.String()
-		p.CPU = p.User + p.System
+		p.CPU = math.MaxFloat64
+		if p.User != math.MaxFloat64 && p.System != math.MaxFloat64 {
+			p.CPU = p.User + p.System
+		}
 		p.RunDelay = Sub(new.WaitingNanoseconds, old.WaitingNanoseconds) / 1000000
 		p.BlkDelay = Sub(new.DelayAcctBlkIOTicks, old.DelayAcctBlkIOTicks) * 10
 
