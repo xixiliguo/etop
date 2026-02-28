@@ -97,13 +97,17 @@ func NewProcess(status *tview.TextView) *Process {
 			idx := row - 1
 			if 0 <= idx && idx < len(process.visbleData) {
 				p := process.visbleData[idx]
-				extra := p.CmdLine
-				if extra == "" {
-					extra = p.Comm
+
+				extra := ""
+				if p.CmdLine != "" {
+					extra = "cmdline: " + p.CmdLine
+				} else {
+					extra = "cmdline: <empty>"
 				}
+
 				if p.State == procfs.Dead.String() || p.State == procfs.Deadx.String() {
 
-					extra += fmt.Sprintf(" %s at %s",
+					extra += fmt.Sprintf(" %s end time: %s",
 						p.ShowExitInfo(),
 						time.Unix(int64(p.EndTime), 0).Format(time.RFC3339))
 				}

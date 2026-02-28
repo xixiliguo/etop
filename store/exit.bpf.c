@@ -7,6 +7,7 @@
 #include "bpf_tracing.h"
 
 #define TASK_COMM_LEN 16
+#define TASK_CMDLINE_LEN 32
 
 char __license[] SEC("license") = "Dual MIT/GPL";
 
@@ -23,6 +24,7 @@ struct event
     int ppid;
     long exit_code;
     u8 comm[TASK_COMM_LEN];
+    u8 cmdline[TASK_CMDLINE_LEN];
     u64 utime;
     u64 stime;
     u64 start_time;
@@ -68,7 +70,7 @@ s64 percpu_counter_read_positive(struct percpu_counter *c) {
   return 0;
 }
 
-SEC("kprobe/acct_process")
+SEC("kprobe/tty_audit_exit")
 int handle_exit(struct pt_regs *ctx)
 {
     struct event e;
@@ -106,6 +108,11 @@ int handle_exit(struct pt_regs *ctx)
     const struct mm_struct *mm = BPF_CORE_READ(task, mm);
     if (mm)
     {
+        u64 arg_start = BPF_CORE_READ(mm, arg_start);
+        u64 arg_end = BPF_CORE_READ(mm, arg_end);
+        e.cmdline[0] = arg_end - arg_start;
+        bpf_probe_read_user(&e.cmdline[1], TASK_CMDLINE_LEN-1, (void *)arg_start);
+
         e.vss_pages = BPF_CORE_READ(mm, total_vm);
 
         u64 file_pages = 0;

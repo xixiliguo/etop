@@ -52,13 +52,19 @@ func (e *ExitProcess) Collect() {
 	btf.FlushKernelSpec()
 	debug.FreeOSMemory()
 
-	kp, err := link.Kprobe("acct_process", objs.HandleExit, nil)
-	if err != nil {
-		msg := fmt.Sprintf("opening kprobe: %s", err)
+	if kp, err := link.Kprobe("tty_audit_exit", objs.HandleExit, nil); err != nil {
+		msg := fmt.Sprintf("opening tty_audit_exit kprobe: %s", err)
 		e.log.Error(msg)
-		return
+		if kp, err := link.Kprobe("acct_process", objs.HandleExit, nil); err != nil {
+			msg := fmt.Sprintf("opening acct_process kprobe: %s", err)
+			e.log.Error(msg)
+			return
+		} else {
+			defer kp.Close()
+		}
+	} else {
+		defer kp.Close()
 	}
-	defer kp.Close()
 
 	rd, err := perf.NewReader(objs.Events, os.Getpagesize())
 	if err != nil {
@@ -91,6 +97,16 @@ func (e *ExitProcess) Collect() {
 		}
 
 		e.Lock()
+		cmdByte := make([]byte, 0, 32)
+
+		for i, sz := 1, int(event.Cmdline[0]); i < 32 && i <= sz; i++ {
+			if b := event.Cmdline[i]; b == 0 {
+				cmdByte = append(cmdByte, ' ')
+			} else {
+				cmdByte = append(cmdByte, b)
+			}
+		}
+
 		e.Samples[int(event.Pid)] = ProcSample{
 			ProcStat: procfs.ProcStat{
 				PID:                 int(event.Pid),
@@ -131,6 +147,7 @@ func (e *ExitProcess) Collect() {
 				WriteBytes:          event.IoWriteBytes,
 				CancelledWriteBytes: event.CancelledWriteBytes,
 			},
+			CmdLine:  string(cmdByte),
 			EndTime:  event.EndTime,
 			ExitCode: uint64(event.ExitCode),
 		}

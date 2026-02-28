@@ -60,7 +60,7 @@ func (p *Process) ShowExitInfo() string {
 	switch {
 	case status.Exited():
 		code := status.ExitStatus()
-		res = "exit status " + strconv.Itoa(code) // unix
+		res = "exit code: " + strconv.Itoa(code) // unix
 
 	case status.Signaled():
 		res = "signal: " + status.Signal().String()
