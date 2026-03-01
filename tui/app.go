@@ -228,8 +228,8 @@ func (tui *TUI) SetSource(sm *model.Model) {
 	tui.system.SetSource(sm)
 	tui.process.SetSource(sm)
 	switch name, _ := tui.detail.GetFrontPage(); name {
-	case "Process":
-		tui.process.processView.Select(1, 0)
+	// case "Process":
+	// tui.process.processView.Select(1, 0)
 	case "System":
 		tui.status.Clear()
 	case "Cgroup":

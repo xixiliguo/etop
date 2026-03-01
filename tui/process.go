@@ -46,7 +46,6 @@ type Process struct {
 	visibleColumnsText []string
 	defaultOrder       string
 	visbleTree         bool
-	noSelect           bool
 	visbleData         []*model.Process
 	source             *model.Model
 }
@@ -80,41 +79,10 @@ func NewProcess(status *tview.TextView) *Process {
 	process.processView.
 		SetFixed(1, 2).
 		SetSelectable(true, false).
-		SetSelectedFunc(func(row, column int) {
-			if process.visbleTree {
-				if row > len(process.visbleData) {
-					return
-				}
-				selected := process.visbleData[row-1]
-				selected.IsExpand = !selected.IsExpand
-				process.noSelect = true
-				process.update()
-			}
-
-		}).
 		SetSelectionChangedFunc(func(row int, column int) {
-			process.status.Clear()
-			idx := row - 1
-			if 0 <= idx && idx < len(process.visbleData) {
-				p := process.visbleData[idx]
-
-				extra := ""
-				if p.CmdLine != "" {
-					extra = "cmdline: " + p.CmdLine
-				} else {
-					extra = "cmdline: <empty>"
-				}
-
-				if p.State == procfs.Dead.String() || p.State == procfs.Deadx.String() {
-
-					extra += fmt.Sprintf(" %s end time: %s",
-						p.ShowExitInfo(),
-						time.Unix(int64(p.EndTime), 0).Format(time.RFC3339))
-				}
-				process.statusText = extra
-				process.status.SetText(process.statusText)
-			}
+			process.refreshStatus()
 		})
+
 	process.SetBorder(true).
 		SetTitle("Process").
 		SetTitleAlign(tview.AlignLeft)
@@ -274,6 +242,12 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 				process.update()
 				return
 			}
+
+			// fix loop if emplty data in table
+			if len(process.visbleData) == 0 {
+				return
+			}
+
 			if handler := process.processView.InputHandler(); handler != nil {
 				handler(event, setFocus)
 				return
@@ -334,9 +308,34 @@ func (process *Process) setVisibleColumns(cols []string, order string) {
 	}
 }
 
+func (process *Process) refreshStatus() {
+	row, _ := process.processView.GetSelection()
+	process.processView.SetOffset(0, 0)
+	process.status.Clear()
+	idx := row - 1
+	if 0 <= idx && idx < len(process.visbleData) {
+		p := process.visbleData[idx]
+
+		extra := ""
+		if p.CmdLine != "" {
+			extra = "cmdline: " + p.CmdLine
+		} else {
+			extra = "cmdline: <empty>"
+		}
+
+		if p.State == procfs.Dead.String() || p.State == procfs.Deadx.String() {
+
+			extra += fmt.Sprintf(" %s end time: %s",
+				p.ShowExitInfo(),
+				time.Unix(int64(p.EndTime), 0).Format(time.RFC3339))
+		}
+		process.statusText = extra
+		process.status.SetText(process.statusText)
+	}
+}
+
 func (process *Process) update() {
 	process.processView.Clear()
-	process.processView.SetOffset(0, 0)
 	title := "Process"
 	if process.searchText != "" {
 		title += " Filter: " + process.searchText
@@ -381,9 +380,5 @@ func (process *Process) update() {
 					SetMaxWidth(width))
 		}
 	}
-	if process.noSelect {
-		process.noSelect = false
-		return
-	}
-	process.processView.Select(1, 0)
+	process.refreshStatus()
 }

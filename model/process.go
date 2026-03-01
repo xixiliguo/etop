@@ -49,9 +49,8 @@ type Process struct {
 	PCPU
 	PMEM
 	PIO
-	Level    int
-	IsExpand bool
-	Child    bool
+	Level int
+	Child bool
 }
 
 func (p *Process) ShowExitInfo() string {
@@ -328,9 +327,6 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 		}
 
 		s = indents + "└─ " + p.Comm
-		if !p.IsExpand && p.Child {
-			s = indents + "└─+ " + p.Comm
-		}
 		if p.Level == 0 {
 			s = p.Comm
 		}
@@ -527,9 +523,6 @@ func (processMap ProcessMap) IterateTree(level int, pid int, searchprogram *vm.P
 	}
 
 	pros := []*Process{current}
-	if !current.IsExpand {
-		return pros
-	}
 	return append(pros, childResult...)
 }
 
@@ -567,7 +560,6 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 			OnCPU:      new.Processor,
 			CmdLine:    new.CmdLine,
 			Cgroup:     new.Cgroup,
-			IsExpand:   true,
 		}
 
 		if new.EndTime != 0 {
