@@ -728,7 +728,7 @@ func SubWithInterval(curr, prev uint64, interval int64) float64 {
 		return math.MaxFloat64
 	}
 	if curr < prev {
-		return math.MaxFloat64
+		return 0
 	}
 	return float64(curr-prev) / float64(interval)
 }
