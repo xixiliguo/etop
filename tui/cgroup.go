@@ -53,6 +53,7 @@ type Cgroup struct {
 	sortView           *tview.List
 	sortField          string
 	descOrder          bool
+	setFocus           func(p tview.Primitive)
 	sortDisplay        bool
 	searchView         *tview.InputField
 	searchDisplay      bool
@@ -127,6 +128,10 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 				}
 			}
 			cgroup.update()
+			cgroup.sortDisplay = false
+			upper := cgroup.GetItem(0).(*tview.Flex)
+			upper.ResizeItem(cgroup.sortView, 0, 0)
+			cgroup.Focus(cgroup.setFocus)
 		}).
 		SetTitle("Sort by").
 		SetTitleAlign(tview.AlignLeft).
@@ -147,6 +152,9 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 					fmt.Fprintf(cgroup.status, "%s", err)
 				} else {
 					cgroup.update()
+					cgroup.searchDisplay = false
+					cgroup.ResizeItem(cgroup.searchView, 0, 0)
+					cgroup.Focus(cgroup.setFocus)
 				}
 			}
 		}).
@@ -207,6 +215,7 @@ func (cgroup *Cgroup) setRegionAndSwitchView(region string) {
 
 func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
 	return cgroup.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+		cgroup.setFocus = setFocus
 		if cgroup.searchDisplay {
 			if event.Key() == tcell.KeyEsc {
 				cgroup.searchDisplay = false
@@ -219,7 +228,7 @@ func (cgroup *Cgroup) InputHandler() func(event *tcell.EventKey, setFocus func(p
 				return
 			}
 		}
-		if event.Rune() == 's' {
+		if event.Rune() == 'S' {
 			upper := cgroup.GetItem(0).(*tview.Flex)
 			sortWidth := 0
 			if cgroup.sortDisplay {
