@@ -108,14 +108,7 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 			cgroup.update()
 		}).
 		SetSelectionChangedFunc(func(row int, column int) {
-			cgroup.status.Clear()
-			idx := row - 1
-			if 0 <= idx && idx < len(cgroup.visbleData) {
-				c := cgroup.visbleData[idx]
-				extra := c.FullPath
-				cgroup.statuxText = extra
-				cgroup.status.SetText(extra)
-			}
+			cgroup.refreshStatus()
 		})
 	cgroup.SetBorder(true).
 		SetTitle("Cgroup").
@@ -329,6 +322,21 @@ func (cgroup *Cgroup) setVisibleColumns(cols []string, order string) {
 	}
 }
 
+func (cgroup *Cgroup) refreshStatus() {
+	if !cgroup.HasFocus() {
+		return
+	}
+	row, _ := cgroup.cgroupView.GetSelection()
+	cgroup.status.Clear()
+	idx := row - 1
+	if 0 <= idx && idx < len(cgroup.visbleData) {
+		c := cgroup.visbleData[idx]
+		extra := c.FullPath
+		cgroup.statuxText = extra
+		cgroup.status.SetText(extra)
+	}
+}
+
 func (cgroup *Cgroup) update() {
 	row, column := cgroup.cgroupView.GetOffset()
 	cgroup.cgroupView.Clear()
@@ -373,5 +381,6 @@ func (cgroup *Cgroup) update() {
 		cgroup.noSelect = false
 		return
 	}
-	cgroup.cgroupView.Select(1, 0)
+	cgroup.cgroupView.SetOffset(0, 0)
+	cgroup.refreshStatus()
 }

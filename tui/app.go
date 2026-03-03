@@ -113,7 +113,7 @@ func (tui *TUI) initDetails() {
 
 		if event.Key() == tcell.KeyRune && event.Rune() == 'p' {
 			tui.detail.SwitchToPage("Process")
-			tui.status.Clear().SetText(tui.process.statusText)
+			tui.process.refreshStatus()
 			return nil
 		} else if event.Key() == tcell.KeyRune && event.Rune() == 's' {
 			tui.detail.SwitchToPage("System")
@@ -122,7 +122,7 @@ func (tui *TUI) initDetails() {
 		} else if event.Key() == tcell.KeyRune && event.Rune() == 'c' {
 			if len(tui.cgroup.visbleData) > 1 {
 				tui.detail.SwitchToPage("Cgroup")
-				tui.status.Clear().SetText(tui.cgroup.statuxText)
+				tui.cgroup.refreshStatus()
 			}
 			return nil
 		}
@@ -227,14 +227,6 @@ func (tui *TUI) SetSource(sm *model.Model) {
 	tui.cgroup.SetSource(sm)
 	tui.system.SetSource(sm)
 	tui.process.SetSource(sm)
-	switch name, _ := tui.detail.GetFrontPage(); name {
-	// case "Process":
-	// tui.process.processView.Select(1, 0)
-	case "System":
-		tui.status.Clear()
-	case "Cgroup":
-		tui.cgroup.cgroupView.Select(1, 0)
-	}
 }
 
 func (tui *TUI) Run(path string, beginTime string) error {
@@ -264,9 +256,12 @@ func (tui *TUI) Run(path string, beginTime string) error {
 	tui.header.Update(sm)
 	tui.basic.Update(sm)
 	tui.SetSource(sm)
-	tui.process.processView.Select(1, 0)
 
-	if err := tui.Application.SetRoot(tui.pages, true).SetFocus(tui.pages).Run(); err != nil {
+	tui.Application.SetRoot(tui.pages, true).SetFocus(tui.pages)
+	tui.process.processView.Select(1, 0)
+	tui.cgroup.cgroupView.Select(1, 0)
+
+	if err := tui.Application.Run(); err != nil {
 		return err
 	}
 	return nil

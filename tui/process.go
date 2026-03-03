@@ -309,8 +309,10 @@ func (process *Process) setVisibleColumns(cols []string, order string) {
 }
 
 func (process *Process) refreshStatus() {
+	if !process.HasFocus() {
+		return
+	}
 	row, _ := process.processView.GetSelection()
-	process.processView.SetOffset(0, 0)
 	process.status.Clear()
 	idx := row - 1
 	if 0 <= idx && idx < len(process.visbleData) {
@@ -380,5 +382,6 @@ func (process *Process) update() {
 					SetMaxWidth(width))
 		}
 	}
+	process.processView.SetOffset(0, 0)
 	process.refreshStatus()
 }
