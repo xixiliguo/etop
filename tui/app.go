@@ -264,6 +264,7 @@ func (tui *TUI) Run(path string, beginTime string) error {
 	tui.header.Update(sm)
 	tui.basic.Update(sm)
 	tui.SetSource(sm)
+	tui.process.processView.Select(1, 0)
 
 	if err := tui.Application.SetRoot(tui.pages, true).SetFocus(tui.pages).Run(); err != nil {
 		return err
