@@ -393,11 +393,20 @@ func (p Proc) CmdLine() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var c string
+	b := make([]byte, 0, 16)
 	err = fileutil.ProcessFile(f, func(line string) error {
-		c = strings.ReplaceAll(strings.Clone(line), "\x00", " ")
+		last := len(line) - 1
+		for ; last >= 0 && line[last] == 0; last-- {
+		}
+		for i := 0; i <= last; i++ {
+			if line[i] != 0 {
+				b = append(b, line[i])
+			} else {
+				b = append(b, ' ')
+			}
+		}
 		return nil
 	})
 
-	return c, nil
+	return string(b), nil
 }

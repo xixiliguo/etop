@@ -98,8 +98,11 @@ func (e *ExitProcess) Collect() {
 
 		e.Lock()
 		cmdByte := make([]byte, 0, 32)
+		sz := int(event.Cmdline[0])
+		for ; sz >= 1 && event.Cmdline[sz] == 0; sz-- {
+		}
 
-		for i, sz := 1, int(event.Cmdline[0]); i < 32 && i <= sz; i++ {
+		for i := 1; i < 32 && i <= sz; i++ {
 			if b := event.Cmdline[i]; b == 0 {
 				cmdByte = append(cmdByte, ' ')
 			} else {

@@ -319,14 +319,21 @@ func (process *Process) refreshStatus() {
 		p := process.visbleData[idx]
 
 		extra := ""
+		exited := p.State == procfs.Dead.String() || p.State == procfs.Deadx.String()
 		if p.CmdLine != "" {
-			extra = "cmdline: " + p.CmdLine
+			extra = "cmdline: "
+			if exited {
+				extra += `"`
+			}
+			extra += p.CmdLine
+			if exited {
+				extra += `"`
+			}
 		} else {
 			extra = "cmdline: <empty>"
 		}
 
-		if p.State == procfs.Dead.String() || p.State == procfs.Deadx.String() {
-
+		if exited {
 			extra += fmt.Sprintf(" %s end time: %s",
 				p.ShowExitInfo(),
 				time.Unix(int64(p.EndTime), 0).Format(time.RFC3339))
