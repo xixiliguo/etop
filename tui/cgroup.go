@@ -45,7 +45,6 @@ type Cgroup struct {
 	*tview.Flex
 	status             *tview.TextView
 	statuxText         string
-	noSelect           bool
 	regions            []string
 	currRegionIdx      int
 	header             *tview.TextView
@@ -63,6 +62,7 @@ type Cgroup struct {
 	visibleColumns     []string
 	visibleColumnsText []string
 	defaultOrder       string
+	lastExpand         map[uint64]bool
 	visbleData         []*model.Cgroup
 	source             *model.Model
 }
@@ -83,6 +83,7 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 		searchText:     "",
 		visibleColumns: CGROUPGENERALLAYOUT,
 		defaultOrder:   CGROUPGENERALDEFAULTORDER,
+		lastExpand:     make(map[uint64]bool),
 	}
 
 	cgroup.regions = []string{"g", "c", "m", "d", "n", "p", "v"}
@@ -105,7 +106,7 @@ func NewCgroup(status *tview.TextView) *Cgroup {
 			}
 			selected := cgroup.visbleData[row-1]
 			selected.IsExpand = !selected.IsExpand
-			cgroup.noSelect = true
+			cgroup.lastExpand[selected.Inode] = selected.IsExpand
 			cgroup.update()
 		}).
 		SetSelectionChangedFunc(func(row int, column int) {
@@ -309,6 +310,7 @@ func (cgroup *Cgroup) SetFilterRule(input string) error {
 
 func (cgroup *Cgroup) SetSource(s *model.Model) {
 	cgroup.source = s
+	cgroup.source.UseLastExpandInfo(cgroup.lastExpand)
 	cgroup.update()
 }
 
@@ -384,11 +386,6 @@ func (cgroup *Cgroup) update() {
 					SetAlign(tview.AlignLeft).
 					SetMaxWidth(width))
 		}
-	}
-
-	if cgroup.noSelect {
-		cgroup.noSelect = false
-		return
 	}
 	cgroup.refreshStatus()
 }

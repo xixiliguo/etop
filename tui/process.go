@@ -342,7 +342,9 @@ func (process *Process) refreshStatus() {
 }
 
 func (process *Process) update() {
+	row, column := process.processView.GetOffset()
 	process.processView.Clear()
+	process.processView.SetOffset(row, column)
 	title := "Process"
 	if process.searchText != "" {
 		title += " Filter: " + process.searchText

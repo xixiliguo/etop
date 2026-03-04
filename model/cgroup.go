@@ -789,6 +789,15 @@ func (c *Cgroup) GetChildCgroupByNames(names []string) *Cgroup {
 	return nil
 }
 
+func (c *Cgroup) UseLastExpandInfo(info map[uint64]bool) {
+	if v, ok := info[c.Inode]; ok {
+		c.IsExpand = v
+	}
+	for _, child := range c.Child {
+		child.UseLastExpandInfo(info)
+	}
+}
+
 func (c *Cgroup) Iterate(searchprogram *vm.Program, sortField string, descOrder bool) []*Cgroup {
 
 	isMatch := true
