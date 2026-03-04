@@ -318,7 +318,7 @@ func (process *Process) refreshStatus() {
 	if 0 <= idx && idx < len(process.visbleData) {
 		p := process.visbleData[idx]
 
-		extra := ""
+		extra := "cmdline: " + p.Comm
 		exited := p.State == procfs.Dead.String() || p.State == procfs.Deadx.String()
 		if p.CmdLine != "" {
 			extra = "cmdline: "
@@ -329,8 +329,6 @@ func (process *Process) refreshStatus() {
 			if exited {
 				extra += `"`
 			}
-		} else {
-			extra = "cmdline: <empty>"
 		}
 
 		if exited {
