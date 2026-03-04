@@ -389,6 +389,5 @@ func (process *Process) update() {
 					SetMaxWidth(width))
 		}
 	}
-	process.processView.SetOffset(0, 0)
 	process.refreshStatus()
 }

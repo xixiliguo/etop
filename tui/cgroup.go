@@ -390,6 +390,5 @@ func (cgroup *Cgroup) update() {
 		cgroup.noSelect = false
 		return
 	}
-	cgroup.cgroupView.SetOffset(0, 0)
 	cgroup.refreshStatus()
 }
