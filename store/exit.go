@@ -99,7 +99,7 @@ func (e *ExitProcess) Collect() {
 		e.Lock()
 		cmdByte := make([]byte, 0, 32)
 		sz := int(event.Cmdline[0])
-		for ; sz >= 1 && event.Cmdline[sz] == 0; sz-- {
+		for ; sz >= 1 && sz < 32 && event.Cmdline[sz] == 0; sz-- {
 		}
 
 		for i := 1; i < 32 && i <= sz; i++ {
@@ -109,7 +109,6 @@ func (e *ExitProcess) Collect() {
 				cmdByte = append(cmdByte, b)
 			}
 		}
-
 		e.Samples[int(event.Pid)] = ProcSample{
 			ProcStat: procfs.ProcStat{
 				PID:                 int(event.Pid),
