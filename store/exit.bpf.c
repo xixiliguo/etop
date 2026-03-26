@@ -7,7 +7,7 @@
 #include "bpf_tracing.h"
 
 #define TASK_COMM_LEN 16
-#define TASK_CMDLINE_LEN 32
+#define TASK_CMDLINE_LEN 64
 
 char __license[] SEC("license") = "Dual MIT/GPL";
 

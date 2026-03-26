@@ -19,7 +19,7 @@ type processEvent struct {
 	Ppid                int32
 	ExitCode            int64
 	Comm                [16]uint8
-	Cmdline             [32]uint8
+	Cmdline             [64]uint8
 	Utime               uint64
 	Stime               uint64
 	StartTime           uint64
