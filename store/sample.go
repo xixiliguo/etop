@@ -1,7 +1,6 @@
 package store
 
 import (
-	"errors"
 	"log/slog"
 	"os"
 	"time"
@@ -143,25 +142,24 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess, c *CgroupNetStat, log *s
 	err = newFS.EachProc(func(proc procfs.Proc) error {
 		p := ProcSample{}
 		var err error
-		var pathErr *os.PathError
-		if p.ProcStat, err = proc.Stat(); err != nil && !errors.As(err, &pathErr) {
+		if p.ProcStat, err = proc.Stat(); err != nil {
 
 			return err
 		}
-		if p.ProcIO, err = proc.IO(); err != nil && !errors.As(err, &pathErr) {
+		if p.ProcIO, err = proc.IO(); err != nil {
 
 			return err
 		}
-		if p.ProcSchedstat, err = proc.Schedstat(); err != nil && !errors.As(err, &pathErr) {
+		if p.ProcSchedstat, err = proc.Schedstat(); err != nil {
 
 			return err
 		}
-		if p.CmdLine, err = proc.CmdLine(); err != nil && !errors.As(err, &pathErr) {
+		if p.CmdLine, err = proc.CmdLine(); err != nil {
 
 			return err
 		}
 		if isCgroup2() {
-			if p.Cgroup, err = proc.Cgroup(); err != nil && !errors.As(err, &pathErr) {
+			if p.Cgroup, err = proc.Cgroup(); err != nil {
 				return err
 			}
 		}

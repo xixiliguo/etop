@@ -3,15 +3,16 @@ package cgroupfs
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"math"
 	"os"
+
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 	"golang.org/x/sys/unix"
 )
@@ -40,18 +41,18 @@ type Cgroup struct {
 
 func NewCgroup(fullPaht string, name string) Cgroup {
 	buf := make([]byte, 1024)
-	child := Cgroup{
+	cg := Cgroup{
 		FullPath: fullPaht,
 		Name:     name,
 		bufPtr:   &buf,
 	}
-	return child
+	return cg
 }
 
 func (c *Cgroup) Child(name string) Cgroup {
 	child := Cgroup{
 		FullPath: filepath.Join(c.FullPath, name),
-		Name:     name,
+		Name:     strings.Clone(name),
 		bufPtr:   c.bufPtr,
 	}
 	return child
@@ -69,6 +70,71 @@ func (c *Cgroup) path(file string) string {
 	return stringutil.ToString(*c.bufPtr)
 }
 
+func ignoringEINTR(fn func() error) error {
+	for {
+		err := fn()
+		if err != syscall.EINTR {
+			return err
+		}
+	}
+}
+
+func (c *Cgroup) processFile(name string, fn func(i int, line string) error) error {
+
+	var (
+		fd  int
+		err error
+	)
+
+	ignoringEINTR(func() error {
+		fd, err = unix.Open(name, unix.O_RDONLY|unix.O_CLOEXEC, 0)
+		return err
+	})
+
+	if err != nil {
+		return nil // fmt.Errorf("cgroup open %s: %+w", name, err)
+	}
+	defer unix.Close(fd)
+
+	*c.bufPtr = (*c.bufPtr)[:0]
+
+	for {
+		var (
+			n int
+			e error
+		)
+
+		ignoringEINTR(func() error {
+			n, e = unix.Read(fd, (*c.bufPtr)[len(*c.bufPtr):cap(*c.bufPtr)])
+			return e
+		})
+
+		if e != nil {
+			if e == io.EOF {
+				break
+			}
+			return nil // fmt.Errorf("cgroup read %s: %+w", name, e)
+		}
+		if n == 0 {
+			break
+		}
+		*c.bufPtr = (*c.bufPtr)[:len(*c.bufPtr)+n]
+		if len(*c.bufPtr) == cap(*c.bufPtr) {
+			*c.bufPtr = append(*c.bufPtr, 0)[:len(*c.bufPtr)]
+		}
+	}
+
+	i := 0
+	for sub := range bytes.FieldsFuncSeq(*c.bufPtr, func(r rune) bool { return r == '\n' || r == '\r' }) {
+		line := stringutil.ToString(sub)
+		if err := fn(i, line); err != nil {
+			return err
+		}
+		i++
+	}
+	return nil
+}
+
 func (c *Cgroup) Inode() (uint64, error) {
 
 	info, err := os.Stat(c.path(""))
@@ -82,8 +148,14 @@ func (c *Cgroup) Inode() (uint64, error) {
 func (c *Cgroup) Controllers() (string, error) {
 
 	fullPath := c.path("cgroup.controllers")
-	b, err := os.ReadFile(fullPath)
-	return string(bytes.TrimSpace(b)), err
+
+	var re string
+	err := c.processFile(fullPath, func(i int, line string) error {
+		re = string(bytes.TrimSpace(stringutil.ToByte(line)))
+		return nil
+	})
+
+	return re, err
 }
 
 type CgoupStat struct {
@@ -97,19 +169,15 @@ func (c *Cgroup) CgoupStat() (CgoupStat, error) {
 		NrDescendants:      math.MaxUint64,
 		NrDyingDescendants: math.MaxUint64,
 	}
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return stat, nil
-	}
-	defer f.Close()
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := c.processFile(fullPath, func(i int, line string) error {
 
 		var fields [2]string
 		nFields := stringutil.FieldsN(line, fields[:])
 		if nFields < 2 {
 			return fmt.Errorf("%s: unexpected line in cgroup.stat: '%s'", fullPath, line)
 		}
+		var err error
 		switch fields[0] {
 		case "nr_descendants":
 			stat.NrDescendants, err = strconv.ParseUint(fields[1], 10, 64)
@@ -121,6 +189,7 @@ func (c *Cgroup) CgoupStat() (CgoupStat, error) {
 		}
 		return nil
 	})
+
 	return stat, err
 }
 
@@ -149,19 +218,14 @@ func (c *Cgroup) CPUStat() (CPUStat, error) {
 		BurstUsec:     math.MaxUint64,
 	}
 
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return cpuStat, nil
-	}
-	defer f.Close()
-
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := c.processFile(fullPath, func(i int, line string) error {
 
 		var fields [2]string
 		nFields := stringutil.FieldsN(line, fields[:])
 		if nFields < 2 {
 			return fmt.Errorf("%s: unexpected line in cpu.stat: '%s'", fullPath, line)
 		}
+		var err error
 		switch fields[0] {
 		case "usage_usec":
 			cpuStat.UsageUsec, err = strconv.ParseUint(fields[1], 10, 64)
@@ -305,18 +369,14 @@ func (c *Cgroup) MemoryStat() (MemoryStat, error) {
 
 	fullPath := c.path("memory.stat")
 
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return memStat, nil
-	}
-	defer f.Close()
-
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := c.processFile(fullPath, func(i int, line string) error {
 		var fields [2]string
 		nFields := stringutil.FieldsN(line, fields[:])
 		if nFields < 2 {
 			return fmt.Errorf("%s: unexpected line in memory.stat: '%s'", fullPath, line)
 		}
+
+		var err error
 		switch fields[0] {
 		case "anon":
 			memStat.Anon, err = strconv.ParseUint(fields[1], 10, 64)
@@ -458,19 +518,15 @@ func (c *Cgroup) MemoryEvents() (MemoryEvents, error) {
 		SockThrottled: math.MaxUint64,
 	}
 
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return event, nil
-	}
-	defer f.Close()
-
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	c.processFile(fullPath, func(i int, line string) error {
 
 		var fields [2]string
 		nFields := stringutil.FieldsN(line, fields[:])
 		if nFields < 2 {
 			return fmt.Errorf("%s: unexpected line in memory.events: '%s'", fullPath, line)
 		}
+
+		var err error
 		switch fields[0] {
 		case "low":
 			event.Low, err = strconv.ParseUint(fields[1], 10, 64)
@@ -492,7 +548,7 @@ func (c *Cgroup) MemoryEvents() (MemoryEvents, error) {
 		}
 		return nil
 	})
-	return event, err
+	return event, nil
 }
 
 type IOStat struct {
@@ -511,13 +567,7 @@ func (c *Cgroup) IOStats() ([]IOStat, error) {
 
 	ioStats := []IOStat{}
 
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return ioStats, nil
-	}
-	defer f.Close()
-
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := c.processFile(fullPath, func(i int, line string) error {
 
 		var fields [7]string
 		nFields := stringutil.FieldsN(line, fields[:])
@@ -533,6 +583,7 @@ func (c *Cgroup) IOStats() ([]IOStat, error) {
 			Dios:   math.MaxUint64,
 		}
 
+		var err error
 		idx := strings.Index(fields[0], ":")
 		stat.Major, err = strconv.ParseUint(fields[0][:idx], 10, 64)
 		if err != nil {
@@ -599,13 +650,7 @@ func (c *Cgroup) PSIStats(file string) (PSIStats, error) {
 		},
 	}
 
-	f, err := os.Open(fullPath)
-	if err != nil {
-		return psi, nil
-	}
-	defer f.Close()
-
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := c.processFile(fullPath, func(i int, line string) error {
 
 		var fields [5]string
 		nFields := stringutil.FieldsN(line, fields[:])
@@ -623,6 +668,7 @@ func (c *Cgroup) PSIStats(file string) (PSIStats, error) {
 			return fmt.Errorf("%s: no some/full in %s: '%s'", fullPath, file, line)
 		}
 
+		var err error
 		for _, field := range fields[1:] {
 			idx := strings.Index(field, "=")
 			switch field[:idx] {
@@ -668,105 +714,103 @@ type Property struct {
 const MaxCgroupPropertyUintValue = math.MaxUint64 - 1
 const NoExistCgroupPropertyStrValue = "no-exist"
 
-func getUintFromPropertyFile(file string) (uint64, error) {
-	f, err := os.Open(file)
+func (c *Cgroup) getUintFromPropertyFile(file string) (uint64, error) {
+
+	var re uint64
+	err := c.processFile(file, func(i int, line string) error {
+		s := stringutil.ToString(bytes.TrimSpace(stringutil.ToByte(line)))
+		if s == "max" {
+			re = MaxCgroupPropertyUintValue
+			return nil
+		}
+		re, _ = strconv.ParseUint(line, 10, 64)
+		return nil
+	})
 	if err != nil {
 		return math.MaxUint64, nil
 	}
-	defer f.Close()
-	var buf [32]byte
-	n, err := f.Read(buf[:])
-	if err != nil {
-		return 0, err
-	}
-
-	line := stringutil.ToString(bytes.TrimSpace(buf[:n]))
-	if line == "max" {
-		return MaxCgroupPropertyUintValue, nil
-	}
-	return strconv.ParseUint(line, 10, 64)
+	return re, nil
 }
 
-func getStrFromPropertyFile(file string) (string, error) {
-	f, err := os.Open(file)
+func (c *Cgroup) getStrFromPropertyFile(file string) (string, error) {
+
+	re := ""
+	err := c.processFile(file, func(i int, line string) error {
+		re = string(bytes.TrimSpace(stringutil.ToByte(line)))
+		return nil
+	})
 	if err != nil {
 		return NoExistCgroupPropertyStrValue, nil
 	}
-	defer f.Close()
-	var buf [32]byte
-	n, err := f.Read(buf[:])
-	if err != nil {
-		return "", err
-	}
-	line := stringutil.ToString(bytes.TrimSpace(buf[:n]))
-	return strings.Clone(line), nil
+
+	return re, nil
 }
 
 func (c *Cgroup) Properties() (Property, error) {
 
 	p := Property{}
 	var err error
-	if p.MemoryCurrent, err = getUintFromPropertyFile(c.path("memory.current")); err != nil {
+	if p.MemoryCurrent, err = c.getUintFromPropertyFile(c.path("memory.current")); err != nil {
 		return p, err
 	}
-	if p.MemoryLow, err = getUintFromPropertyFile(c.path("memory.low")); err != nil {
+	if p.MemoryLow, err = c.getUintFromPropertyFile(c.path("memory.low")); err != nil {
 		return p, err
 	}
-	if p.MemoryHigh, err = getUintFromPropertyFile(c.path("memory.high")); err != nil {
+	if p.MemoryHigh, err = c.getUintFromPropertyFile(c.path("memory.high")); err != nil {
 		return p, err
 	}
-	if p.MemoryMin, err = getUintFromPropertyFile(c.path("memory.min")); err != nil {
+	if p.MemoryMin, err = c.getUintFromPropertyFile(c.path("memory.min")); err != nil {
 		return p, err
 	}
-	if p.MemoryMax, err = getUintFromPropertyFile(c.path("memory.max")); err != nil {
-		return p, err
-	}
-
-	if p.MemoryOOMGroup, err = getUintFromPropertyFile(c.path("memory.oom.group")); err != nil {
+	if p.MemoryMax, err = c.getUintFromPropertyFile(c.path("memory.max")); err != nil {
 		return p, err
 	}
 
-	if p.MemorySwapCurrent, err = getUintFromPropertyFile(c.path("memory.swap.current")); err != nil {
+	if p.MemoryOOMGroup, err = c.getUintFromPropertyFile(c.path("memory.oom.group")); err != nil {
 		return p, err
 	}
 
-	if p.MemorySwapMax, err = getUintFromPropertyFile(c.path("memory.swap.max")); err != nil {
+	if p.MemorySwapCurrent, err = c.getUintFromPropertyFile(c.path("memory.swap.current")); err != nil {
 		return p, err
 	}
 
-	if p.MemoryZSwapCurrent, err = getUintFromPropertyFile(c.path("memory.zswap.current")); err != nil {
+	if p.MemorySwapMax, err = c.getUintFromPropertyFile(c.path("memory.swap.max")); err != nil {
 		return p, err
 	}
 
-	if p.MemoryZSwapMax, err = getUintFromPropertyFile(c.path("memory.zswap.max")); err != nil {
+	if p.MemoryZSwapCurrent, err = c.getUintFromPropertyFile(c.path("memory.zswap.current")); err != nil {
 		return p, err
 	}
 
-	if p.CpuMax, err = getStrFromPropertyFile(c.path("cpu.max")); err != nil {
-		return p, err
-	}
-	if p.CpuWeight, err = getUintFromPropertyFile(c.path("cpu.weight")); err != nil {
+	if p.MemoryZSwapMax, err = c.getUintFromPropertyFile(c.path("memory.zswap.max")); err != nil {
 		return p, err
 	}
 
-	if p.CpuSetCpus, err = getStrFromPropertyFile(c.path("cpuset.cpus")); err != nil {
+	if p.CpuMax, err = c.getStrFromPropertyFile(c.path("cpu.max")); err != nil {
 		return p, err
 	}
-	if p.CpuSetCpusEffective, err = getStrFromPropertyFile(c.path("cpuset.cpus.effective")); err != nil {
-		return p, err
-	}
-
-	if p.CpuSetCpusExclusive, err = getStrFromPropertyFile(c.path("cpuset.cpus.exclusive")); err != nil {
-		return p, err
-	}
-	if p.CpuSetCpusExclusiveEffective, err = getStrFromPropertyFile(c.path("cpuset.cpus.exclusive.effective")); err != nil {
+	if p.CpuWeight, err = c.getUintFromPropertyFile(c.path("cpu.weight")); err != nil {
 		return p, err
 	}
 
-	if p.TidsCurrent, err = getUintFromPropertyFile(c.path("pids.current")); err != nil {
+	if p.CpuSetCpus, err = c.getStrFromPropertyFile(c.path("cpuset.cpus")); err != nil {
 		return p, err
 	}
-	if p.TidsMax, err = getUintFromPropertyFile(c.path("pids.max")); err != nil {
+	if p.CpuSetCpusEffective, err = c.getStrFromPropertyFile(c.path("cpuset.cpus.effective")); err != nil {
+		return p, err
+	}
+
+	if p.CpuSetCpusExclusive, err = c.getStrFromPropertyFile(c.path("cpuset.cpus.exclusive")); err != nil {
+		return p, err
+	}
+	if p.CpuSetCpusExclusiveEffective, err = c.getStrFromPropertyFile(c.path("cpuset.cpus.exclusive.effective")); err != nil {
+		return p, err
+	}
+
+	if p.TidsCurrent, err = c.getUintFromPropertyFile(c.path("pids.current")); err != nil {
+		return p, err
+	}
+	if p.TidsMax, err = c.getUintFromPropertyFile(c.path("pids.max")); err != nil {
 		return p, err
 	}
 

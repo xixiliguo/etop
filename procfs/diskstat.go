@@ -3,11 +3,9 @@ package procfs
 import (
 	"fmt"
 	"math"
-	"os"
 	"strconv"
 	"strings"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -64,16 +62,11 @@ func (fs FS) DiskStat() (DiskStat, error) {
 	diskStat := DiskStat{}
 
 	path := fs.path("diskstats")
-	f, err := os.Open(path)
-	if err != nil {
-		return diskStat, err
-	}
-	defer f.Close()
 
 	sysBlock := NewSysBlocFS("")
 	sysDisks := map[string]BlockDevStat{}
 
-	err = sysBlock.EachBlockDev(func(b BlockDev) error {
+	err := sysBlock.EachBlockDev(func(b BlockDev) error {
 		stat, err := b.BlockDevStat()
 		if err != nil {
 			return err
@@ -86,7 +79,7 @@ func (fs FS) DiskStat() (DiskStat, error) {
 		return diskStat, err
 	}
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err = fs.processFile(path, func(i int, line string) error {
 
 		var fields [20]string
 		nFields := stringutil.FieldsN(line, fields[:])

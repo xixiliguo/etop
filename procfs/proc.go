@@ -2,11 +2,9 @@ package procfs
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -143,14 +141,9 @@ func (p Proc) Stat() (ProcStat, error) {
 
 	path := p.path("stat")
 
-	f, err := os.Open(path)
-	if err != nil {
-		return ProcStat{}, err
-	}
-
 	s := ProcStat{PID: p.PID}
 
-	err = fileutil.ProcessFile(f, func(line string) error {
+	err := p.fs.processFile(path, func(i int, line string) error {
 		var (
 			l = strings.Index(line, "(")
 			r = strings.LastIndex(line, ")")
@@ -174,6 +167,7 @@ func (p Proc) Stat() (ProcStat, error) {
 		}
 
 		for fieldIdx, field := range fields {
+			var err error
 			switch fieldIdx {
 			case 2: // State
 				s.State = ProcState(field[0])
@@ -240,7 +234,6 @@ func (p Proc) Stat() (ProcStat, error) {
 		}
 		return nil
 	})
-
 	return s, err
 }
 
@@ -268,21 +261,16 @@ type ProcIO struct {
 func (p Proc) IO() (ProcIO, error) {
 
 	path := p.path("io")
-	f, err := os.Open(path)
-	if err != nil {
-		return ProcIO{}, err
-	}
-	defer f.Close()
 
 	pio := ProcIO{}
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
-
+	err := p.fs.processFile(path, func(i int, line string) error {
 		var fields [2]string
 		nFields := stringutil.FieldsN(line, fields[:])
 		if nFields < 2 {
 			return fmt.Errorf("pid %d: unexpected line in stat: '%s'", p.PID, line)
 		}
+		var err error
 		switch fields[0] {
 		case "rchar:":
 			pio.RChar, err = strconv.ParseUint(fields[1], 10, 64)
@@ -319,14 +307,10 @@ type ProcSchedstat struct {
 func (p Proc) Schedstat() (ProcSchedstat, error) {
 
 	path := p.path("schedstat")
-	f, err := os.Open(path)
-	if err != nil {
-		return ProcSchedstat{}, err
-	}
 
 	s := ProcSchedstat{}
 
-	err = fileutil.ProcessFile(f, func(line string) error {
+	err := p.fs.processFile(path, func(i int, line string) error {
 
 		var fields [3]string
 		nFields := stringutil.FieldsN(line, fields[:])
@@ -335,6 +319,7 @@ func (p Proc) Schedstat() (ProcSchedstat, error) {
 		}
 
 		for fieldIdx, field := range fields {
+			var err error
 			switch fieldIdx {
 			case 0: // RunningNanoseconds
 				s.RunningNanoseconds, err = strconv.ParseUint(field, 10, 64)
@@ -363,12 +348,9 @@ func (p Proc) Schedstat() (ProcSchedstat, error) {
 func (p Proc) Cgroup() (string, error) {
 
 	path := p.path("cgroup")
-	f, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
+
 	cgroup := ""
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := p.fs.processFile(path, func(i int, line string) error {
 		var fields [3]string
 		nFields := stringutil.SplitN(line, ":", fields[:])
 		if nFields < 3 {
@@ -382,19 +364,15 @@ func (p Proc) Cgroup() (string, error) {
 		}
 		return nil
 	})
-	return cgroup, nil
+	return cgroup, err
 }
 
 func (p Proc) CmdLine() (string, error) {
 
 	path := p.path("cmdline")
 
-	f, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
 	b := make([]byte, 0, 16)
-	err = fileutil.ProcessFile(f, func(line string) error {
+	err := p.fs.processFile(path, func(i int, line string) error {
 		last := len(line) - 1
 		for ; last >= 0 && line[last] == 0; last-- {
 		}
@@ -408,5 +386,5 @@ func (p Proc) CmdLine() (string, error) {
 		return nil
 	})
 
-	return string(b), nil
+	return string(b), err
 }

@@ -2,11 +2,9 @@ package procfs
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -167,14 +165,8 @@ func (fs FS) Stat() (Stat, error) {
 	}
 
 	path := fs.path("stat")
-	f, err := os.Open(path)
-	if err != nil {
-		return stat, err
-	}
-	defer f.Close()
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
-
+	err := fs.processFile(path, func(i int, line string) error {
 		var err error
 
 		var fields [12]string
@@ -230,6 +222,5 @@ func (fs FS) Stat() (Stat, error) {
 		}
 		return nil
 	})
-
 	return stat, err
 }

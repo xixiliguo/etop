@@ -2,10 +2,8 @@ package procfs
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -26,14 +24,8 @@ func (fs FS) VmStat() (VmStat, error) {
 	vmStat := VmStat{}
 
 	path := fs.path("vmstat")
-	f, err := os.Open(path)
-	if err != nil {
-		return vmStat, err
-	}
-	defer f.Close()
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
-
+	err := fs.processFile(path, func(i int, line string) error {
 		var fields [2]string
 		nFields := stringutil.FieldsN(line, fields[:])
 

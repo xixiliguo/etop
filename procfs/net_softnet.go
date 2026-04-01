@@ -3,10 +3,8 @@ package procfs
 import (
 	"fmt"
 	"math"
-	"os"
 	"strconv"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -36,14 +34,8 @@ func (fs FS) NetSoftnetStat() ([]SoftnetStat, error) {
 	softNetStats := []SoftnetStat{}
 
 	path := fs.path("net/softnet_stat")
-	f, err := os.Open(path)
-	if err != nil {
-		return softNetStats, err
-	}
-	defer f.Close()
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
-
+	err := fs.processFile(path, func(i int, line string) error {
 		softnetStat := SoftnetStat{
 			Processed:         math.MaxUint64,
 			Dropped:           math.MaxUint64,
@@ -84,5 +76,5 @@ func (fs FS) NetSoftnetStat() ([]SoftnetStat, error) {
 		return nil
 	})
 
-	return softNetStats, nil
+	return softNetStats, err
 }

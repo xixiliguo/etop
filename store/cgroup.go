@@ -3,10 +3,10 @@ package store
 import (
 	"errors"
 	"math"
-	"os"
 	"sync"
 
 	"github.com/xixiliguo/etop/cgroupfs"
+	"github.com/xixiliguo/etop/internal/fileutil"
 	"golang.org/x/sys/unix"
 )
 
@@ -108,20 +108,15 @@ func walkCgroupNode(level int, cg cgroupfs.Cgroup, c *CgroupNetStat) (CgroupSamp
 		}
 	}
 
-	es, err := os.ReadDir(CgroupV2MountPoint + cg.FullPath)
-	if err != nil {
-		return root, err
-	}
-
-	for _, e := range es {
-		if e.IsDir() {
-			child := cg.Child(e.Name())
-			childSample, err := walkCgroupNode(level+1, child, c)
-			if err != nil {
-				continue
-			}
-			root.Child[child.Name] = childSample
+	fileutil.SubDirWalk(CgroupV2MountPoint+cg.FullPath, func(subDir string) error {
+		child := cg.Child(subDir)
+		childSample, err := walkCgroupNode(level+1, child, c)
+		if err != nil {
+			return nil
 		}
-	}
+		root.Child[child.Name] = childSample
+		return nil
+	})
+
 	return root, nil
 }

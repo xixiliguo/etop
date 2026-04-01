@@ -2,10 +2,8 @@ package procfs
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -36,13 +34,8 @@ func (fs FS) NetProtocols() (NetProtocolStats, error) {
 	netPros := NetProtocolStats{}
 
 	path := fs.path("net/protocols")
-	f, err := os.Open(path)
-	if err != nil {
-		return netPros, err
-	}
-	defer f.Close()
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := fs.processFile(path, func(i int, line string) error {
 		netPro := NetProtocolStatLine{}
 		var fields [27]string
 		nFields := stringutil.FieldsN(line, fields[:])
@@ -60,5 +53,6 @@ func (fs FS) NetProtocols() (NetProtocolStats, error) {
 		netPros[netPro.Name] = netPro
 		return nil
 	})
+
 	return netPros, err
 }

@@ -2,10 +2,8 @@ package procfs
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -132,13 +130,8 @@ func (fs FS) Meminfo() (Meminfo, error) {
 	m := Meminfo{}
 
 	path := fs.path("meminfo")
-	f, err := os.Open(path)
-	if err != nil {
-		return m, err
-	}
-	defer f.Close()
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := fs.processFile(path, func(i int, line string) error {
 		var val uint64
 		var err error
 
@@ -265,6 +258,5 @@ func (fs FS) Meminfo() (Meminfo, error) {
 		}
 		return nil
 	})
-
 	return m, err
 }

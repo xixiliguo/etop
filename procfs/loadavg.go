@@ -15,10 +15,8 @@ package procfs
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -34,13 +32,8 @@ func (fs FS) Load() (LoadAvg, error) {
 	load := LoadAvg{}
 
 	path := fs.path("loadavg")
-	f, err := os.Open(path)
-	if err != nil {
-		return load, err
-	}
-	defer f.Close()
 
-	fileutil.ProcessFile(f, func(line string) error {
+	err := fs.processFile(path, func(i int, line string) error {
 		var fields [5]string
 
 		nFields := stringutil.FieldsN(line, fields[:])
@@ -55,5 +48,5 @@ func (fs FS) Load() (LoadAvg, error) {
 		return nil
 	})
 
-	return load, nil
+	return load, err
 }

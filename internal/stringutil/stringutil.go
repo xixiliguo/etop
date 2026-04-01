@@ -83,3 +83,7 @@ func SplitN(s, sep string, f []string) int {
 func ToString(b []byte) string {
 	return unsafe.String(unsafe.SliceData(b), len(b))
 }
+
+func ToByte(s string) []byte {
+	return unsafe.Slice(unsafe.StringData(s), len(s))
+}

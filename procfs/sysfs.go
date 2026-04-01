@@ -1,12 +1,13 @@
 package procfs
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -19,12 +20,14 @@ const (
 type SysBlockFS struct {
 	mountPoint string
 	bufName    []byte
+	bufData    []byte
 }
 
 func NewSysBlocFS(mount string) *SysBlockFS {
 	fs := &SysBlockFS{
 		mountPoint: DefaultSysBlockMountPoint,
-		bufName:    make([]byte, 0, 1024),
+		bufName:    make([]byte, 0, 64),
+		bufData:    make([]byte, 0, 1024),
 	}
 	if mount != "" {
 		fs.mountPoint = mount
@@ -69,6 +72,38 @@ func (fs *SysBlockFS) EachBlockDev(fn func(b BlockDev) error) error {
 	return nil
 }
 
+func (fs *SysBlockFS) processFile(name string, fn func(i int, line string) error) error {
+	f, err := os.Open(name)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	fs.bufData = fs.bufData[:0]
+	for {
+		n, err := f.Read(fs.bufData[len(fs.bufData):cap(fs.bufData)])
+		fs.bufData = fs.bufData[:len(fs.bufData)+n]
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		if len(fs.bufData) == cap(fs.bufData) {
+			fs.bufData = append(fs.bufData, 0)[:len(fs.bufData)]
+		}
+	}
+	i := 0
+	for sub := range bytes.FieldsFuncSeq(fs.bufData, func(r rune) bool { return r == '\n' || r == '\r' }) {
+		line := stringutil.ToString(sub)
+		if err := fn(i, line); err != nil {
+			return err
+		}
+		i++
+	}
+	return nil
+}
+
 type BlockDev struct {
 	Name string
 	fs   *SysBlockFS
@@ -95,12 +130,8 @@ func (b BlockDev) path(file string) string {
 func (b BlockDev) Scheduler() (string, error) {
 	path := b.path("queue/scheduler")
 	res := ""
-	f, err := os.Open(path)
-	if err != nil {
-		return res, err
-	}
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := b.fs.processFile(path, func(i int, line string) error {
 		if i == 0 {
 			var (
 				l = strings.Index(line, "[")
@@ -122,12 +153,8 @@ func (b BlockDev) NrRequests() (uint64, error) {
 
 	res := uint64(0)
 
-	f, err := os.Open(path)
-	if err != nil {
-		return res, err
-	}
-
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := b.fs.processFile(path, func(i int, line string) error {
+		var err error
 		if i == 0 {
 			res, err = strconv.ParseUint(line, 10, 64)
 			if err != nil {
@@ -144,12 +171,8 @@ func (b BlockDev) ReadAheadKb() (uint64, error) {
 
 	res := uint64(0)
 
-	f, err := os.Open(path)
-	if err != nil {
-		return res, err
-	}
-
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := b.fs.processFile(path, func(i int, line string) error {
+		var err error
 		if i == 0 {
 			res, err = strconv.ParseUint(line, 10, 64)
 			if err != nil {

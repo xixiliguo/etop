@@ -1,11 +1,16 @@
 package procfs
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
-	"os"
+	"io"
 	"strconv"
+	"syscall"
 
+	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -24,12 +29,14 @@ const userHZ = 100
 type FS struct {
 	mountPoint string
 	bufName    []byte
+	bufData    []byte
 }
 
 func NewFS(mount string) *FS {
 	fs := &FS{
 		mountPoint: DefaultProcMountPoint,
-		bufName:    make([]byte, 0, 1024),
+		bufName:    make([]byte, 0, 64),
+		bufData:    make([]byte, 0, 1024),
 	}
 	if mount != "" {
 		fs.mountPoint = mount
@@ -54,26 +61,84 @@ func (fs *FS) Proc(pid int) Proc {
 
 func (fs *FS) EachProc(fn func(proc Proc) error) error {
 
-	d, err := os.Open(fs.mountPoint)
-	if err != nil {
-		return err
-	}
-	defer d.Close()
+	return fileutil.SubDirWalk(fs.mountPoint, func(name string) error {
 
-	names, err := d.Readdirnames(-1)
-	if err != nil {
-		return fmt.Errorf("Cannot read file: %s: %w", fs.mountPoint, err)
-	}
-
-	for _, n := range names {
-		pid, err := strconv.ParseInt(n, 10, 64)
+		pid, err := strconv.ParseInt(name, 10, 64)
 		if err != nil {
-			continue
+			return nil
 		}
 		err = fn(Proc{PID: int(pid), fs: fs})
 		if err != nil {
+			if _, ok := errors.AsType[syscall.Errno](err); ok {
+				return nil
+			}
 			return err
 		}
+		return nil
+	})
+}
+
+func ignoringEINTR(fn func() error) error {
+	for {
+		err := fn()
+		if err != syscall.EINTR {
+			return err
+		}
+	}
+}
+
+func (fs *FS) processFile(name string, fn func(i int, line string) error) error {
+
+	var (
+		fd  int
+		err error
+	)
+
+	ignoringEINTR(func() error {
+		fd, err = unix.Open(name, unix.O_RDONLY|unix.O_CLOEXEC, 0)
+		return err
+	})
+
+	if err != nil {
+		return fmt.Errorf("fs open %s: %+w", name, err)
+	}
+	defer unix.Close(fd)
+
+	fs.bufData = fs.bufData[:0]
+
+	for {
+		var (
+			n int
+			e error
+		)
+
+		ignoringEINTR(func() error {
+			n, e = unix.Read(fd, fs.bufData[len(fs.bufData):cap(fs.bufData)])
+			return e
+		})
+
+		if e != nil {
+			if e == io.EOF {
+				break
+			}
+			return fmt.Errorf("fs read %s: %+w", name, e)
+		}
+		if n == 0 {
+			break
+		}
+		fs.bufData = fs.bufData[:len(fs.bufData)+n]
+		if len(fs.bufData) == cap(fs.bufData) {
+			fs.bufData = append(fs.bufData, 0)[:len(fs.bufData)]
+		}
+	}
+
+	i := 0
+	for sub := range bytes.FieldsFuncSeq(fs.bufData, func(r rune) bool { return r == '\n' || r == '\r' }) {
+		line := stringutil.ToString(sub)
+		if err := fn(i, line); err != nil {
+			return err
+		}
+		i++
 	}
 	return nil
 }

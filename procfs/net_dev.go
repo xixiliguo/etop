@@ -1,11 +1,9 @@
 package procfs
 
 import (
-	"os"
 	"strconv"
 	"strings"
 
-	"github.com/xixiliguo/etop/internal/fileutil"
 	"github.com/xixiliguo/etop/internal/stringutil"
 )
 
@@ -36,13 +34,8 @@ func (fs FS) NetDev() (NetDev, error) {
 	netDev := NetDev{}
 
 	path := fs.path("net/dev")
-	f, err := os.Open(path)
-	if err != nil {
-		return netDev, err
-	}
-	defer f.Close()
 
-	err = fileutil.ProcessFileLine(f, func(i int, line string) error {
+	err := fs.processFile(path, func(i int, line string) error {
 		var err error
 
 		var fields [17]string
