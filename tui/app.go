@@ -120,7 +120,7 @@ func (tui *TUI) initDetails() {
 			tui.status.Clear()
 			return nil
 		} else if event.Key() == tcell.KeyRune && event.Rune() == 'c' {
-			if len(tui.cgroup.visbleData) > 1 {
+			if tui.cgroup.source.Cgroup.FullPath != "" {
 				tui.detail.SwitchToPage("Cgroup")
 				tui.cgroup.refreshStatus()
 			}
