@@ -134,6 +134,7 @@ func (tui *TUI) initDetails() {
 				tui.status.Clear()
 				fmt.Fprintf(tui.status, "%s %s", fullPath, err)
 			} else {
+				tui.process.searchView.SetText(filterRule)
 				tui.detail.SwitchToPage("Process")
 				tui.process.update()
 			}
@@ -146,6 +147,7 @@ func (tui *TUI) initDetails() {
 				tui.status.Clear()
 				fmt.Fprintf(tui.status, "%s %s", name, err)
 			} else {
+				tui.cgroup.searchView.SetText(filterRule)
 				tui.detail.SwitchToPage("Cgroup")
 				tui.cgroup.update()
 			}
