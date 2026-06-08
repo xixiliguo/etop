@@ -91,12 +91,23 @@ var walkBufPool = sync.Pool{
 func SubDirWalk(path string, walkFunc func(subDir string) error) error {
 
 	var (
-		fd  int
-		err error
+		fd       int
+		err      error
+		byteName [1024]byte
 	)
 
 	ignoringEINTR(func() error {
-		fd, err = unix.Open(path, unix.O_RDONLY|unix.O_CLOEXEC, 0)
+		flags := unix.O_RDONLY | unix.O_CLOEXEC | unix.O_LARGEFILE
+		dirfd := int(unix.AT_FDCWD)
+		copy(byteName[:], path)
+		_p0 := &byteName[0]
+		r0, _, e1 := unix.Syscall6(unix.SYS_OPENAT, uintptr(dirfd),
+			uintptr(unsafe.Pointer(_p0)), uintptr(flags), 0, 0, 0)
+		fd = int(r0)
+		err = e1
+		if e1 == 0 {
+			err = nil
+		}
 		return err
 	})
 

@@ -607,6 +607,8 @@ func (local *LocalStore) WriteSample(s *Sample) (bool, error) {
 		} else {
 			local.zstdBuf = local.encDict.EncodeAll(marshalBytes, local.zstdBuf[:0])
 		}
+	} else {
+		local.zstdBuf = append(local.zstdBuf[:0], marshalBytes...)
 	}
 
 	if info, err := local.Data.Stat(); err != nil {

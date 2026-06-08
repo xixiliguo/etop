@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"unsafe"
 
 	"path/filepath"
 	"strconv"
@@ -82,12 +83,23 @@ func ignoringEINTR(fn func() error) error {
 func (c *Cgroup) processFile(name string, fn func(i int, line string) error) error {
 
 	var (
-		fd  int
-		err error
+		fd       int
+		err      error
+		byteName [1024]byte
 	)
 
 	ignoringEINTR(func() error {
-		fd, err = unix.Open(name, unix.O_RDONLY|unix.O_CLOEXEC, 0)
+		flags := unix.O_RDONLY | unix.O_CLOEXEC | unix.O_LARGEFILE
+		dirfd := int(unix.AT_FDCWD)
+		copy(byteName[:], name)
+		_p0 := &byteName[0]
+		r0, _, e1 := unix.Syscall6(unix.SYS_OPENAT, uintptr(dirfd),
+			uintptr(unsafe.Pointer(_p0)), uintptr(flags), 0, 0, 0)
+		fd = int(r0)
+		err = e1
+		if e1 == 0 {
+			err = nil
+		}
 		return err
 	})
 
