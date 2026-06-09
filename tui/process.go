@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/expr-lang/expr"
@@ -263,11 +262,7 @@ func (process *Process) SelectedCgroupName() string {
 		return ""
 	}
 	c := process.visbleData[row-1]
-	names := strings.Split(c.Cgroup, "/")
-	if len(names) > 0 {
-		return names[len(names)-1]
-	}
-	return ""
+	return c.Cgroup
 }
 
 func (process *Process) SetFilterRule(input string) error {
@@ -388,6 +383,10 @@ func (process *Process) update() {
 					SetAlign(tview.AlignLeft).
 					SetMaxWidth(width))
 		}
+	}
+	rowS, colS := process.processView.GetSelection()
+	if rowCount := process.processView.GetRowCount(); rowCount-1 < rowS {
+		process.processView.Select(rowCount-1, colS)
 	}
 	process.refreshStatus()
 }

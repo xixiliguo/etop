@@ -142,7 +142,7 @@ func (tui *TUI) initDetails() {
 		}
 		if name == "Process" && event.Rune() == 'z' {
 			name := tui.process.SelectedCgroupName()
-			filterRule := fmt.Sprintf("Name == %q", name)
+			filterRule := fmt.Sprintf("FullPath == %q", name)
 			if err := tui.cgroup.SetFilterRule(filterRule); err != nil {
 				tui.status.Clear()
 				fmt.Fprintf(tui.status, "%s %s", name, err)

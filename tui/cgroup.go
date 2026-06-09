@@ -387,5 +387,9 @@ func (cgroup *Cgroup) update() {
 					SetMaxWidth(width))
 		}
 	}
+	rowS, colS := cgroup.cgroupView.GetSelection()
+	if rowCount := cgroup.cgroupView.GetRowCount(); rowCount-1 < rowS {
+		cgroup.cgroupView.Select(rowCount-1, colS)
+	}
 	cgroup.refreshStatus()
 }

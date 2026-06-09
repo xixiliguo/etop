@@ -812,11 +812,7 @@ func (c *Cgroup) Iterate(searchprogram *vm.Program, sortField string, descOrder 
 	childs := c.sortChild(sortField, descOrder)
 	childReSult := []*Cgroup{}
 	for _, c := range childs {
-		if isMatch {
-			childReSult = append(childReSult, c.Iterate(nil, sortField, descOrder)...)
-		} else {
-			childReSult = append(childReSult, c.Iterate(searchprogram, sortField, descOrder)...)
-		}
+		childReSult = append(childReSult, c.Iterate(searchprogram, sortField, descOrder)...)
 	}
 
 	if !isMatch && len(childReSult) == 0 {
