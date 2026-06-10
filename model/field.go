@@ -92,6 +92,13 @@ func (f Field) Render(value any) string {
 			return strings.Join(v, " ")
 		}
 		buf = append(buf, strings.Join(v, " ")...)
+	case []uint64:
+		buf = append(buf, '[')
+		for i := range v {
+			buf = strconv.AppendUint(buf, v[i], 10)
+			buf = append(buf, ' ')
+			buf[len(buf)-1] = ']'
+		}
 	default:
 		return fmt.Sprintf("%T is unknown type", v)
 	}

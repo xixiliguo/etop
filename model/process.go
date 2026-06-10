@@ -3,6 +3,7 @@ package model
 import (
 	"math"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -32,20 +33,24 @@ var AllProcessFields = []string{"Pid", "Comm", "State", "Ppid", "NumThreads", "S
 	"MinFlt", "MajFlt", "VSize", "RSS", "Mem",
 	"ReadCharPerSec", "WriteCharPerSec",
 	"SyscRPerSec", "SyscWPerSec",
-	"ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk"}
+	"ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "Disk",
+	"NsTgid", "CpuAllowList", "MemAllowList"}
 
 type Process struct {
-	Pid        int
-	Comm       string
-	State      string
-	Ppid       int
-	NumThreads int
-	StartTime  uint64
-	EndTime    uint64
-	ExitCode   uint64
-	OnCPU      int
-	CmdLine    string
-	Cgroup     string
+	Pid          int
+	Comm         string
+	State        string
+	Ppid         int
+	NumThreads   int
+	StartTime    uint64
+	EndTime      uint64
+	ExitCode     uint64
+	OnCPU        int
+	CmdLine      string
+	Cgroup       string
+	NsTgid       []uint64
+	CpuAllowList string
+	MemAllowList string
 	PCPU
 	PMEM
 	PIO
@@ -298,6 +303,12 @@ func (p *Process) DefaultConfig(field string) Field {
 		cfg = Field{"CmdLine", Raw, 0, "", 10, false}
 	case "Cgroup":
 		cfg = Field{"Cgroup", Raw, 0, "", 50, false}
+	case "NsTgid":
+		cfg = Field{"NsTgid", Raw, 0, "", 10, false}
+	case "CpuAllowList":
+		cfg = Field{"CpuAllowList", Raw, 0, "", 10, false}
+	case "MemAllowList":
+		cfg = Field{"MemAllowList", Raw, 0, "", 10, false}
 	case "User", "System", "Priority", "Nice", "Policy", "CPU", "RunDelay", "BlkDelay":
 		return p.PCPU.DefaultConfig(field)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
@@ -352,6 +363,12 @@ func (p *Process) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(p.CmdLine)
 	case "Cgroup":
 		s = cfg.Render(p.Cgroup)
+	case "NsTgid":
+		s = cfg.Render(p.NsTgid)
+	case "CpuAllowList":
+		s = cfg.Render(p.CpuAllowList)
+	case "MemAllowList":
+		s = cfg.Render(p.MemAllowList)
 	case "User", "System", "Priority", "Nice", "Policy", "CPU", "RunDelay", "BlkDelay":
 		return p.PCPU.GetRenderValue(field, opt)
 	case "MinFlt", "MajFlt", "VSize", "RSS", "Mem":
@@ -467,6 +484,12 @@ func sortByField(res []*Process, sortField string, descOrder bool) {
 			return res[i].CancelledWriteBytePerSec > res[j].CancelledWriteBytePerSec
 		case "Disk":
 			return res[i].Disk > res[j].Disk
+		case "NsTgid":
+			return slices.Compare(res[i].NsTgid, res[j].NsTgid) == 1
+		case "CpuAllowList":
+			return res[i].CpuAllowList > res[j].CpuAllowList
+		case "MemAllowList":
+			return res[i].MemAllowList > res[j].MemAllowList
 		}
 		return false
 	})
@@ -551,21 +574,24 @@ func (processMap ProcessMap) Collect(prev, curr *store.Sample) (processes, threa
 		}
 
 		p := Process{
-			Pid:        new.PID,
-			Comm:       new.Comm[:],
-			State:      new.State.String(),
-			Ppid:       new.PPID,
-			NumThreads: new.NumThreads,
-			StartTime:  (bootTime + new.Starttime) / userHZ,
-			OnCPU:      new.Processor,
-			CmdLine:    new.CmdLine,
-			Cgroup:     new.Cgroup,
+			Pid:          new.PID,
+			Comm:         new.Comm[:],
+			State:        new.State.String(),
+			Ppid:         new.PPID,
+			NumThreads:   new.NumThreads,
+			StartTime:    (bootTime + new.Starttime) / userHZ,
+			OnCPU:        new.Processor,
+			CmdLine:      new.CmdLine,
+			Cgroup:       new.Cgroup,
+			NsTgid:       new.NStgid,
+			CpuAllowList: new.CpusAllowedList,
+			MemAllowList: new.MemsAllowedList,
 		}
 
 		if new.EndTime != 0 {
-			// exited process from ebpf have not cmdline info
-			// use old one
-			p.CmdLine = new.CmdLine
+			p.NsTgid = old.NStgid
+			p.CpuAllowList = old.CpusAllowedList
+			p.MemAllowList = old.MemsAllowedList
 			p.EndTime = (bootTime + new.EndTime) / userHZ
 			p.ExitCode = new.ExitCode
 		}

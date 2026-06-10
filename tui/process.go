@@ -21,6 +21,8 @@ var (
 	MEMDEFAULTORDER     = "Mem"
 	IOLAYOUT            = []string{"Comm", "Pid", "Disk", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "ReadCharPerSec", "WriteCharPerSec", "SyscRPerSec", "SyscWPerSec"}
 	IODEFAULTORDER      = "Disk"
+	MISCLAYOUT          = []string{"Comm", "NsTgid", "CpuAllowList", "MemAllowList", "Cgroup"}
+	MISCDEFAULTORDER    = "NsTgid"
 )
 
 type Process struct {
@@ -67,12 +69,13 @@ func NewProcess(status *tview.TextView) *Process {
 		defaultOrder:   GENERALDEFAULTORDER,
 	}
 
-	process.regions = []string{"g", "c", "m", "d"}
-	fmt.Fprintf(process.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
+	process.regions = []string{"g", "c", "m", "d", "i"}
+	fmt.Fprintf(process.header, `["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]  ["%s"]%s[""]`,
 		"g", "General",
 		"c", "CPU",
 		"m", "Mem",
-		"d", "I/O")
+		"d", "I/O",
+		"i", "Misc")
 	process.header.SetRegions(true).Highlight("g")
 
 	process.processView.
@@ -171,6 +174,8 @@ func (process *Process) setRegionAndSwitchView(region string) {
 		process.setVisibleColumns(MEMLAYOUT, MEMDEFAULTORDER)
 	case "d":
 		process.setVisibleColumns(IOLAYOUT, IODEFAULTORDER)
+	case "i":
+		process.setVisibleColumns(MISCLAYOUT, MISCDEFAULTORDER)
 	}
 	process.update()
 }

@@ -52,6 +52,7 @@ func (p PidMap) mergeWithExitProcess(e *ExitProcess) {
 
 type ProcSample struct {
 	procfs.ProcStat
+	procfs.ProcStatus
 	procfs.ProcIO
 	procfs.ProcSchedstat
 	CmdLine  string
@@ -143,6 +144,10 @@ func CollectSampleFromSys(s *Sample, exit *ExitProcess, c *CgroupNetStat, log *s
 		p := ProcSample{}
 		var err error
 		if p.ProcStat, err = proc.Stat(); err != nil {
+
+			return err
+		}
+		if p.ProcStatus, err = proc.Status(); err != nil {
 
 			return err
 		}

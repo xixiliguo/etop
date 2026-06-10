@@ -153,7 +153,7 @@ func (fs FS) Meminfo() (Meminfo, error) {
 				return fmt.Errorf("Unsupported unit in optional 3rd field in meminfo: %q", line)
 			}
 		default:
-			return fmt.Errorf("unexpected line in stat: '%s'", line)
+			return fmt.Errorf("unexpected line in memnifo: '%s'", line)
 		}
 
 		switch fields[0] {

@@ -268,7 +268,7 @@ func (p Proc) IO() (ProcIO, error) {
 		var fields [2]string
 		nFields := stringutil.FieldsN(line, fields[:])
 		if nFields < 2 {
-			return fmt.Errorf("pid %d: unexpected line in stat: '%s'", p.PID, line)
+			return fmt.Errorf("pid %d: unexpected line in io: '%s'", p.PID, line)
 		}
 		var err error
 		switch fields[0] {
@@ -387,4 +387,51 @@ func (p Proc) CmdLine() (string, error) {
 	})
 
 	return string(b), err
+}
+
+type ProcStatus struct {
+	NStgid          []uint64
+	CpusAllowedList string
+	MemsAllowedList string
+}
+
+// Stat returns the current status information of the process.
+func (p Proc) Status() (ProcStatus, error) {
+
+	path := p.path("status")
+
+	s := ProcStatus{}
+
+	err := p.fs.processFile(path, func(i int, line string) error {
+
+		var fields [2]string
+		nFields := stringutil.FieldsN(line, fields[:])
+		if nFields < 2 {
+			if fields[0] == "Groups:" {
+				return nil
+			}
+			return fmt.Errorf("pid %d: unexpected line in status: '%s'", p.PID, line)
+		}
+
+		var err error
+		switch fields[0] {
+		case "NStgid:":
+			for id := range strings.FieldsSeq(fields[1]) {
+				tgid, err := strconv.ParseUint(id, 10, 64)
+				if err != nil {
+					return err
+				}
+				s.NStgid = append(s.NStgid, tgid)
+			}
+		case "Cpus_allowed_list":
+			s.CpusAllowedList = strings.Clone(fields[1])
+		case "Mems_allowed_list:":
+			s.MemsAllowedList = strings.Clone(fields[1])
+		}
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return s, err
 }
