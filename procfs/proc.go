@@ -423,7 +423,7 @@ func (p Proc) Status() (ProcStatus, error) {
 				}
 				s.NStgid = append(s.NStgid, tgid)
 			}
-		case "Cpus_allowed_list":
+		case "Cpus_allowed_list:":
 			s.CpusAllowedList = strings.Clone(fields[1])
 		case "Mems_allowed_list:":
 			s.MemsAllowedList = strings.Clone(fields[1])
