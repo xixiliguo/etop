@@ -21,7 +21,7 @@ var (
 	MEMDEFAULTORDER     = "Mem"
 	IOLAYOUT            = []string{"Comm", "Pid", "Disk", "ReadBytePerSec", "WriteBytePerSec", "CancelledWriteBytePerSec", "ReadCharPerSec", "WriteCharPerSec", "SyscRPerSec", "SyscWPerSec"}
 	IODEFAULTORDER      = "Disk"
-	MISCLAYOUT          = []string{"Comm", "NsTgid", "CpuAllowList", "MemAllowList", "Cgroup"}
+	MISCLAYOUT          = []string{"Comm", "Pid", "NsTgid", "CpuAllowList", "MemAllowList", "Cgroup"}
 	MISCDEFAULTORDER    = "NsTgid"
 )
 
