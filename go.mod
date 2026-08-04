@@ -10,14 +10,14 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/klauspost/compress v1.18.4
 	github.com/mattn/go-runewidth v0.0.19
-	github.com/rivo/tview v0.42.0
+	github.com/rivo/tview v0.42.1-0.20260803113317-224d6b2c1b0e
 	github.com/urfave/cli/v2 v2.27.7
 	go.opentelemetry.io/otel v1.39.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.39.0
 	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.39.0
 	go.opentelemetry.io/otel/sdk v1.39.0
 	go.opentelemetry.io/otel/sdk/metric v1.39.0
-	golang.org/x/sys v0.40.0
+	golang.org/x/sys v0.42.0
 )
 
 require (

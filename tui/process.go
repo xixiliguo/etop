@@ -247,11 +247,6 @@ func (process *Process) InputHandler() func(event *tcell.EventKey, setFocus func
 				return
 			}
 
-			// fix loop if emplty data in table
-			if len(process.visbleData) == 0 {
-				return
-			}
-
 			if handler := process.processView.InputHandler(); handler != nil {
 				handler(event, setFocus)
 				return
