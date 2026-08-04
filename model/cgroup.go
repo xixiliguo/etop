@@ -383,6 +383,9 @@ func (c *Cgroup) GetRenderValue(field string, opt FieldOpt) string {
 		}
 		if c.Level == 0 {
 			s = "/"
+			if !c.IsExpand {
+				s = "+/"
+			}
 		}
 		if cfg.FixWidth {
 			pad := cfg.Width - runewidth.StringWidth(s)
