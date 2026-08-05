@@ -8,25 +8,29 @@ import (
 
 var content = `
 	t               - show next sample
-	<Shift>+t       - show preview sample
-	<F1>, <Alt>+1   - switch to process view
-	<F2>, <Alt>+2   - switch to system view
-	'b'             - open dialog to search specific sample
+	T               - show preview sample
+	p			    - switch to process view
+	s			    - switch to system view
+	c			    - switch to cgroup view
+	b               - open dialog to search specific sample
+	/               - show/hide filter for process/cgroup view
 
 process view:
-	's'             - show/hide sort view
-	'/'             - show/hide filter view
-	'g'             - show process-level general info
-	'c'             - show process-level cpu info
-	'm'             - show process-level memory info
-	'd'             - show process-level disk info
+	s               - show/hide sort
+	<Tab>           - switch sub category (genernal, cpu, memory etc)
+	<Shift>+<Tab>   - reverse switch
+	z               - zoom into cgroup view filtered by process
+	F               - toggle process tree mode
 
 system view:
-	'c'             - show system-level cpu info
-	'm'             - show system-level memory info
-	'v'             - show system-level vm info
-	'd'             - show system-level disk info
-	'n'             - show system-level network info
+	<Tab>           - switch sub category (cpu, memory, disk etc)
+	<Shift>+<Tab>   - reverse switch
+
+cgroup view:
+	<Tab>           - switch sub category (genernal, cpu, memory etc)
+	<Shift>+<Tab>   - reverse switch
+	<Enter>         - collapse/expand cgroup tree
+	z               - zoom into process view filtered by cgroup
 
 	Type 'ESC' to close
 `
