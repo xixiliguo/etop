@@ -12,7 +12,8 @@ import (
 
 var DefaultDiskFields = []string{
 	"Disk", "Util",
-	"ReadPerSec", "ReadBytePerSec", "WritePerSec", "WriteBytePerSec",
+	"ReadPerSec", "ReadBytePerSec", "ReadAvgIOSize", "ReadAvgWait",
+	"WritePerSec", "WriteBytePerSec", "WriteAvgIOSize", "WriteAvgWait",
 	"AvgIOSize", "AvgQueueLen", "InFlight", "AvgIOWait", "AvgIOTime",
 }
 
@@ -73,12 +74,20 @@ func (d *Disk) DefaultConfig(field string) Field {
 		cfg = Field{"Read/s", Raw, 0, "/s", 10, false}
 	case "ReadBytePerSec":
 		cfg = Field{"ReadByte/s", HumanReadableSize, 1, "/s", 10, false}
+	case "ReadAvgIOSize":
+		cfg = Field{"ReadAvgIOSize", HumanReadableSize, 1, "", 10, false}
+	case "ReadAvgWait":
+		cfg = Field{"ReadAvgWait", Raw, 1, " ms", 10, false}
 	case "Write":
 		cfg = Field{"Write", Raw, 0, "", 10, false}
 	case "WritePerSec":
 		cfg = Field{"Write/s", Raw, 0, "/s", 10, false}
 	case "WriteBytePerSec":
 		cfg = Field{"WriteByte/s", HumanReadableSize, 1, "/s", 10, false}
+	case "WriteAvgIOSize":
+		cfg = Field{"WriteAvgIOSize", HumanReadableSize, 1, "", 10, false}
+	case "WriteAvgWait":
+		cfg = Field{"WriteAvgWait", Raw, 1, " ms", 10, false}
 	case "AvgIOSize":
 		cfg = Field{"AvgIOSize", HumanReadableSize, 1, "", 10, false}
 	case "AvgQueueLen":
@@ -117,12 +126,20 @@ func (d *Disk) GetRenderValue(field string, opt FieldOpt) string {
 		s = cfg.Render(d.ReadPerSec)
 	case "ReadBytePerSec":
 		s = cfg.Render(d.ReadBytePerSec)
+	case "ReadAvgIOSize":
+		s = cfg.Render(d.ReadAvgIOSize)
+	case "ReadAvgWait":
+		s = cfg.Render(d.ReadAvgWait)
 	case "Write":
 		s = cfg.Render(d.WriteIOs)
 	case "WritePerSec":
 		s = cfg.Render(d.WritePerSec)
 	case "WriteBytePerSec":
 		s = cfg.Render(d.WriteBytePerSec)
+	case "WriteAvgIOSize":
+		s = cfg.Render(d.WriteAvgIOSize)
+	case "WriteAvgWait":
+		s = cfg.Render(d.WriteAvgWait)
 	case "AvgIOSize":
 		s = cfg.Render(d.AvgIOSize)
 	case "AvgQueueLen":
